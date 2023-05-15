@@ -80,6 +80,9 @@ DATABASES = {
         "PASSWORD": "password",
         "HOST": "localhost",
         "PORT": "5432",
+        "TEST": {
+            "NAME": "wildberries_parser_1",
+        },
     }
 }
 

@@ -1,2 +1,2 @@
-from .base_page import BasePage
 from .item_page import ItemPage
+from .main_page import MainPage

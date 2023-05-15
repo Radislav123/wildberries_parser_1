@@ -1,14 +1,11 @@
 from selenium.webdriver import Chrome
 
 from elements import ExtendedWebElement
-from pages import BasePage
+from pages.wildberries_page import WildberriesPage
 
 
 # page_url = https://www.wildberries.ru/catalog/110565259/detail.aspx
-class ItemPage(BasePage):
-    def __init__(self, driver: Chrome, url: str):
-        super().__init__(driver, url)
+class ItemPage(WildberriesPage):
+    def __init__(self, driver: Chrome) -> None:
+        super().__init__(driver)
         self.vendor_code = ExtendedWebElement(self, '//span[@id = "productNmId"]')
-
-    def open(self):
-        self.driver.get(self.url)
