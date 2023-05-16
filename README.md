@@ -1,7 +1,11 @@
 # Разное
 
 1) запуск сервера - `python manage.py runserver`
-2) запуск парсера - `python manage.py test --keepdb`
+2) запуск парсера - `python run.py`
+    1) чтобы только проверить, что выбираются нужные тесты - `python run.py --collect-only`
+    2) в конце команды можно добавлять любые аргументы `pytest`
+        1) они перезапишут те, что определены в [*parser_project/project_settings.py*](parser_project/project_settings.py) `PYTEST_ARGS`
+        2) пример - `python run.py --collect-only`
 3) пока что нет функционала запуска парсера при рабочем сервере => нужно остановить сервер, запустить парсер, снова запустить сервер
 4) создание пользователя для административной панели - `python manage.py createsuperuser`
     1) перед созданием пользователя необходимо выполнить миграцию - `python manage.py migrate`
@@ -20,12 +24,7 @@
 
 # Секреты
 
-1) почта [*Рамблер*](https://www.rambler.ru/)
-    1) логин и пароль - [*secrets/mail/credentials.txt*](secrets/mail/credentials.txt)
-2) сервис [*SMS-Activate*](https://sms-activate.org/) - виртуальные сим-карты
-    1) логин и пароль - [*secrets/sms_activate/credentials.txt*](secrets/sms_activate/credentials.txt)
-    2) api-ключ - [*secrets/sms_activate/api_key.txt*](secrets/sms_activate/api_key.txt)
-3) [*Wildberries*](https://www.wildberries.ru/)
+1) [*Wildberries*](https://www.wildberries.ru/)
     1) cookie для авторизации - [*secrets/wildberries/auth_cookie.txt*](secrets/wildberries/auth_cookie.txt)
 
 

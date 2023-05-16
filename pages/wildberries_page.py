@@ -6,7 +6,7 @@ from .base_page import BasePage
 
 
 if TYPE_CHECKING:
-    from parser.tests.test import SecretKeeper
+    from parser.wildberries_parser import SecretKeeper
 
 
 # page_url = https://www.wildberries.ru/
