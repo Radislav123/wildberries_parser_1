@@ -5,7 +5,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.expected_conditions import element_to_be_clickable, presence_of_element_located
 from selenium.webdriver.support.wait import WebDriverWait
 
-from parser_project import parser_settings
+from parser_project import project_settings
 
 
 if TYPE_CHECKING:
@@ -18,7 +18,7 @@ class ExtendedWebElement:
         self.driver = page.driver
 
         self.xpath = xpath
-        self.wait = WebDriverWait(self.driver, parser_settings.DEFAULT_TIMEOUT)
+        self.wait = WebDriverWait(self.driver, project_settings.DEFAULT_TIMEOUT)
         self.initialized = False
         self.selenium_element: None | WebElement = None
 
