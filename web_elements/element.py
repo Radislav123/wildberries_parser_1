@@ -19,19 +19,33 @@ class ExtendedWebElement:
 
         self.xpath = xpath
         self.wait = WebDriverWait(self.driver, project_settings.DEFAULT_TIMEOUT)
-        self.initialized = False
-        self.selenium_element: None | WebElement = None
+        self.initialized: dict[Callable, bool] = {}
+        self._selenium_element: None | WebElement = None
+
+    def reset(self) -> None:
+        """Сбрасывает состояние объекта к первоначальному."""
+
+        self.initialized = {}
+        self._selenium_element = None
+
+    def init_if_necessary(self, wait_condition: Callable = presence_of_element_located) -> None:
+        if wait_condition not in self.initialized or not self.initialized[wait_condition]:
+            self.init(wait_condition)
 
     def init(self, wait_condition: Callable = presence_of_element_located) -> None:
         """Находит элемент в DOM-структуре страницы."""
 
-        self.selenium_element = self.wait.until(wait_condition((By.XPATH, self.xpath)))
-        self.initialized = True
+        self._selenium_element = self.wait.until(wait_condition((By.XPATH, self.xpath)))
+        self.initialized[wait_condition] = True
+
+    @property
+    def selenium_element(self) -> WebElement:
+        self.init_if_necessary()
+        return self._selenium_element
 
     @property
     def text(self) -> str:
-        if not self.initialized:
-            self.init()
+        self.init_if_necessary()
         return self.selenium_element.text
 
     def click(self) -> None:
@@ -39,6 +53,9 @@ class ExtendedWebElement:
         return self.selenium_element.click()
 
     def send_keys(self, value: str) -> None:
-        if not self.initialized:
-            self.init()
+        self.init_if_necessary()
         return self.selenium_element.send_keys(value)
+
+    def get_attribute(self, name) -> str:
+        self.init_if_necessary()
+        return self.selenium_element.get_attribute(name)

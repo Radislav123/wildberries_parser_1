@@ -35,3 +35,12 @@ class BasePage:
                 url += f"{parameter_name}={parameters[parameter_name]}&"
             url = url[:-1]
         return url
+
+    def scroll(self, x_offset, y_offset):
+        self.driver.execute_script(f"window.scrollBy({x_offset}, {y_offset});")
+
+    def scroll_up(self, offset):
+        self.scroll(0, -offset)
+
+    def scroll_down(self, offset):
+        self.scroll(0, offset)

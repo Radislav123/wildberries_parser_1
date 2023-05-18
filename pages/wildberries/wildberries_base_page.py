@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from selenium.webdriver import Chrome
 
-from .base_page import BasePage
+from ..base_page import BasePage
 
 
 if TYPE_CHECKING:

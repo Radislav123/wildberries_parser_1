@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -8,6 +9,12 @@ def read_file(path: str) -> list[str]:
     return data
 
 
+def read_json(path: str) -> list[dict[str, str | list[str]]]:
+    with open(path, 'r', encoding = "utf-8") as file:
+        data = json.load(file)
+    return data
+
+
 PROJECT_ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 # Настройки selenium
@@ -15,8 +22,12 @@ DEFAULT_TIMEOUT = 5
 
 # Данные для парсинга
 PARSER_DATA_FOLDER = "parser_data"
-CITIES_TO_PARSE_PATH = f"{PARSER_DATA_FOLDER}/cities.txt"
-CITIES_TO_PARSE = read_file(CITIES_TO_PARSE_PATH)
+
+CITIES_PATH = f"{PARSER_DATA_FOLDER}/cities.json"
+CITIES = read_json(CITIES_PATH)
+
+PRODUCTS_PATH = f"{PARSER_DATA_FOLDER}/products.json"
+PRODUCTS = read_json(PRODUCTS_PATH)
 
 # Пути секретов
 SECRETS_FOLDER = "secrets"

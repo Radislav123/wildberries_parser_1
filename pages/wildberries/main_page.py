@@ -4,8 +4,8 @@ from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-from elements import ExtendedWebElement
-from pages.wildberries_page import WildberriesPage
+from web_elements import ExtendedWebElement
+from .wildberries_base_page import WildberriesPage
 
 
 # page_url = https://www.wildberries.ru/
