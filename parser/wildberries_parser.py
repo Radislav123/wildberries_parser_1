@@ -133,9 +133,9 @@ class WildberriesParser:
         response = requests.get(url)
         data = response.json()["data"]["products"][0]["extended"]
         personal_sale = int(data["clientSale"])
-        cost_before_personal_sale = int(data["basicPriceU"]) / 100
+        cost = int(data["basicPriceU"]) / 100
         cost_final = int(data["clientPriceU"]) / 100
-        return personal_sale, cost_before_personal_sale, cost_final
+        return personal_sale, cost, cost_final
 
     # не использовать эту фикстуру - с ней не сохраняются объекты в БД
     # @pytest.mark.django_db
@@ -145,7 +145,7 @@ class WildberriesParser:
         main_page.authorize_and_open(self.secrets.wildberries_auth)
         items = self.parse_positions(city)
         for item in items:
-            item.personal_sale, item.cost_before_personal_sale, item.cost_final = self.parse_other_data(
+            item.personal_sale, item.cost, item.cost_final = self.parse_other_data(
                 item.vendor_code,
                 city
             )
