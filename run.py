@@ -3,7 +3,10 @@ import copy
 import sys
 
 import pytest
+from django.contrib.auth import get_user_model
 
+# noinspection PyUnresolvedReferences
+import configure_django
 from logger import Logger
 from parser_project import project_settings
 
@@ -23,8 +26,11 @@ class Runner:
         self.pytest(pytest_options)
         self.after_pytest()
 
-    def before_pytest(self):
-        pass
+    @staticmethod
+    def before_pytest():
+        user = get_user_model()
+        if not user.objects.filter(username = "admin").exists():
+            user.objects.create_superuser("admin", "", "admin")
 
     def after_pytest(self):
         pass

@@ -6,10 +6,11 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from pages import MainPage, SearchResultsPage
 from parser_project import project_settings
+from . import models
 
 
 City = dict[str, str]
-Product = dict[str, str | list[str]]
+Item = dict[str, str | list[str]]
 
 
 class SecretKeeper:
@@ -75,16 +76,18 @@ class WildberriesParser:
         while not found and items_number > len(search_results_page.items):
             for number, item in enumerate(search_results_page.items[checked_items:], checked_items + 1):
                 checked_items += 1
+                # ожидание прогрузки
+                item.init(item.WaitCondition.VISIBLE)
                 item_id = int(item.get_attribute("data-nm-id"))
                 if item_id == vendor_code:
                     position = number
                     found = True
                     break
-            search_results_page.scroll_down(1000)
-            search_results_page.items.initialized = False
+            search_results_page.scroll_down(100)
+            search_results_page.items.reset()
         return position
 
-    def find_position(self, keyword: str, city: City, product: Product) -> int:
+    def find_position(self, keyword: str, city: City, product: Item) -> None | int:
         """Находит позицию товара в выдаче поиска по ключевому слову среди всех страниц."""
 
         try:
@@ -105,23 +108,45 @@ class WildberriesParser:
                     position += len(page_vendor_codes)
         except KeyError as error:
             if "data" in error.args:
-                # если возвращаемая позиция == -1 => товар не был найден по данному ключевому слову
-                position = -1
+                # если возвращаемая позиция == None => товар не был найден по данному ключевому слову
+                position = None
             else:
                 raise error
         return position
 
+    def parse_positions(self, city: dict[str, str | list[str]]) -> list[models.Item]:
+        items = []
+        for item in project_settings.ITEMS:
+            for keyword in item["keywords"]:
+                items.append(
+                    models.Item(
+                        vendor_code = item["vendor_code"],
+                        position = self.find_position(keyword, city, item)
+                    )
+                )
+        return items
+
+    @staticmethod
+    def parse_other_data(vendor_code: int, city: dict[str, str]) -> tuple[int, float, float]:
+        url = f"https://card.wb.ru/cards/detail?appType=1&curr=rub&dest={city['dest']}" \
+              f"&regions={city['regions']}&spp={city['spp']}&nm={vendor_code}"
+        response = requests.get(url)
+        data = response.json()["data"]["products"][0]["extended"]
+        personal_sale = int(data["clientSale"])
+        cost_before_personal_sale = int(data["basicPriceU"]) / 100
+        cost_final = int(data["clientPriceU"]) / 100
+        return personal_sale, cost_before_personal_sale, cost_final
+
+    # не использовать эту фикстуру - с ней не сохраняются объекты в БД
+    # @pytest.mark.django_db
     @pytest.mark.parametrize("city", project_settings.CITIES)
-    def run(self, city: dict[str, str | list[str]]):
+    def run(self,  city: dict[str, str | list[str]]) -> None:
         main_page = MainPage(self.driver)
         main_page.authorize_and_open(self.secrets.wildberries_auth)
-        # todo: return line
-        # main_page.set_city(city)
-
-        for product in project_settings.PRODUCTS:
-            for keyword in product["keywords"]:
-                # todo: rewrite it
-                position = self.find_position(keyword, city, product)
-                print("----------------------------")
-                print(position)
-                print("----------------------------")
+        items = self.parse_positions(city)
+        for item in items:
+            item.personal_sale, item.cost_before_personal_sale, item.cost_final = self.parse_other_data(
+                item.vendor_code,
+                city
+            )
+            item.save()

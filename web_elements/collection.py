@@ -32,11 +32,9 @@ class ExtendedWebElementCollection:
         return len(self.elements)
 
     def __getitem__(self, index) -> ExtendedWebElement:
-        self.init_if_necessary()
         return self.elements[index]
 
     def __iter__(self) -> ExtendedWebElement:
-        self.init_if_necessary()
         for element in self.elements:
             yield element
 

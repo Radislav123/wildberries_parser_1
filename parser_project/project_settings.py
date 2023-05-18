@@ -26,8 +26,8 @@ PARSER_DATA_FOLDER = "parser_data"
 CITIES_PATH = f"{PARSER_DATA_FOLDER}/cities.json"
 CITIES = read_json(CITIES_PATH)
 
-PRODUCTS_PATH = f"{PARSER_DATA_FOLDER}/products.json"
-PRODUCTS = read_json(PRODUCTS_PATH)
+ITEMS_PATH = f"{PARSER_DATA_FOLDER}/items.json"
+ITEMS = read_json(ITEMS_PATH)
 
 # Пути секретов
 SECRETS_FOLDER = "secrets"

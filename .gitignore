@@ -6,3 +6,6 @@ temp*
 
 # логи
 logs/
+
+# миграции БД
+migrations/
