@@ -1,5 +1,8 @@
+import time
+
 import pytest
 import requests
+from requests.exceptions import JSONDecodeError
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -63,10 +66,10 @@ class WildberriesParser:
     def teardown_method(self):
         self.driver.quit()
 
-    def find_position_on_page(self, items_number: int, vendor_code: int, keyword: str) -> int:
+    def find_position_on_page(self, items_number: int, vendor_code: int, keyword: models.Keyword) -> int:
         """Находит позицию товара на конкретной странице."""
 
-        search_results_page = SearchResultsPage(self.driver, keyword)
+        search_results_page = SearchResultsPage(self.driver, keyword.value)
         search_results_page.open()
         checked_items = 0
         found = False
@@ -87,7 +90,7 @@ class WildberriesParser:
             search_results_page.items.reset()
         return position
 
-    def find_position(self, keyword: str, city: City, product: Item) -> None | int:
+    def find_position(self, city_dict: City, vendor_code: int, keyword: models.Keyword) -> models.Position:
         """Находит позицию товара в выдаче поиска по ключевому слову среди всех страниц."""
 
         try:
@@ -95,13 +98,18 @@ class WildberriesParser:
             position = 0
             while page:
                 # noinspection SpellCheckingInspection
-                url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub&dest={city['dest']}" \
-                      f"&page={page}&query={keyword}&regions={city['regions']}&resultset=catalog&sort=popular" \
-                      f"&spp={city['spp']}&suppressSpellcheck=false"
+                url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub" \
+                      f"&dest={city_dict['dest']}&page={page}&query={keyword.value}&regions={city_dict['regions']}" \
+                      f"&resultset=catalog&sort=popular&spp={city_dict['spp']}&suppressSpellcheck=false"
                 response = requests.get(url)
-                page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
-                if int(product["vendor_code"]) in page_vendor_codes:
-                    position += self.find_position_on_page(len(page_vendor_codes), int(product["vendor_code"]), keyword)
+                try:
+                    page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
+                except JSONDecodeError:
+                    # еще одна попытка
+                    time.sleep(1)
+                    page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
+                if vendor_code in page_vendor_codes:
+                    position += self.find_position_on_page(len(page_vendor_codes), vendor_code, keyword)
                     break
                 else:
                     page += 1
@@ -112,41 +120,36 @@ class WildberriesParser:
                 position = None
             else:
                 raise error
-        return position
-
-    def parse_positions(self, city: dict[str, str | list[str]]) -> list[models.Item]:
-        items = []
-        for item in project_settings.ITEMS:
-            for keyword in item["keywords"]:
-                items.append(
-                    models.Item(
-                        vendor_code = item["vendor_code"],
-                        position = self.find_position(keyword, city, item)
-                    )
-                )
-        return items
+        return models.Position(keyword = keyword, value = position)
 
     @staticmethod
-    def parse_other_data(vendor_code: int, city: dict[str, str]) -> tuple[int, float, float]:
+    def parse_other_data(vendor_code: int, city: City) -> tuple[float, float, int]:
         url = f"https://card.wb.ru/cards/detail?appType=1&curr=rub&dest={city['dest']}" \
               f"&regions={city['regions']}&spp={city['spp']}&nm={vendor_code}"
         response = requests.get(url)
         data = response.json()["data"]["products"][0]["extended"]
-        personal_sale = int(data["clientSale"])
         cost = int(data["basicPriceU"]) / 100
         cost_final = int(data["clientPriceU"]) / 100
-        return personal_sale, cost, cost_final
+        personal_sale = int(data["clientSale"])
+        return cost, cost_final, personal_sale
 
-    # не использовать эту фикстуру - с ней не сохраняются объекты в БД
+    # не использовать эту метку - с ней не сохраняются объекты в БД
     # @pytest.mark.django_db
-    @pytest.mark.parametrize("city", project_settings.CITIES)
-    def run(self,  city: dict[str, str | list[str]]) -> None:
+    @pytest.mark.parametrize("city_dict", project_settings.CITIES)
+    def run(self, city_dict: City) -> None:
         main_page = MainPage(self.driver)
         main_page.authorize_and_open(self.secrets.wildberries_auth)
-        items = self.parse_positions(city)
-        for item in items:
-            item.personal_sale, item.cost, item.cost_final = self.parse_other_data(
-                item.vendor_code,
-                city
-            )
+        for item_dict in project_settings.ITEMS:
+            cost, cost_final, personal_sale = self.parse_other_data(item_dict["vendor_code"], city_dict)
+            item = models.Item.objects.get_or_create(
+                vendor_code = item_dict["vendor_code"],
+                cost = cost,
+                cost_final = cost_final,
+                personal_sale = personal_sale
+            )[0]
             item.save()
+            keywords = [models.Keyword.objects.get_or_create(item = item, value = x)[0] for x in item_dict["keywords"]]
+            for keyword in keywords:
+                keyword.save()
+                position = self.find_position(city_dict, item.vendor_code, keyword)
+                position.save()

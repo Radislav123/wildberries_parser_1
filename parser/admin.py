@@ -52,19 +52,28 @@ def download_excel(admin_model: ProjectAdmin, request, queryset) -> HttpResponse
 
 class ItemAdmin(ProjectAdmin):
     model = models.Item
-    list_display = ("vendor_code", "position", "cost", "cost_final", "personal_sale", "parse_time")
+    list_display = ("vendor_code", "cost", "cost_final", "personal_sale", "last_update")
+    # todo: remove line?
     actions = (download_excel,)
 
 
+class KeywordAdmin(ProjectAdmin):
+    model = models.Keyword
+    list_display = ("item", "value")
+
+
+class PositionAdmin(ProjectAdmin):
+    model = models.Position
+    list_display = ("keyword", "value", "parse_time")
+
+
 def register_models():
-    admin_models = (ItemAdmin,)
-    registered_models = []
+    models_with_admin_page = ProjectAdmin.__subclasses__()
 
-    for admin_model in admin_models:
+    for admin_model in models_with_admin_page:
         admin.site.register(admin_model.model, admin_model)
-        registered_models.append(admin_model.model)
 
-    for model in [x for x in models.ProjectModel.__subclasses__() if x not in registered_models]:
+    for model in [x for x in models.ProjectModel.__subclasses__() if x not in [y.model for y in models_with_admin_page]]:
         admin.site.register(model)
 
 
