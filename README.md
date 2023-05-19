@@ -69,24 +69,23 @@
 2) установить [*PostgreSQL 15*](https://www.postgresql.org/)
 3) установить [*git*](https://git-scm.com/downloads)
 4) скачать проект
-    1) `git clone link`
-    2) todo: вставить ссылку на скачивание с временным ключом
-    3) подготовить проект
+    1) `git clone https://github.com/Radislav123/wildberries_parser_1.git`
+    2) подготовить проект
         1) заполнить файлы, описанные в пункте [*Заполнение входных данных парсера*](#заполнение-входных-данных-парсера)
         2) заполнить файлы, описанные в пункте [*Секреты*](#секреты)
         3) выполнить
-        ```commandline
-        python install -r requirements.txt
-        python manage.py makemigrations parser
-        python manage.py migrate
-        ```
+            ```commandline
+            python install -r requirements.txt
+            python manage.py makemigrations parser
+            python manage.py migrate
+            ```
         4) запустить парсер вручную первый раз (первые полученные данные могут быть неверными)
             1) `python run.py`
         5) [*настроить периодический запуск парсера*](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10)
             1) программа - `python` (19 пункт)
             2) аргументы - `run.py` (20 пункт)
             3) папка - папка с проектом (21 пункт)
-    4) запустить локальный сервер - `python manage.py runserver`
+    3) запустить локальный сервер - `python manage.py runserver`
         1) если надо запустить фоново - `START /B python manage.py runserver`
         2) запуск сервера необходим для доступа к [*административной панели*](http://127.0.0.1:8000/admin/)
         3) сервер необходимо запускать каждый раз после перезапуска компьютера, чтобы получить доступ к
