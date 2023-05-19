@@ -17,7 +17,7 @@
     2) в конце файла пустая строка
 7) скачать excel-файл - открыть таблицу в панели администратора => отметить галочкой необходимые объекты => в поле `Action` выбрать `Download excel` =>
    нажать `Go`
-8) первый поиск даст может давать неправильные результаты
+8) первый поиск может давать неправильные результаты
 
 
 # Полезные страницы
@@ -29,6 +29,15 @@
 
 1) [*Wildberries*](https://www.wildberries.ru/)
     1) cookie для авторизации - [*secrets/wildberries/auth_cookie.txt*](secrets/wildberries/auth_cookie.txt)
+    2) заполнение
+        1) скопировать [*secrets/wildberries/auth_cookie_example.txt*](secrets/wildberries/auth_cookie_example.txt) в ту же папку, но назвать `auth_cookies.txt`
+        2) [*как найти cookie*](https://cookie-script.com/blog/chrome-cookies)
+        3) необходимая называется `WILDAUTHNEW_V3`
+        4) заменить вторую строку в [*secrets/wildberries/auth_cookie.txt*](secrets/wildberries/auth_cookie.txt) на значение из браузера (столбец `Value`)
+2) [*база данных*](https://www.postgresql.org/)
+    1) скопировать [*secrets/database/credentials_example.json*](secrets/database/credentials_example.json) в ту же папку, но назвать `credentials.json`
+    2) заполнить `USER` и `PASSWORD`, которые указывались при установке [*postgres*](https://www.postgresql.org/)
+    3) создать БД и указать ее название в поле `NAME`
 
 
 # Авторизация на Wildberries
@@ -36,12 +45,6 @@
 1) cookie для авторизации может понадобиться обновлять
     1) по их истечению - срок у текущей - `2024-05-15T12:51:08.671Z`
     2) при прочих проблемах с авторизацией
-
-## Замена cookie для авторизации
-
-1) [*как найти cookie*](https://cookie-script.com/blog/chrome-cookies)
-2) необходимая называется `WILDAUTHNEW_V3`
-3) необходимо заменить вторую строку в [*secrets/wildberries/auth_cookie.txt*](secrets/wildberries/auth_cookie.txt) на значение из браузера (столбец `Value`)
 
 
 # Заполнение входных данных парсера
@@ -54,7 +57,37 @@
         1) вероятно `spp` - это скидка постоянного покупателя
     4) поле `name` необходимо заполнить официальным названием
         1) к примеру, для `Санкт-Петербурга` должно быть `Санкт-Петербург`, а не `Питер`
-2) [*parser_data/products.json*](parser_data/items.json)
+2) [*parser_data/items.json*](parser_data/items.json)
     1) необходимые поля: `vendor_code`, `keywords`
         1) `vendor_code` - артикул
         2) `leywords` - массив ключевых фраз
+
+
+# Установка
+
+1) установить [*python 3.11*](https://www.python.org/)
+2) установить [*PostgreSQL 15*](https://www.postgresql.org/)
+3) установить [*git*](https://git-scm.com/downloads)
+4) скачать проект
+    1) `git clone link`
+    2) todo: вставить ссылку на скачивание с временным ключом
+    3) подготовить проект
+        1) заполнить файлы, описанные в пункте [*Заполнение входных данных парсера*](#заполнение-входных-данных-парсера)
+        2) заполнить файлы, описанные в пункте [*Секреты*](#секреты)
+        3) выполнить
+        ```commandline
+        python install -r requirements.txt
+        python manage.py makemigrations parser
+        python manage.py migrate
+        ```
+        4) запустить парсер вручную первый раз (первые полученные данные могут быть неверными)
+            1) `python run.py`
+        5) [*настроить периодический запуск парсера*](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10)
+            1) программа - `python` (19 пункт)
+            2) аргументы - `run.py` (20 пункт)
+            3) папка - папка с проектом (21 пункт)
+    4) запустить локальный сервер - `python manage.py runserver`
+        1) если надо запустить фоново - `START /B python manage.py runserver`
+        2) запуск сервера необходим для доступа к [*административной панели*](http://127.0.0.1:8000/admin/)
+        3) сервер необходимо запускать каждый раз после перезапуска компьютера, чтобы получить доступ к
+           [*административной панели*](http://127.0.0.1:8000/admin/)

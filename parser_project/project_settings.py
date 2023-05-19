@@ -29,11 +29,18 @@ CITIES = read_json(CITIES_PATH)
 ITEMS_PATH = f"{PARSER_DATA_FOLDER}/items.json"
 ITEMS = read_json(ITEMS_PATH)
 
+# Настройки административной панели
+# количество дней для расчета средней позиции
+AVERAGE_POSITION_PERIOD = 30
+
 # Пути секретов
 SECRETS_FOLDER = "secrets"
 
 WILDBERRIES_SECRETS_FOLDER = f"{SECRETS_FOLDER}/wildberries"
 WILDBERRIES_AUTH_COOKIE_PATH = f"{WILDBERRIES_SECRETS_FOLDER}/auth_cookie.txt"
+
+DATABASE_SECRETS_FOLDER = f"{SECRETS_FOLDER}/database"
+DATABASE_SETTINGS_PATH = f"{DATABASE_SECRETS_FOLDER}/credentials.json"
 
 # Настройки логгера
 LOG_FORMAT = "[%(asctime)s] - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
