@@ -19,6 +19,7 @@ class WildberriesPage(BasePage):
         super().__init__(driver)
 
     def authorize_and_open(self, cookie: "SecretKeeper.Cookie"):
+        # авторизация не полная
         self.open()
         self.driver.add_cookie(cookie.to_dict())
         self.open()

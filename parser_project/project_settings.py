@@ -20,14 +20,18 @@ PROJECT_ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 # Настройки selenium
 DEFAULT_TIMEOUT = 5
 
+# Настройки парсера
+SKIP_POSITION_PARSING = False
+SKIP_PRICE_PARSING = False
+
 # Данные для парсинга
 PARSER_DATA_FOLDER = "parser_data"
 
 CITIES_PATH = f"{PARSER_DATA_FOLDER}/cities.json"
 CITIES = read_json(CITIES_PATH)
 
-ITEMS_PATH = f"{PARSER_DATA_FOLDER}/items.json"
-ITEMS = read_json(ITEMS_PATH)
+PRICE_PARSER_DATA_PATH = f"{PARSER_DATA_FOLDER}/price_parser_data.xlsx"
+POSITION_PARSER_DATA_PATH = f"{PARSER_DATA_FOLDER}/position_parser_data.xlsx"
 
 # Настройки административной панели
 # количество дней для расчета средней позиции
@@ -59,7 +63,7 @@ PYTEST_ARGS = [
     # соглашение об именовании тестов
     "-o", "python_files=*.py",
     "-o", "python_classes=*Parser",
-    "-o", "python_functions=run",
+    "-o", "python_functions=run*",
 
     # вывод логов в командную строку
     "-o", "log_cli=true",

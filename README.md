@@ -1,11 +1,14 @@
 # Разное
 
 1) запуск сервера - `python manage.py runserver`
-2) запуск парсера - `python run.py`
-    1) чтобы только проверить, что выбираются нужные тесты - `python run.py --collect-only`
-    2) в конце команды можно добавлять любые аргументы `pytest`
+2) запуск парсера - `python run.py [all | positions | prices]`
+    1) `positions` - запускается парсер позиций
+    2) `prices` - запускается парсер цен
+    3) `all` - запускаются оба парсера
+    4) чтобы только проверить, что выбираются нужные тесты - `python run.py all --collect-only`
+    5) в конце команды можно добавлять любые аргументы `pytest`
         1) они перезапишут те, что определены в [*parser_project/project_settings.py*](parser_project/project_settings.py) `PYTEST_ARGS`
-        2) пример - `python run.py --collect-only`
+        2) пример - `python run.py all --collect-only`
 3) пока что нет функционала запуска парсера при рабочем сервере => нужно остановить сервер, запустить парсер, снова запустить сервер
 4) создание пользователя для административной панели - `python manage.py createsuperuser`
     1) перед созданием пользователя необходимо выполнить миграцию - `python manage.py migrate`
@@ -18,7 +21,6 @@
 7) скачать excel-файл - открыть таблицу в панели администратора => отметить галочкой необходимые объекты => в поле `Action` выбрать `Download excel` =>
    нажать `Go`
 8) первый поиск может давать неправильные результаты
-9) СПП зависит от города
 
 
 # Полезные страницы
@@ -51,17 +53,17 @@
 # Заполнение входных данных парсера
 
 1) [*parser_data/cities.json*](parser_data/cities.json)
-    1) все поля берутся из url для запроса поиска на самом сайте
-    2) `devtools` => `network` => выполнить поиск по ключевой фразе => название запроса (`Name`) будет начинаться с `search?`, а во вложении
+    1) заполнять не нужно, так как уже заполнено
+    2) все поля берутся из url для запроса поиска на самом сайте
+    3) `devtools` => `network` => выполнить поиск по ключевой фразе => название запроса (`Name`) будет начинаться с `search?`, а во вложении
        будут ["data"]["products"]
-    3) необходимые поля: `dest`, `regions`, `spp`
-        1) `spp` - это скидка постоянного покупателя
-    4) поле `name` необходимо заполнить официальным названием
+    4) необходимые поля: `dest`, `regions`
+    5) поле `name` необходимо заполнить официальным названием
         1) к примеру, для `Санкт-Петербурга` должно быть `Санкт-Петербург`, а не `Питер`
-2) [*parser_data/items.json*](parser_data/items.json)
-    1) необходимые поля: `vendor_code`, `keywords`
-        1) `vendor_code` - артикул
-        2) `leywords` - массив ключевых фраз
+2) [*parser_data/position_parser_data.xlsx*](parser_data/position_parser_data.xlsx)
+    1) пример заполнения - [*parser_data/position_parser_data.xlsx*](parser_data/position_parser_data.xlsx)
+2) [*parser_data/price_parser_data.xlsx*](parser_data/price_parser_data.xlsx)
+    1) пример заполнения - [*parser_data/price_parser_data.xlsx*](parser_data/price_parser_data.xlsx)
 
 
 # Установка

@@ -1,4 +1,3 @@
-import argparse
 import copy
 import sys
 
@@ -7,21 +6,24 @@ from django.contrib.auth import get_user_model
 
 # noinspection PyUnresolvedReferences
 import configure_django
-from logger import Logger
 from parser_project import project_settings
 
 
 class Runner:
     # оригинал - https://git.miem.hse.ru/447/framework/-/blob/master/service/run.py
-    def __init__(self):
-        self.options_parser = argparse.ArgumentParser()
-        self.logger = Logger(self.__class__.__name__)
-
     def run(self):
         """Разбирает поступающую из командной строки команду и выполняет заданные операции."""
 
+        command = sys.argv[1]
+        if command == "positions":
+            project_settings.SKIP_PRICE_PARSING = True
+        elif command == "prices":
+            project_settings.SKIP_POSITION_PARSING = True
+        elif command == "all":
+            pass
+
         # опции командной строки, которые будут переданы в pytest
-        pytest_options = sys.argv[1:]
+        pytest_options = sys.argv[2:]
         self.before_pytest()
         self.pytest(pytest_options)
         self.after_pytest()

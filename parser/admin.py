@@ -46,7 +46,7 @@ def download_excel(admin_model: ProjectAdmin, request, queryset) -> HttpResponse
 
 class ItemAdmin(ProjectAdmin):
     model = models.Item
-    list_display = ("vendor_code", "city", "cost", "cost_final", "personal_sale", "last_update")
+    list_display = ("name", "vendor_code")
 
 
 class KeywordAdmin(ProjectAdmin):
@@ -59,16 +59,15 @@ class PositionAdmin(ProjectAdmin):
     list_display = ("keyword", "value", "parse_time")
 
 
+class PriceAdmin(ProjectAdmin):
+    model = models.Price
+    list_display = ("item", "price", "final_price", "personal_sale", "parse_time")
+
+
 class DataAdmin(ProjectAdmin):
     model = models.Data
-    list_display = ("value", "city", "average_position")
+    list_display = ("value", "average_position")
     actions = (download_excel,)
-
-    def city(self, obj: model) -> str:
-        return obj.city
-
-    # noinspection PyProtectedMember
-    city.short_description = models.Item._meta.get_field("city").verbose_name
 
     def average_position(self, obj: model) -> None | int:
         return obj.average_position

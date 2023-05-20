@@ -11,14 +11,8 @@ class ProjectModel(models.Model):
 
 
 class Item(ProjectModel):
-    # артикул
-    vendor_code = models.PositiveIntegerField("Артикул")
-    city = models.CharField("Город")
-    cost = models.DecimalField("Цена", max_digits = 15, decimal_places = 2)
-    cost_final = models.DecimalField("Цена после СПП", max_digits = 15, decimal_places = 2)
-    # скидка постоянного покупателя
-    personal_sale = models.IntegerField("СПП")
-    last_update = models.DateTimeField("Время обновления", auto_now = True)
+    vendor_code = models.PositiveIntegerField("Артикул", primary_key = True)
+    name = models.CharField(null = True)
 
     def __str__(self) -> str:
         return str(self.vendor_code)
@@ -39,8 +33,21 @@ class Position(ProjectModel):
 
     # noinspection PyProtectedMember
     keyword = models.ForeignKey(Keyword, models.PROTECT, verbose_name = Keyword._meta.get_field("value").verbose_name)
+    city = models.CharField("Город")
     value = models.IntegerField("Позиция в выдаче", null = True)
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)
+
+
+class Price(ProjectModel):
+    item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
+    price = models.DecimalField("Цена", max_digits = 15, decimal_places = 2)
+    final_price = models.DecimalField("Цена после СПП", max_digits = 15, decimal_places = 2)
+    # скидка постоянного покупателя
+    personal_sale = models.IntegerField("СПП")
+    parse_time = models.DateTimeField("Время добавления", auto_now = True)
+
+    def __str__(self) -> str:
+        return str(self.item.vendor_code)
 
 
 class Data(Keyword):
@@ -49,10 +56,6 @@ class Data(Keyword):
     class Meta:
         proxy = True
         verbose_name_plural = "Data"
-
-    @property
-    def city(self) -> str:
-        return self.item.city
 
     @property
     def average_position(self) -> None | int:
