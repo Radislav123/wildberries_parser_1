@@ -142,12 +142,19 @@ class WildberriesParser:
         main_page.authorize_and_open(self.secrets.wildberries_auth)
         for item_dict in project_settings.ITEMS:
             cost, cost_final, personal_sale = self.parse_other_data(item_dict["vendor_code"], city_dict)
-            item = models.Item.objects.get_or_create(
-                vendor_code = item_dict["vendor_code"],
-                cost = cost,
-                cost_final = cost_final,
-                personal_sale = personal_sale
-            )[0]
+            if len(models.Item.objects.filter(vendor_code = item_dict["vendor_code"], city = city_dict["name"])) == 0:
+                item = models.Item(
+                    vendor_code = item_dict["vendor_code"],
+                    city = city_dict["name"],
+                    cost = cost,
+                    cost_final = cost_final,
+                    personal_sale = personal_sale
+                )
+            else:
+                item = models.Item.objects.get(vendor_code = item_dict["vendor_code"], city = city_dict["name"])
+                item.cost = cost
+                item.cost_final = cost_final
+                item.personal_sale = personal_sale
             item.save()
             keywords = [models.Keyword.objects.get_or_create(item = item, value = x)[0] for x in item_dict["keywords"]]
             for keyword in keywords:

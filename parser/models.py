@@ -12,7 +12,8 @@ class ProjectModel(models.Model):
 
 class Item(ProjectModel):
     # артикул
-    vendor_code = models.PositiveIntegerField("Артикул", primary_key = True)
+    vendor_code = models.PositiveIntegerField("Артикул")
+    city = models.CharField("Город")
     cost = models.DecimalField("Цена", max_digits = 15, decimal_places = 2)
     cost_final = models.DecimalField("Цена после СПП", max_digits = 15, decimal_places = 2)
     # скидка постоянного покупателя
@@ -32,6 +33,28 @@ class Keyword(ProjectModel):
     def __str__(self) -> str:
         return self.value
 
+
+class Position(ProjectModel):
+    """Позиция товара в поисковой выдаче по конкретному ключевому слову в определенный момент времени."""
+
+    # noinspection PyProtectedMember
+    keyword = models.ForeignKey(Keyword, models.PROTECT, verbose_name = Keyword._meta.get_field("value").verbose_name)
+    value = models.IntegerField("Позиция в выдаче", null = True)
+    parse_time = models.DateTimeField("Время парсинга", auto_now = True)
+
+
+class Data(Keyword):
+    """Таблица для отображения информации пользователю."""
+
+    class Meta:
+        proxy = True
+        verbose_name_plural = "Data"
+
+    @property
+    def city(self) -> str:
+        return self.item.city
+
+    @property
     def average_position(self) -> None | int:
         """Средняя позиция за определенный период."""
 
@@ -43,11 +66,3 @@ class Keyword(ProjectModel):
         else:
             average_position = round(sum(positions) / len(positions))
         return average_position
-
-
-class Position(ProjectModel):
-    """Позиция товара в поисковой выдаче по конкретному ключевому слову в определенный момент времени."""
-
-    keyword = models.ForeignKey(Keyword, models.PROTECT, verbose_name = "Ключевая фраза")
-    value = models.IntegerField("Позиция в выдаче", null = True)
-    parse_time = models.DateTimeField("Время парсинга", auto_now = True)
