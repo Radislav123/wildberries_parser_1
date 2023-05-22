@@ -6,13 +6,17 @@ import pytest
 import requests
 from requests.exceptions import JSONDecodeError
 from selenium.webdriver.chrome.service import Service
-from seleniumwire.webdriver import Chrome, ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 
 from pages import LKDetailsPage, MainPage, SearchResultsPage
 from parser_project import project_settings
 from . import models
 
+
+if project_settings.PRICE_POSITIONS:
+    from selenium.webdriver import Chrome, ChromeOptions
+else:
+    from seleniumwire.webdriver import Chrome, ChromeOptions
 
 City = dict[str, str]
 Item = dict[str, str | list[str]]
@@ -45,18 +49,19 @@ class WildberriesParser:
         options = ChromeOptions()
         # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--start-maximized")
-        if project_settings.SKIP_PRICE_PARSING:
+        if project_settings.PRICE_POSITIONS:
             options.add_argument("--headless")
-        else:
             options.add_argument("--window-size=1920,1080")
+        options.add_argument("--start-maximized")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
         driver_manager = ChromeDriverManager(path = "").install()
         service = Service(executable_path = driver_manager)
 
-        self.driver = Chrome(options = options, service = service, seleniumwire_options = selenium_wire_options)
-        self.driver.set_window_position(0, 0)
+        if project_settings.PARSE_PRICES:
+            self.driver = Chrome(options = options, service = service, seleniumwire_options = selenium_wire_options)
+        else:
+            self.driver = Chrome(options = options, service = service)
 
     def teardown_method(self):
         self.driver.quit()
@@ -147,7 +152,7 @@ class WildberriesParser:
         return keywords
 
     # todo: заполнить cities.json
-    @pytest.mark.skipif(project_settings.SKIP_POSITION_PARSING, reason = "parse only prices")
+    @pytest.mark.skipif(project_settings.PARSE_PRICES, reason = "parse only prices")
     @pytest.mark.parametrize("city_dict", project_settings.CITIES)
     def run_position_parsing(self, city_dict: City) -> None:
         main_page = MainPage(self.driver)
@@ -186,7 +191,7 @@ class WildberriesParser:
             row += 1
         return items
 
-    @pytest.mark.skipif(project_settings.SKIP_PRICE_PARSING, reason = "parse only positions")
+    @pytest.mark.skipif(project_settings.PRICE_POSITIONS, reason = "parse only positions")
     def run_price_parsing(self) -> None:
         main_page = MainPage(self.driver)
         main_page.open()

@@ -21,8 +21,8 @@ PROJECT_ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_TIMEOUT = 5
 
 # Настройки парсера
-SKIP_POSITION_PARSING = False
-SKIP_PRICE_PARSING = False
+PARSE_PRICES = False
+PRICE_POSITIONS = False
 
 # Данные для парсинга
 PARSER_DATA_FOLDER = "parser_data"

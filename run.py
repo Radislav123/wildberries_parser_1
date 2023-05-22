@@ -16,9 +16,9 @@ class Runner:
 
         command = sys.argv[1]
         if command == "positions":
-            project_settings.SKIP_PRICE_PARSING = True
+            project_settings.PRICE_POSITIONS = True
         elif command == "prices":
-            project_settings.SKIP_POSITION_PARSING = True
+            project_settings.PARSE_PRICES = True
 
         # опции командной строки, которые будут переданы в pytest
         pytest_options = sys.argv[2:]
