@@ -4,7 +4,7 @@ from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-from web_elements import ExtendedWebElement
+from web_elements import ExtendedWebElement, ExtendedWebElementCollection
 from .wildberries_base_page import WildberriesPage
 
 
@@ -23,10 +23,19 @@ class MainPage(WildberriesPage):
             self,
             '//div[contains(@class, "swiper-container j-main-banners")]'
         )
+        self.login_button = ExtendedWebElement(self, '//a[@data-wba-header-name = "Login"]')
+        self.phone_number_input = ExtendedWebElement(self, '//input[@class = "input-item"]')
+        self.get_code_button = ExtendedWebElement(self, '//button[@id = "requestCode"]')
+        self.captcha_image = ExtendedWebElement(self, '//img[@class = "form-block__captcha-img"]')
+        self.captcha_input = ExtendedWebElement(self, '//input[@name = "smsCaptchaCode"]')
+        # noinspection SpellCheckingInspection
+        self.sms_code_inputs = ExtendedWebElementCollection[ExtendedWebElement](
+            self, '//input[@class = "input-item j-b-charinput"]'
+        )
 
         self.map = self.Map(self, '//div[contains(@class, "geocity-pop")]')
 
-    def set_city(self, city: str):
+    def set_city(self, city: str) -> None:
         # по рекламе определяется, когда страница загружена
         self.main_banner_container.init()
         self.geo_link.click()
@@ -50,3 +59,7 @@ class MainPage(WildberriesPage):
         first_address_accepted.click()
         choose_button = ExtendedWebElement(self, '//button[@class = "details-self__btn btn-main"]')
         choose_button.click()
+
+    def authorize_manually(self) -> None:
+        self.login_button.click()
+        input("\nНажмите ввод (enter), когда завершите авторизацию\n")

@@ -1,14 +1,15 @@
+import random
 import time
 
 import openpyxl
 import pytest
 import requests
 from requests.exceptions import JSONDecodeError
-from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
+from seleniumwire.webdriver import Chrome, ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 
-from pages import MainPage, SearchResultsPage
+from pages import LKDetailsPage, MainPage, SearchResultsPage
 from parser_project import project_settings
 from . import models
 
@@ -17,57 +18,47 @@ City = dict[str, str]
 Item = dict[str, str | list[str]]
 
 
-class SecretKeeper:
-    class CredentialsOnly:
-        def __init__(self, login: str, password: str) -> None:
-            self.login = login
-            self.password = password
-
-        def __str__(self) -> str:
-            return f"login: {self.login}\npassword: {self.password}"
-
-    class Cookie:
-        def __init__(self, name: str, value: str) -> None:
-            self.name = name
-            self.value = value
-
-        def __str__(self) -> str:
-            return f"name: {self.name}\nvalue: {self.value}"
-
-        def to_dict(self) -> dict[str, str]:
-            return {"name": self.name, "value": self.value}
-
-    def __init__(self) -> None:
-        self.wildberries_auth = self.Cookie(*self.read_secret(project_settings.WILDBERRIES_AUTH_COOKIE_PATH))
-
-    @staticmethod
-    def read_secret(path: str) -> list[str]:
-        with open(path, 'r') as file:
-            data = [x.strip() for x in file]
-        return data
-
-
 class WildberriesParser:
     """Отвечает за весь процесс парсинга."""
 
     driver: Chrome
-    secrets: SecretKeeper
+    _proxies: dict = None
 
-    def setup_selenium(self):
+    def get_proxy(self) -> str:
+        if self._proxies is None:
+            limit = 100
+            url = f"https://proxylist.geonode.com/api/proxy-list?limit={limit}" \
+                  f"&page=1&sort_by=lastChecked&sort_type=desc&speed=fast&protocols=http"
+            response = requests.get(url)
+            self._proxies = response.json()["data"]
+        proxy_number = random.randint(0, len(self._proxies) - 1)
+        # noinspection HttpUrlsUsage
+        return f"http://{self._proxies[proxy_number]['ip']}:{self._proxies[proxy_number]['port']}"
+
+    def setup_method(self):
+        selenium_wire_options = {
+            "proxy": {
+                # "http": self.get_proxy()
+            }
+        }
+
         options = ChromeOptions()
         # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
-        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--start-maximized")
-        options.add_argument("--headless")
+        if project_settings.SKIP_PRICE_PARSING:
+            options.add_argument("--headless")
+        else:
+            options.add_argument("--window-size=1920,1080")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
         driver_manager = ChromeDriverManager(path = "").install()
         service = Service(executable_path = driver_manager)
 
-        self.driver = Chrome(options = options, service = service)
-        self.secrets = SecretKeeper()
+        self.driver = Chrome(options = options, service = service, seleniumwire_options = selenium_wire_options)
+        self.driver.set_window_position(0, 0)
 
-    def teardown_selenium(self):
+    def teardown_method(self):
         self.driver.quit()
 
     def find_position_on_page(self, items_number: int, vendor_code: int, keyword: models.Keyword) -> int:
@@ -126,17 +117,6 @@ class WildberriesParser:
                 raise error
         return models.Position(keyword = keyword, city = city_dict["name"], value = position)
 
-    @staticmethod
-    def parse_price(vendor_code: int, spp: int, city: City) -> tuple[float, float, int]:
-        url = f"https://card.wb.ru/cards/detail?appType=1&curr=rub&dest={city['dest']}" \
-              f"&regions={city['regions']}&spp={spp}&nm={vendor_code}"
-        response = requests.get(url)
-        data = response.json()["data"]["products"][0]["extended"]
-        price = int(data["basicPriceU"]) / 100
-        final_price = int(data["clientPriceU"]) / 100
-        personal_sale = int(data["clientSale"])
-        return price, final_price, personal_sale
-
     @property
     def position_parser_item_dicts(self) -> list[dict[str, str | int]]:
         book = openpyxl.load_workbook(project_settings.POSITION_PARSER_DATA_PATH)
@@ -170,8 +150,6 @@ class WildberriesParser:
     @pytest.mark.skipif(project_settings.SKIP_POSITION_PARSING, reason = "parse only prices")
     @pytest.mark.parametrize("city_dict", project_settings.CITIES)
     def run_position_parsing(self, city_dict: City) -> None:
-        self.setup_selenium()
-
         main_page = MainPage(self.driver)
         main_page.open()
         main_page.set_city(city_dict["name"])
@@ -179,7 +157,18 @@ class WildberriesParser:
             position = self.find_position(city_dict, keyword)
             position.save()
 
-        self.teardown_selenium()
+    def parse_price(self, vendor_code: int, spp: int, city_dict: City) -> tuple[float, float, int]:
+        proxies = {
+            "http": self.get_proxy()
+        }
+        url = f"https://card.wb.ru/cards/detail?appType=1&curr=rub&dest={city_dict['dest']}" \
+              f"&regions={city_dict['regions']}&spp={spp}&nm={vendor_code}"
+        response = requests.get(url, proxies = proxies)
+        data = response.json()["data"]["products"][0]["extended"]
+        price = int(data["basicPriceU"]) / 100
+        final_price = int(data["clientPriceU"]) / 100
+        personal_sale = int(data["clientSale"])
+        return price, final_price, personal_sale
 
     @property
     def price_parser_items(self) -> list[models.Item]:
@@ -199,10 +188,15 @@ class WildberriesParser:
 
     @pytest.mark.skipif(project_settings.SKIP_PRICE_PARSING, reason = "parse only positions")
     def run_price_parsing(self) -> None:
+        main_page = MainPage(self.driver)
+        main_page.open()
+        main_page.authorize_manually()
+        lk_details_page = LKDetailsPage(self.driver)
+        lk_details_page.open()
+        personal_sale = int(lk_details_page.personal_sale.text[:-1])
+        city_dict = project_settings.CITIES[0]
         for item in self.price_parser_items:
-            # todo: брать спп из файла
-            spp = 15
-            price, final_price, personal_sale = self.parse_price(item.vendor_code, spp, project_settings.CITIES[0])
+            price, final_price, personal_sale = self.parse_price(item.vendor_code, personal_sale, city_dict)
             price = models.Price(
                 item = item,
                 price = price,

@@ -40,9 +40,6 @@ AVERAGE_POSITION_PERIOD = 30
 # Пути секретов
 SECRETS_FOLDER = "secrets"
 
-WILDBERRIES_SECRETS_FOLDER = f"{SECRETS_FOLDER}/wildberries"
-WILDBERRIES_AUTH_COOKIE_PATH = f"{WILDBERRIES_SECRETS_FOLDER}/auth_cookie.txt"
-
 DATABASE_SECRETS_FOLDER = f"{SECRETS_FOLDER}/database"
 DATABASE_SETTINGS_PATH = f"{DATABASE_SECRETS_FOLDER}/credentials.json"
 
@@ -86,4 +83,7 @@ PYTEST_ARGS = [
 
     # убирает экранирование не ASCII символов
     "-o", "disable_test_id_escaping_and_forfeit_all_rights_to_community_support=True",
+
+    # разрешает пользовательский ввод в командной строке
+    "-s",
 ]

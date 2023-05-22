@@ -19,8 +19,6 @@ class Runner:
             project_settings.SKIP_PRICE_PARSING = True
         elif command == "prices":
             project_settings.SKIP_POSITION_PARSING = True
-        elif command == "all":
-            pass
 
         # опции командной строки, которые будут переданы в pytest
         pytest_options = sys.argv[2:]

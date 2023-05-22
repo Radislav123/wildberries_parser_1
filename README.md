@@ -1,14 +1,13 @@
 # Разное
 
 1) запуск сервера - `python manage.py runserver`
-2) запуск парсера - `python run.py [all | positions | prices]`
+2) запуск парсера - `python run.py [positions | prices]`
     1) `positions` - запускается парсер позиций
     2) `prices` - запускается парсер цен
-    3) `all` - запускаются оба парсера
-    4) чтобы только проверить, что выбираются нужные тесты - `python run.py all --collect-only`
-    5) в конце команды можно добавлять любые аргументы `pytest`
+    3) чтобы только проверить, что выбираются нужные тесты - `python run.py prices --collect-only`
+    4) в конце команды можно добавлять любые аргументы `pytest`
         1) они перезапишут те, что определены в [*parser_project/project_settings.py*](parser_project/project_settings.py) `PYTEST_ARGS`
-        2) пример - `python run.py all --collect-only`
+        2) пример - `python run.py prices --collect-only`
 3) пока что нет функционала запуска парсера при рабочем сервере => нужно остановить сервер, запустить парсер, снова запустить сервер
 4) создание пользователя для административной панели - `python manage.py createsuperuser`
     1) перед созданием пользователя необходимо выполнить миграцию - `python manage.py migrate`
@@ -30,14 +29,7 @@
 
 # Секреты
 
-1) [*Wildberries*](https://www.wildberries.ru/)
-    1) cookie для авторизации - [*secrets/wildberries/auth_cookie.txt*](secrets/wildberries/auth_cookie.txt)
-    2) заполнение
-        1) скопировать [*secrets/wildberries/auth_cookie_example.txt*](secrets/wildberries/auth_cookie_example.txt) в ту же папку, но назвать `auth_cookies.txt`
-        2) [*как найти cookie*](https://cookie-script.com/blog/chrome-cookies)
-        3) необходимая называется `WILDAUTHNEW_V3`
-        4) заменить вторую строку в [*secrets/wildberries/auth_cookie.txt*](secrets/wildberries/auth_cookie.txt) на значение из браузера (столбец `Value`)
-2) [*база данных*](https://www.postgresql.org/)
+1) [*база данных*](https://www.postgresql.org/)
     1) скопировать [*secrets/database/credentials_example.json*](secrets/database/credentials_example.json) в ту же папку, но назвать `credentials.json`
     2) заполнить `USER` и `PASSWORD`, которые указывались при установке [*postgres*](https://www.postgresql.org/)
     3) создать БД и указать ее название в поле `NAME`
@@ -86,7 +78,7 @@
             1) `python run.py`
         5) [*настроить периодический запуск парсера*](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10)
             1) программа - `python` (19 пункт)
-            2) аргументы - `run.py` (20 пункт)
+            2) аргументы - `run.py positions` (20 пункт)
             3) папка - папка с проектом (21 пункт)
     3) запустить локальный сервер - `python manage.py runserver`
         1) если надо запустить фоново - `START /B python manage.py runserver`
