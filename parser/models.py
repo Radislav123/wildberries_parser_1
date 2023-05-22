@@ -40,8 +40,8 @@ class Position(ProjectModel):
 
 class Price(ProjectModel):
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
-    price = models.DecimalField("Цена", max_digits = 15, decimal_places = 2)
-    final_price = models.DecimalField("Цена после СПП", max_digits = 15, decimal_places = 2)
+    price = models.DecimalField("Цена до СПП", max_digits = 15, decimal_places = 2)
+    final_price = models.DecimalField("Финальная цена", max_digits = 15, decimal_places = 2)
     # скидка постоянного покупателя
     personal_sale = models.IntegerField("СПП")
     parse_time = models.DateTimeField("Время добавления", auto_now = True)
@@ -50,19 +50,17 @@ class Price(ProjectModel):
         return str(self.item.vendor_code)
 
 
-class Data(Keyword):
-    """Таблица для отображения информации пользователю."""
-
+class AveragePosition(Position):
     class Meta:
         proxy = True
-        verbose_name_plural = "Data"
 
     @property
     def average_position(self) -> None | int:
         """Средняя позиция за определенный период."""
 
         last_month = datetime.today() - timedelta(days = project_settings.AVERAGE_POSITION_PERIOD)
-        positions = [x.value for x in Position.objects.filter(keyword = self, parse_time__gte = last_month)
+        # todo: rewrite it
+        positions = [x.value for x in Position.objects.filter(keyword = self.keyword, parse_time__gte = last_month)
                      if x.value is not None]
         if len(positions) == 0:
             average_position = None

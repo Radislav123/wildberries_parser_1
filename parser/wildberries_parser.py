@@ -146,8 +146,8 @@ class WildberriesParser:
         while sheet.cell(row, 1).value:
             items.append(
                 {
-                    "name": sheet.cell(row, 1).value,
-                    "vendor_code": int(sheet.cell(row, 2).value),
+                    "vendor_code": int(sheet.cell(row, 1).value),
+                    "name": sheet.cell(row, 2).value,
                     "keyword": sheet.cell(row, 3).value
                 }
             )
@@ -188,7 +188,12 @@ class WildberriesParser:
         items = []
         row = 2
         while sheet.cell(row, 1).value:
-            items.append(models.Item.objects.get_or_create(vendor_code = sheet.cell(row, 1).value)[0])
+            items.append(
+                models.Item.objects.update_or_create(
+                    vendor_code = sheet.cell(row, 1).value,
+                    defaults = {"name": sheet.cell(row, 2).value}
+                )[0]
+            )
             row += 1
         return items
 

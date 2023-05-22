@@ -30,7 +30,7 @@ def download_excel(admin_model: ProjectAdmin, request, queryset) -> HttpResponse
         sheet.set_column(number, number, column[1])
         sheet.write(0, number, column[0])
     for number, data in enumerate(queryset, 1):
-        data: models.Data
+        data: models.AveragePosition
         sheet.write(number, 0, data.value)
         sheet.write(number, 1, data.average_position)
     book.close()
@@ -56,16 +56,28 @@ class KeywordAdmin(ProjectAdmin):
 
 class PositionAdmin(ProjectAdmin):
     model = models.Position
-    list_display = ("keyword", "value", "parse_time")
+    list_display = ("item", "item_name", "keyword", "value", "parse_time")
+
+    def item(self, obj: model) -> models.Item:
+        return obj.keyword.item
+
+    # noinspection PyProtectedMember
+    item.short_description = models.Item._meta.get_field("vendor_code").verbose_name
+
+    def item_name(self, obj: model) -> str:
+        return obj.keyword.item.name
+
+    # noinspection PyProtectedMember
+    item_name.short_description = models.Item._meta.get_field("name").verbose_name
 
 
 class PriceAdmin(ProjectAdmin):
     model = models.Price
-    list_display = ("item", "price", "final_price", "personal_sale", "parse_time")
+    list_display = ("item", "final_price", "price", "personal_sale", "parse_time")
 
 
-class DataAdmin(ProjectAdmin):
-    model = models.Data
+class AveragePositionAdmin(ProjectAdmin):
+    model = models.AveragePosition
     list_display = ("value", "average_position")
     actions = (download_excel,)
 
