@@ -6,43 +6,84 @@ from django.contrib import admin
 from django.db import models as django_models
 from django.http import HttpRequest, HttpResponse
 
+from parser_project import project_settings
 from . import models
 
 
-class ProjectAdmin(admin.ModelAdmin):
-    model: models.ProjectModel
-
-
 # noinspection PyUnusedLocal
-# todo: rewrite it
-def download_excel(admin_model: ProjectAdmin, request, queryset) -> HttpResponse:
+def download_show_position_excel(
+        admin_model: "ShowPositionAdmin",
+        request: HttpRequest,
+        queryset: django_models.QuerySet
+) -> HttpResponse:
     model_name = f"{admin_model.model.__name__}"
     stream = BytesIO()
     book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
     sheet = book.add_worksheet(model_name)
 
     # {name: column width}
-    header = (
-        ("Ключевая фраза", 30),
-        ("Средняя позиция в выдаче", 25),
-    )
-    datetime_format = book.add_format({"num_format": "dd.mm.yy hh:mm:ss"})
-    for number, column in enumerate(header):
-        sheet.set_column(number, number, column[1])
-        sheet.write(0, number, column[0])
-    for number, data in enumerate(queryset, 1):
-        data: models.AveragePosition
-        sheet.write(number, 0, data.value)
-        sheet.write(number, 1, data.average_position)
+    # noinspection PyProtectedMember
+    header = [
+                 models.Item._meta.get_field("vendor_code").verbose_name,
+                 models.Item._meta.get_field("name").verbose_name,
+                 models.Keyword._meta.get_field("value").verbose_name,
+                 models.Position._meta.get_field("city").verbose_name
+             ] + admin_model.date_field_names
+    for row_number, column_name in enumerate(header):
+        sheet.write(0, row_number, column_name)
+    for row_number, data in enumerate(queryset, 1):
+        data: admin_model.model
+        sheet.write(row_number, 0, data.keyword.item.vendor_code)
+        sheet.write(row_number, 1, data.keyword.item.name)
+        sheet.write(row_number, 2, data.keyword.value)
+        sheet.write(row_number, 3, data.city)
+        for column_number, date_field in enumerate(admin_model.date_field_names, 4):
+            sheet.write(row_number, column_number, getattr(data, date_field)())
+    sheet.autofit()
     book.close()
 
     stream.seek(0)
-    # noinspection SpellCheckingInspection
-    response = HttpResponse(
-        stream.read(), content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    response = HttpResponse(stream.read(), content_type = project_settings.DOWNLOAD_EXCEL_CONTENT_TYPE)
     response["Content-Disposition"] = f"attachment;filename={model_name}.xlsx"
     return response
+
+
+# noinspection PyUnusedLocal
+def download_show_price_excel(
+        admin_model: "ShowPriceAdmin",
+        request: HttpRequest,
+        queryset: django_models.QuerySet
+) -> HttpResponse:
+    model_name = f"{admin_model.model.__name__}"
+    stream = BytesIO()
+    book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
+    sheet = book.add_worksheet(model_name)
+
+    # {name: column width}
+    # noinspection PyProtectedMember
+    header = [
+                 models.Item._meta.get_field("vendor_code").verbose_name,
+                 models.Item._meta.get_field("name").verbose_name
+             ] + admin_model.date_field_names
+    for row_number, column_name in enumerate(header):
+        sheet.write(0, row_number, column_name)
+    for row_number, data in enumerate(queryset, 1):
+        data: admin_model.model
+        sheet.write(row_number, 0, data.item.vendor_code)
+        sheet.write(row_number, 1, data.item.name)
+        for column_number, date_field in enumerate(admin_model.date_field_names, 2):
+            sheet.write(row_number, column_number, getattr(data, date_field)())
+    sheet.autofit()
+    book.close()
+
+    stream.seek(0)
+    response = HttpResponse(stream.read(), content_type = project_settings.DOWNLOAD_EXCEL_CONTENT_TYPE)
+    response["Content-Disposition"] = f"attachment;filename={model_name}.xlsx"
+    return response
+
+
+class ProjectAdmin(admin.ModelAdmin):
+    model: models.ProjectModel
 
 
 class ItemAdmin(ProjectAdmin):
@@ -86,7 +127,9 @@ class PositionAdmin(ProjectAdmin):
 
 class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
-    default_list_display = ("keyword", "item", "item_name", "city")
+    default_list_display = ("item", "item_name", "keyword", "city")
+    date_field_names: list[str] = []
+    actions = (download_show_position_excel,)
 
     item = PositionAdmin.item
     item_name = PositionAdmin.item_name
@@ -116,6 +159,7 @@ class ShowPositionAdmin(ProjectAdmin):
                 day_position.__name__ = str_date
                 return day_position
 
+            self.date_field_names.append(str_date)
             setattr(model, str_date, wrapper(date))
 
     def get_queryset(self, request: HttpRequest):
@@ -124,20 +168,51 @@ class ShowPositionAdmin(ProjectAdmin):
         new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
         return new_queryset
 
-    @staticmethod
-    def dynamic_date_field(obj: model) -> int | None:
-        return obj.month_position
-
 
 class PriceAdmin(ProjectAdmin):
     model = models.Price
     list_display = ("item", "final_price", "price", "personal_sale", "parse_time")
 
 
-# todo: remove class?
 class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
-    list_display = ("item",)
+    default_list_display = ("item", "item_name")
+    date_field_names: list[str] = []
+    actions = (download_show_price_excel,)
+
+    def item_name(self, obj: model) -> str:
+        return obj.item.name
+
+    # noinspection PyProtectedMember
+    item_name.short_description = models.Item._meta.get_field("name").verbose_name
+
+    def __init__(self, model: models.ShowPrice, admin_site):
+        super().__init__(model, admin_site)
+        self.list_display = [x for x in self.default_list_display]
+        day_delta = (datetime.date.today() - self.model.objects.order_by("parse_date").first().parse_date).days + 1
+        for day in range(day_delta):
+            date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
+
+            def wrapper(inner_date, field_name):
+                def last_data(obj: model) -> int | None:
+                    price_object = self.model.objects.filter(item = obj.item, parse_date = inner_date) \
+                        .order_by("parse_time").last()
+                    if price_object is not None:
+                        data = getattr(price_object, field_name)
+                    else:
+                        data = None
+                    return data
+
+                # noinspection PyProtectedMember
+                last_data.__name__ = f"{model._meta.get_field(field_name).verbose_name} {inner_date}"
+                return last_data
+
+            fields = ("final_price", "price", "personal_sale")
+            for field in fields:
+                data_function = wrapper(date, field)
+                self.list_display.append(data_function.__name__)
+                self.date_field_names.append(data_function.__name__)
+                setattr(model, data_function.__name__, data_function)
 
 
 def register_models():

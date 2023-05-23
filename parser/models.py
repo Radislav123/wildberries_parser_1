@@ -1,4 +1,5 @@
 import datetime
+
 from django.db import models
 
 
@@ -9,7 +10,7 @@ class ProjectModel(models.Model):
 
 class Item(ProjectModel):
     vendor_code = models.PositiveIntegerField("Артикул", primary_key = True)
-    name = models.CharField(null = True)
+    name = models.CharField("Название товара", null = True)
 
     def __str__(self) -> str:
         return str(self.vendor_code)
@@ -78,12 +79,12 @@ class Price(ProjectModel):
     # скидка постоянного покупателя
     personal_sale = models.IntegerField("СПП")
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)
+    parse_date = models.DateField("Дата парсинга", auto_now = True)
 
     def __str__(self) -> str:
         return str(self.item.vendor_code)
 
 
-# todo: remove class?
 class ShowPrice(Price):
     class Meta:
         proxy = True

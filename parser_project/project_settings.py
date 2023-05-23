@@ -34,7 +34,8 @@ PRICE_PARSER_DATA_PATH = f"{PARSER_DATA_FOLDER}/price_parser_data.xlsx"
 POSITION_PARSER_DATA_PATH = f"{PARSER_DATA_FOLDER}/position_parser_data.xlsx"
 
 # Настройки административной панели
-
+# noinspection SpellCheckingInspection
+DOWNLOAD_EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 # Пути секретов
 SECRETS_FOLDER = "secrets"
