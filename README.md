@@ -6,7 +6,7 @@
 4) скачать проект
     1) `git clone https://github.com/Radislav123/wildberries_parser_1.git`
         1) репозиторий закрытый, поэтому ссылка имеет вид - `git clone https://<username>:<password>@github.com/username/repository.git`
-           1) например `git clone https://Radislav123:strong_password@github.com/username/repository.git`
+            1) например `git clone https://Radislav123:strong_password@github.com/username/repository.git`
     2) подготовить проект
         1) заполнить файлы, описанные в пункте [*Заполнение входных данных парсера*](#заполнение-входных-данных-парсера)
         2) заполнить файлы, описанные в пункте [*Секреты*](#секреты)
