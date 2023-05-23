@@ -8,23 +8,17 @@
     4) в конце команды можно добавлять любые аргументы `pytest`
         1) они перезапишут те, что определены в [*parser_project/project_settings.py*](parser_project/project_settings.py) `PYTEST_ARGS`
         2) пример - `python run.py prices --collect-only`
-3) пока что нет функционала запуска парсера при рабочем сервере => нужно остановить сервер, запустить парсер, снова запустить сервер
-4) создание пользователя для административной панели - `python manage.py createsuperuser`
-    1) перед созданием пользователя необходимо выполнить миграцию - `python manage.py migrate`
+3) до запуска парсера не получится зайти в административную панель
+    1) перед первым запуском парсера необходимо выполнить миграцию - `python manage.py migrate`
     2) сейчас логин и пароль - `admin` и `admin`
         1) смотреть [*run.py*](run.py) `before_pytest`
-5) название БД - `wildberries_parser_1`
-6) все файлы, содержащие данные для парсинга или авторизаций, заполняются следующим образом
+4) все файлы, содержащие данные для парсинга или авторизаций, заполняются следующим образом
     1) разделитель - перенос строки, никаких дополнительных разделителей => каждая порция информации с новой строки
     2) в конце файла пустая строка
-7) скачать excel-файл - открыть таблицу в панели администратора => отметить галочкой необходимые объекты => в поле `Action` выбрать `Download excel` =>
+5) скачать excel-файл - открыть таблицу в панели администратора => отметить галочкой необходимые объекты => в поле `Action` выбрать `Download ... excel` =>
    нажать `Go`
-8) первый поиск может давать неправильные результаты
-
-
-# Полезные страницы
-
-1) [панель администратора](http://127.0.0.1:8000/admin/) (локально)
+6) первый поиск может давать неправильные результаты
+7) [панель администратора](http://127.0.0.1:8000/admin/) (локально)
 
 
 # Секреты
@@ -33,13 +27,6 @@
     1) скопировать [*secrets/database/credentials_example.json*](secrets/database/credentials_example.json) в ту же папку, но назвать `credentials.json`
     2) заполнить `USER` и `PASSWORD`, которые указывались при установке [*postgres*](https://www.postgresql.org/)
     3) создать БД и указать ее название в поле `NAME`
-
-
-# Авторизация на Wildberries
-
-1) cookie для авторизации может понадобиться обновлять
-    1) по их истечению - срок у текущей - `2024-05-15T12:51:08.671Z`
-    2) при прочих проблемах с авторизацией
 
 
 # Заполнение входных данных парсера
@@ -53,9 +40,9 @@
     5) поле `name` необходимо заполнить официальным названием
         1) к примеру, для `Санкт-Петербурга` должно быть `Санкт-Петербург`, а не `Питер`
 2) [*parser_data/position_parser_data.xlsx*](parser_data/position_parser_data.xlsx)
-    1) пример заполнения - [*parser_data/position_parser_data.xlsx*](parser_data/position_parser_data.xlsx)
-2) [*parser_data/price_parser_data.xlsx*](parser_data/price_parser_data.xlsx)
-    1) пример заполнения - [*parser_data/price_parser_data.xlsx*](parser_data/price_parser_data.xlsx)
+    1) пример заполнения - [*parser_data/position_parser_data_example.xlsx*](parser_data/position_parser_data_example.xlsx)
+3) [*parser_data/price_parser_data.xlsx*](parser_data/price_parser_data.xlsx)
+    1) пример заполнения - [*parser_data/price_parser_data_example.xlsx*](parser_data/price_parser_data_example.xlsx)
 
 
 # Установка
@@ -68,18 +55,19 @@
     2) подготовить проект
         1) заполнить файлы, описанные в пункте [*Заполнение входных данных парсера*](#заполнение-входных-данных-парсера)
         2) заполнить файлы, описанные в пункте [*Секреты*](#секреты)
-        3) выполнить
+        3) выполнить (в командной строке из папки проекта)
             ```commandline
             python install -r requirements.txt
             python manage.py makemigrations parser
             python manage.py migrate
             ```
         4) запустить парсер вручную первый раз (первые полученные данные могут быть неверными)
-            1) `python run.py`
+            1) `python run.py positions`
+            2) `python run.py prices`
         5) [*настроить периодический запуск парсера*](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10)
             1) программа - `python` (19 пункт)
             2) аргументы - `run.py positions` (20 пункт)
-            3) папка - папка с проектом (21 пункт)
+            3) папка - папка проекта (21 пункт)
     3) запустить локальный сервер - `python manage.py runserver`
         1) если надо запустить фоново - `START /B python manage.py runserver`
         2) запуск сервера необходим для доступа к [*административной панели*](http://127.0.0.1:8000/admin/)
