@@ -1,8 +1,5 @@
-from datetime import datetime, timedelta
-
+import datetime
 from django.db import models
-
-from parser_project import project_settings
 
 
 class ProjectModel(models.Model):
@@ -36,6 +33,42 @@ class Position(ProjectModel):
     city = models.CharField("Город")
     value = models.IntegerField("Позиция в выдаче", null = True)
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)
+    parse_date = models.DateField("Дата парсинга", auto_now = True)
+
+    def get_average_position_for(self, days: int) -> None | int:
+        """Средняя позиция за определенное количество дней."""
+
+        delta = datetime.timedelta(days = days)
+        positions = [
+            x.value for x in Position.objects.filter(
+                keyword = self.keyword,
+                city = self.city,
+                parse_time__gte = self.parse_date,
+                parse_time__lte = self.parse_date + delta
+            ) if x.value is not None
+        ]
+        if len(positions) == 0:
+            average_position = None
+        else:
+            average_position = round(sum(positions) / len(positions))
+        return average_position
+
+    @property
+    def day_position(self) -> None | int:
+        """Средняя позиция за день, когда выполнялся парсинг данной позиции."""
+
+        return self.get_average_position_for(1)
+
+    @property
+    def month_position(self) -> None | int:
+        """Средняя позиция за 30 дней предшествующих дню, когда выполнялся парсинг данной позиции."""
+
+        return self.get_average_position_for(30)
+
+
+class ShowPosition(Position):
+    class Meta:
+        proxy = True
 
 
 class Price(ProjectModel):
@@ -44,26 +77,13 @@ class Price(ProjectModel):
     final_price = models.DecimalField("Финальная цена", max_digits = 15, decimal_places = 2)
     # скидка постоянного покупателя
     personal_sale = models.IntegerField("СПП")
-    parse_time = models.DateTimeField("Время добавления", auto_now = True)
+    parse_time = models.DateTimeField("Время парсинга", auto_now = True)
 
     def __str__(self) -> str:
         return str(self.item.vendor_code)
 
 
-class AveragePosition(Position):
+# todo: remove class?
+class ShowPrice(Price):
     class Meta:
         proxy = True
-
-    @property
-    def average_position(self) -> None | int:
-        """Средняя позиция за определенный период."""
-
-        last_month = datetime.today() - timedelta(days = project_settings.AVERAGE_POSITION_PERIOD)
-        # todo: rewrite it
-        positions = [x.value for x in Position.objects.filter(keyword = self.keyword, parse_time__gte = last_month)
-                     if x.value is not None]
-        if len(positions) == 0:
-            average_position = None
-        else:
-            average_position = round(sum(positions) / len(positions))
-        return average_position

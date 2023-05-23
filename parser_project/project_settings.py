@@ -34,8 +34,7 @@ PRICE_PARSER_DATA_PATH = f"{PARSER_DATA_FOLDER}/price_parser_data.xlsx"
 POSITION_PARSER_DATA_PATH = f"{PARSER_DATA_FOLDER}/position_parser_data.xlsx"
 
 # Настройки административной панели
-# количество дней для расчета средней позиции
-AVERAGE_POSITION_PERIOD = 30
+
 
 # Пути секретов
 SECRETS_FOLDER = "secrets"

@@ -1,9 +1,10 @@
+import datetime
 from io import BytesIO
 
 import xlsxwriter
 from django.contrib import admin
-from django.db import models
-from django.http import HttpResponse
+from django.db import models as django_models
+from django.http import HttpRequest, HttpResponse
 
 from . import models
 
@@ -56,7 +57,7 @@ class KeywordAdmin(ProjectAdmin):
 
 class PositionAdmin(ProjectAdmin):
     model = models.Position
-    list_display = ("item", "item_name", "keyword", "value", "parse_time")
+    list_display = ("item", "item_name", "city", "keyword", "value", "day_position", "month_position", "parse_time")
 
     def item(self, obj: model) -> models.Item:
         return obj.keyword.item
@@ -70,22 +71,73 @@ class PositionAdmin(ProjectAdmin):
     # noinspection PyProtectedMember
     item_name.short_description = models.Item._meta.get_field("name").verbose_name
 
+    def day_position(self, obj: model) -> int | None:
+        return obj.day_position
+
+    # noinspection PyProtectedMember
+    day_position.short_description = "Средняя позиция за день"
+
+    def month_position(self, obj: model) -> int | None:
+        return obj.month_position
+
+    # noinspection PyProtectedMember
+    month_position.short_description = "Средняя позиция за месяц"
+
+
+class ShowPositionAdmin(ProjectAdmin):
+    model = models.ShowPosition
+    default_list_display = ("keyword", "item", "item_name", "city")
+
+    item = PositionAdmin.item
+    item_name = PositionAdmin.item_name
+
+    def __init__(self, model: models.ShowPosition, admin_site):
+        super().__init__(model, admin_site)
+        self.list_display = [x for x in self.default_list_display]
+        day_delta = (datetime.date.today() - self.model.objects.order_by("parse_date").first().parse_date).days + 1
+        for day in range(day_delta):
+            date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
+            str_date = str(date)
+            self.list_display.append(str_date)
+
+            def wrapper(inner_date):
+                def day_position(obj: model) -> int | None:
+                    filtered_objects = self.model.objects.filter(
+                        keyword = obj.keyword,
+                        city = obj.city,
+                        parse_date = inner_date
+                    )
+                    if len(filtered_objects) > 0:
+                        position = filtered_objects[0].day_position
+                    else:
+                        position = None
+                    return position
+
+                day_position.__name__ = str_date
+                return day_position
+
+            setattr(model, str_date, wrapper(date))
+
+    def get_queryset(self, request: HttpRequest):
+        queryset: django_models.QuerySet = super().get_queryset(request)
+        fields_to_group_by = ("keyword", "city")
+        new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
+        return new_queryset
+
+    @staticmethod
+    def dynamic_date_field(obj: model) -> int | None:
+        return obj.month_position
+
 
 class PriceAdmin(ProjectAdmin):
     model = models.Price
     list_display = ("item", "final_price", "price", "personal_sale", "parse_time")
 
 
-class AveragePositionAdmin(ProjectAdmin):
-    model = models.AveragePosition
-    list_display = ("value", "average_position")
-    actions = (download_excel,)
-
-    def average_position(self, obj: model) -> None | int:
-        return obj.average_position
-
-    # noinspection PyProtectedMember
-    average_position.short_description = "Средняя позиция"
+# todo: remove class?
+class ShowPriceAdmin(ProjectAdmin):
+    model = models.ShowPrice
+    list_display = ("item",)
 
 
 def register_models():
