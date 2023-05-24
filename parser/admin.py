@@ -214,6 +214,11 @@ class ShowPriceAdmin(ProjectAdmin):
                 self.date_field_names.append(data_function.__name__)
                 setattr(model, data_function.__name__, data_function)
 
+    def get_queryset(self, request: HttpRequest):
+        queryset: django_models.QuerySet = super().get_queryset(request)
+        new_queryset = queryset.order_by("item").distinct("item")
+        return new_queryset
+
 
 def register_models():
     models_with_admin_page = ProjectAdmin.__subclasses__()
