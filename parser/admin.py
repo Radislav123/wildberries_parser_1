@@ -8,6 +8,11 @@ from django.http import HttpRequest, HttpResponse
 
 from parser_project import project_settings
 from . import models
+import sys
+
+
+def is_migration() -> bool:
+    return "makemigrations" in sys.argv or "migrate" in sys.argv
 
 
 # noinspection PyUnusedLocal
@@ -136,31 +141,32 @@ class ShowPositionAdmin(ProjectAdmin):
 
     def __init__(self, model: models.ShowPosition, admin_site):
         super().__init__(model, admin_site)
-        self.list_display = [x for x in self.default_list_display]
-        day_delta = (datetime.date.today() - self.model.objects.order_by("parse_date").first().parse_date).days + 1
-        for day in range(day_delta):
-            date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
-            str_date = str(date)
-            self.list_display.append(str_date)
+        if not is_migration():
+            self.list_display = [x for x in self.default_list_display]
+            day_delta = (datetime.date.today() - self.model.objects.order_by("parse_date").first().parse_date).days + 1
+            for day in range(day_delta):
+                date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
+                str_date = str(date)
+                self.list_display.append(str_date)
 
-            def wrapper(inner_date):
-                def day_position(obj: model) -> int | None:
-                    filtered_objects = self.model.objects.filter(
-                        keyword = obj.keyword,
-                        city = obj.city,
-                        parse_date = inner_date
-                    )
-                    if len(filtered_objects) > 0:
-                        position = filtered_objects[0].day_position
-                    else:
-                        position = None
-                    return position
+                def wrapper(inner_date):
+                    def day_position(obj: model) -> int | None:
+                        filtered_objects = self.model.objects.filter(
+                            keyword = obj.keyword,
+                            city = obj.city,
+                            parse_date = inner_date
+                        )
+                        if len(filtered_objects) > 0:
+                            position = filtered_objects[0].day_position
+                        else:
+                            position = None
+                        return position
 
-                day_position.__name__ = str_date
-                return day_position
+                    day_position.__name__ = str_date
+                    return day_position
 
-            self.date_field_names.append(str_date)
-            setattr(model, str_date, wrapper(date))
+                self.date_field_names.append(str_date)
+                setattr(model, str_date, wrapper(date))
 
     def get_queryset(self, request: HttpRequest):
         queryset: django_models.QuerySet = super().get_queryset(request)
@@ -188,31 +194,32 @@ class ShowPriceAdmin(ProjectAdmin):
 
     def __init__(self, model: models.ShowPrice, admin_site):
         super().__init__(model, admin_site)
-        self.list_display = [x for x in self.default_list_display]
-        day_delta = (datetime.date.today() - self.model.objects.order_by("parse_date").first().parse_date).days + 1
-        for day in range(day_delta):
-            date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
+        if not is_migration():
+            self.list_display = [x for x in self.default_list_display]
+            day_delta = (datetime.date.today() - self.model.objects.order_by("parse_date").first().parse_date).days + 1
+            for day in range(day_delta):
+                date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
 
-            def wrapper(inner_date, field_name):
-                def last_data(obj: model) -> int | None:
-                    price_object = self.model.objects.filter(item = obj.item, parse_date = inner_date) \
-                        .order_by("parse_time").last()
-                    if price_object is not None:
-                        data = getattr(price_object, field_name)
-                    else:
-                        data = None
-                    return data
+                def wrapper(inner_date, field_name):
+                    def last_data(obj: model) -> int | None:
+                        price_object = self.model.objects.filter(item = obj.item, parse_date = inner_date) \
+                            .order_by("parse_time").last()
+                        if price_object is not None:
+                            data = getattr(price_object, field_name)
+                        else:
+                            data = None
+                        return data
 
-                # noinspection PyProtectedMember
-                last_data.__name__ = f"{model._meta.get_field(field_name).verbose_name} {inner_date}"
-                return last_data
+                    # noinspection PyProtectedMember
+                    last_data.__name__ = f"{model._meta.get_field(field_name).verbose_name} {inner_date}"
+                    return last_data
 
-            fields = ("final_price", "price", "personal_sale")
-            for field in fields:
-                data_function = wrapper(date, field)
-                self.list_display.append(data_function.__name__)
-                self.date_field_names.append(data_function.__name__)
-                setattr(model, data_function.__name__, data_function)
+                fields = ("final_price", "price", "personal_sale")
+                for field in fields:
+                    data_function = wrapper(date, field)
+                    self.list_display.append(data_function.__name__)
+                    self.date_field_names.append(data_function.__name__)
+                    setattr(model, data_function.__name__, data_function)
 
     def get_queryset(self, request: HttpRequest):
         queryset: django_models.QuerySet = super().get_queryset(request)
