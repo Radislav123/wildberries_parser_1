@@ -128,10 +128,13 @@ class WildberriesParser:
                         page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
                         try_success = True
                     except JSONDecodeError:
-                        # еще одна попытка
-                        time.sleep(1)
                         if not try_success and try_number >= project_settings.ATTEMPT_NUMBER:
                             position = None
+                            # по идее, это не нужно
+                            break
+                        else:
+                            # еще одна попытка
+                            time.sleep(1)
                 else:
                     # noinspection PyUnboundLocalVariable
                     if keyword.item.vendor_code in page_vendor_codes:
