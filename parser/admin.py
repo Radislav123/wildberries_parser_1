@@ -196,9 +196,9 @@ class ShowPriceAdmin(ProjectAdmin):
         super().__init__(model, admin_site)
         if not is_migration() and models.Item.objects.exists():
             self.list_display = [x for x in self.default_list_display]
-            obj = self.model.objects.order_by("parse_date").first()
-            if obj is not None:
-                day_delta = (datetime.date.today() - obj.parse_date).days + 1
+            first_object = self.model.objects.order_by("parse_date").first()
+            if first_object is not None:
+                day_delta = (datetime.date.today() - first_object.parse_date).days + 1
                 for day in range(day_delta):
                     date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
 
