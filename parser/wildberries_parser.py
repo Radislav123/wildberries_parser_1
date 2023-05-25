@@ -39,6 +39,16 @@ class WildberriesParser:
         # noinspection HttpUrlsUsage
         return f"http://{self._proxies[proxy_number]['ip']}:{self._proxies[proxy_number]['port']}"
 
+    @staticmethod
+    # для более точно работы нужны широта и долгота
+    def get_geo(address: str) -> tuple[str, str]:
+        url = f"https://user-geo-data.wildberries.ru/get-geo-info?currency=RUB&locale=ru&address={address}"
+        response = requests.get(url)
+        data = response.json()["xinfo"].split('&')
+        dest = data[2].split('=')[-1]
+        regions = data[3].split('=')[-1]
+        return dest, regions
+
     def setup_method(self):
         selenium_wire_options = {
             "proxy": {
@@ -66,6 +76,7 @@ class WildberriesParser:
     def teardown_method(self):
         self.driver.quit()
 
+    # метод не используется, но оставлен до худших времен
     def find_position_on_page(
             self,
             page_number: int,
@@ -73,7 +84,7 @@ class WildberriesParser:
             vendor_code: int,
             keyword: models.Keyword
     ) -> int:
-        """Находит позицию товара на конкретной странице."""
+        """Находит позицию товара на конкретной странице подобно пользователю."""
 
         search_results_page = SearchResultsPage(self.driver, page_number, keyword.value)
         search_results_page.open()
@@ -92,11 +103,12 @@ class WildberriesParser:
                     position = number
                     found = True
                     break
-            search_results_page.scroll_down(100)
+            search_results_page.scroll_down(50)
             search_results_page.items.reset()
         return position
 
-    def find_position(self, city_dict: City, keyword: models.Keyword) -> models.Position:
+    @staticmethod
+    def find_position(city_dict: City, keyword: models.Keyword) -> models.Position:
         """Находит позицию товара в выдаче поиска по ключевому слову среди всех страниц."""
 
         try:
@@ -108,20 +120,26 @@ class WildberriesParser:
                       f"&dest={city_dict['dest']}&page={page}&query={keyword.value}&regions={city_dict['regions']}" \
                       f"&resultset=catalog&sort=popular&spp=0&suppressSpellcheck=false"
                 response = requests.get(url)
-                try:
-                    page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
-                except JSONDecodeError:
-                    # еще одна попытка
-                    time.sleep(1)
-                    page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
-                if keyword.item.vendor_code in page_vendor_codes:
-                    position += self.find_position_on_page(
-                        page, len(page_vendor_codes), keyword.item.vendor_code, keyword
-                    )
-                    break
+                try_number = 0
+                try_success = False
+                while try_number < 3 and not try_success:
+                    try_number += 1
+                    try:
+                        page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
+                        try_success = True
+                    except JSONDecodeError:
+                        # еще одна попытка
+                        time.sleep(1)
+                        if not try_success and try_number >= project_settings.ATTEMPT_NUMBER:
+                            position = None
                 else:
-                    page += 1
-                    position += len(page_vendor_codes)
+                    # noinspection PyUnboundLocalVariable
+                    if keyword.item.vendor_code in page_vendor_codes:
+                        position += page_vendor_codes.index(keyword.item.vendor_code) + 1
+                        break
+                    else:
+                        page += 1
+                        position += len(page_vendor_codes)
         except KeyError as error:
             if "data" in error.args:
                 # если возвращаемая позиция == None => товар не был найден по данному ключевому слову
@@ -159,13 +177,15 @@ class WildberriesParser:
                     for x in item_dicts]
         return keywords
 
-    # todo: заполнить cities.json
     @pytest.mark.skipif(project_settings.PARSE_PRICES, reason = "parse only prices")
     @pytest.mark.parametrize("city_dict", project_settings.CITIES)
     def run_position_parsing(self, city_dict: City) -> None:
         main_page = MainPage(self.driver)
         main_page.open()
-        main_page.set_city(city_dict["name"])
+        address = main_page.set_city(city_dict["name"])
+        dest, regions = self.get_geo(address)
+        city_dict["dest"] = dest
+        city_dict["regions"] = regions
         for keyword in self.position_parser_keywords:
             position = self.find_position(city_dict, keyword)
             position.save()

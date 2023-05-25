@@ -23,6 +23,7 @@ DEFAULT_TIMEOUT = 5
 # Настройки парсера
 PARSE_PRICES = False
 PRICE_POSITIONS = False
+ATTEMPT_NUMBER = 5
 
 # Данные для парсинга
 PARSER_DATA_FOLDER = "parser_data"

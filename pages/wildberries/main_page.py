@@ -35,7 +35,7 @@ class MainPage(WildberriesPage):
 
         self.map = self.Map(self, '//div[contains(@class, "geocity-pop")]')
 
-    def set_city(self, city: str) -> None:
+    def set_city(self, city: str) -> str:
         # по рекламе определяется, когда страница загружена
         self.main_banner_container.init()
         self.geo_link.click()
@@ -59,6 +59,7 @@ class MainPage(WildberriesPage):
         first_address_accepted.click()
         choose_button = ExtendedWebElement(self, '//button[@class = "details-self__btn btn-main"]')
         choose_button.click()
+        return first_address_accepted.text
 
     def authorize_manually(self) -> None:
         self.login_button.click()
