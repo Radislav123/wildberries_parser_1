@@ -66,10 +66,16 @@ class WildberriesParser:
     def teardown_method(self):
         self.driver.quit()
 
-    def find_position_on_page(self, items_number: int, vendor_code: int, keyword: models.Keyword) -> int:
+    def find_position_on_page(
+            self,
+            page_number: int,
+            items_number: int,
+            vendor_code: int,
+            keyword: models.Keyword
+    ) -> int:
         """Находит позицию товара на конкретной странице."""
 
-        search_results_page = SearchResultsPage(self.driver, keyword.value)
+        search_results_page = SearchResultsPage(self.driver, page_number, keyword.value)
         search_results_page.open()
         checked_items = 0
         found = False
@@ -109,7 +115,9 @@ class WildberriesParser:
                     time.sleep(1)
                     page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
                 if keyword.item.vendor_code in page_vendor_codes:
-                    position += self.find_position_on_page(len(page_vendor_codes), keyword.item.vendor_code, keyword)
+                    position += self.find_position_on_page(
+                        page, len(page_vendor_codes), keyword.item.vendor_code, keyword
+                    )
                     break
                 else:
                     page += 1
