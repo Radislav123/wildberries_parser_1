@@ -1,4 +1,5 @@
 import datetime
+import sys
 from io import BytesIO
 
 import xlsxwriter
@@ -8,7 +9,6 @@ from django.http import HttpRequest, HttpResponse
 
 from parser_project import project_settings
 from . import models
-import sys
 
 
 def is_migration() -> bool:
@@ -141,7 +141,7 @@ class ShowPositionAdmin(ProjectAdmin):
 
     def __init__(self, model: models.ShowPosition, admin_site):
         super().__init__(model, admin_site)
-        if not is_migration():
+        if not is_migration() and models.Item.objects.exists():
             self.list_display = [x for x in self.default_list_display]
             day_delta = (datetime.date.today() - self.model.objects.order_by("parse_date").first().parse_date).days + 1
             for day in range(day_delta):
@@ -194,7 +194,7 @@ class ShowPriceAdmin(ProjectAdmin):
 
     def __init__(self, model: models.ShowPrice, admin_site):
         super().__init__(model, admin_site)
-        if not is_migration():
+        if not is_migration() and models.Item.objects.exists():
             self.list_display = [x for x in self.default_list_display]
             day_delta = (datetime.date.today() - self.model.objects.order_by("parse_date").first().parse_date).days + 1
             for day in range(day_delta):
