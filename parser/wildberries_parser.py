@@ -122,7 +122,7 @@ class WildberriesParser:
                 response = requests.get(url)
                 try_number = 0
                 try_success = False
-                while try_number < 3 and not try_success:
+                while try_number < project_settings.ATTEMPT_NUMBER and not try_success:
                     try_number += 1
                     try:
                         page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
