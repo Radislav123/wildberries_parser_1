@@ -29,11 +29,7 @@
 1) [*parser_data/cities.json*](parser_data/cities.json)
     1) заполнять не нужно, так как уже заполнено
     2) если все же нужно
-        1) все поля берутся из url для запроса поиска на самом сайте
-        2) `devtools` => `network` => выполнить поиск по ключевой фразе => название запроса (`Name`) будет начинаться с `search?`, а во вложении
-           будут ["data"]["products"]
-        3) необходимые поля: `dest`, `regions`
-        4) поле `name` необходимо заполнить официальным названием
+        1) поле `name` необходимо заполнить официальным названием
             1) к примеру, для `Санкт-Петербурга` должно быть `Санкт-Петербург`, а не `Питер`
 2) [*parser_data/position_parser_data.xlsx*](parser_data/position_parser_data.xlsx)
     1) пример заполнения - [*parser_data/position_parser_data_example.xlsx*](parser_data/position_parser_data_example.xlsx)
