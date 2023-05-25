@@ -144,30 +144,31 @@ class ShowPositionAdmin(ProjectAdmin):
         if not is_migration() and models.Item.objects.exists():
             self.list_display = [x for x in self.default_list_display]
             first_object = self.model.objects.order_by("parse_date").first()
-            day_delta = (datetime.date.today() - first_object.parse_date).days + 1
-            for day in range(day_delta):
-                date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
-                str_date = str(date)
-                self.list_display.append(str_date)
+            if first_object is not None:
+                day_delta = (datetime.date.today() - first_object.parse_date).days + 1
+                for day in range(day_delta):
+                    date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
+                    str_date = str(date)
+                    self.list_display.append(str_date)
 
-                def wrapper(inner_date):
-                    def day_position(obj: model) -> int | None:
-                        filtered_objects = self.model.objects.filter(
-                            keyword = obj.keyword,
-                            city = obj.city,
-                            parse_date = inner_date
-                        )
-                        if len(filtered_objects) > 0:
-                            position = filtered_objects[0].day_position
-                        else:
-                            position = None
-                        return position
+                    def wrapper(inner_date):
+                        def day_position(obj: model) -> int | None:
+                            filtered_objects = self.model.objects.filter(
+                                keyword = obj.keyword,
+                                city = obj.city,
+                                parse_date = inner_date
+                            )
+                            if len(filtered_objects) > 0:
+                                position = filtered_objects[0].day_position
+                            else:
+                                position = None
+                            return position
 
-                    day_position.__name__ = str_date
-                    return day_position
+                        day_position.__name__ = str_date
+                        return day_position
 
-                self.date_field_names.append(str_date)
-                setattr(model, str_date, wrapper(date))
+                    self.date_field_names.append(str_date)
+                    setattr(model, str_date, wrapper(date))
 
     def get_queryset(self, request: HttpRequest):
         queryset: django_models.QuerySet = super().get_queryset(request)
