@@ -6,9 +6,10 @@ import pytest
 import requests
 from requests.exceptions import JSONDecodeError
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from webdriver_manager.chrome import ChromeDriverManager
 
-from pages import LKDetailsPage, MainPage, SearchResultsPage
+from pages import ItemPage, MainPage, SearchResultsPage
 from parser_project import project_settings
 from . import models
 
@@ -52,16 +53,23 @@ class WildberriesParser:
         if project_settings.PRICE_POSITIONS:
             options.add_argument("--headless")
             options.add_argument("--window-size=1920,1080")
-        options.add_argument("--start-maximized")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
         driver_manager = ChromeDriverManager(path = "").install()
         service = Service(executable_path = driver_manager)
 
+        desired_capabilities = DesiredCapabilities.CHROME
+        desired_capabilities["goog:loggingPrefs"] = {"browser": "ALL"}
+        parameters = {
+            "options": options,
+            "service": service,
+            "desired_capabilities": desired_capabilities
+        }
+
         if project_settings.PARSE_PRICES:
-            self.driver = Chrome(options = options, service = service, seleniumwire_options = selenium_wire_options)
-        else:
-            self.driver = Chrome(options = options, service = service)
+            parameters["seleniumwire_options"] = selenium_wire_options
+        self.driver = Chrome(**parameters)
+        self.driver.maximize_window()
 
     def teardown_method(self):
         self.driver.quit()
@@ -175,17 +183,14 @@ class WildberriesParser:
             position = self.find_position(city_dict, keyword)
             position.save()
 
-    def parse_price(self, vendor_code: int, spp: int, city_dict: City) -> tuple[float, float, int]:
-        proxies = {
-            "http": self.get_proxy()
-        }
-        url = f"https://card.wb.ru/cards/detail?appType=1&curr=rub&dest={city_dict['dest']}" \
-              f"&regions={city_dict['regions']}&spp={spp}&nm={vendor_code}"
-        response = requests.get(url, proxies = proxies)
-        data = response.json()["data"]["products"][0]["extended"]
-        price = int(data["basicPriceU"]) / 100
-        final_price = int(data["clientPriceU"]) / 100
-        personal_sale = int(data["clientSale"])
+    def parse_price(self, item: models.Item) -> tuple[float, float, int]:
+        page = ItemPage(self.driver, item.vendor_code)
+        page.open()
+        page.price_block.open()
+
+        price = float("".join(page.price_block.price.text.split()[:-1]))
+        final_price = float("".join(page.price_block.final_price.text.split()[:-1]))
+        personal_sale = int(page.price_block.personal_sale.text.split()[-1][:-1])
         return price, final_price, personal_sale
 
     @property
@@ -209,12 +214,8 @@ class WildberriesParser:
         main_page = MainPage(self.driver)
         main_page.open()
         main_page.authorize_manually()
-        lk_details_page = LKDetailsPage(self.driver)
-        lk_details_page.open()
-        personal_sale = int(lk_details_page.personal_sale.text[:-1])
-        city_dict = project_settings.CITIES[0]
         for item in self.price_parser_items:
-            price, final_price, personal_sale = self.parse_price(item.vendor_code, personal_sale, city_dict)
+            price, final_price, personal_sale = self.parse_price(item)
             price = models.Price(
                 item = item,
                 price = price,
