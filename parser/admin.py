@@ -152,20 +152,20 @@ class ShowPositionAdmin(ProjectAdmin):
                     self.list_display.append(str_date)
 
                     def wrapper(inner_date):
-                        def day_position(obj: model) -> int | None:
-                            filtered_objects = self.model.objects.filter(
+                        def last_data(obj: model) -> int | None:
+                            position_object = self.model.objects.filter(
                                 keyword = obj.keyword,
                                 city = obj.city,
                                 parse_date = inner_date
-                            )
-                            if len(filtered_objects) > 0:
-                                position = filtered_objects[0].day_position
+                            ).order_by("parse_time").last()
+                            if position_object is not None:
+                                position = getattr(position_object, "value")
                             else:
                                 position = None
                             return position
 
-                        day_position.__name__ = str_date
-                        return day_position
+                        last_data.__name__ = str_date
+                        return last_data
 
                     self.date_field_names.append(str_date)
                     setattr(model, str_date, wrapper(date))
