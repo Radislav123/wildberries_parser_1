@@ -39,16 +39,6 @@ class WildberriesParser:
         # noinspection HttpUrlsUsage
         return f"http://{self._proxies[proxy_number]['ip']}:{self._proxies[proxy_number]['port']}"
 
-    @staticmethod
-    # для более точно работы нужны широта и долгота
-    def get_geo(address: str) -> tuple[str, str]:
-        url = f"https://user-geo-data.wildberries.ru/get-geo-info?currency=RUB&locale=ru&address={address}"
-        response = requests.get(url)
-        data = response.json()["xinfo"].split('&')
-        dest = data[2].split('=')[-1]
-        regions = data[3].split('=')[-1]
-        return dest, regions
-
     def setup_method(self):
         selenium_wire_options = {
             "proxy": {
@@ -76,14 +66,7 @@ class WildberriesParser:
     def teardown_method(self):
         self.driver.quit()
 
-    # метод не используется, но оставлен до худших времен
-    def find_position_on_page(
-            self,
-            page_number: int,
-            items_number: int,
-            vendor_code: int,
-            keyword: models.Keyword
-    ) -> int:
+    def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:
         """Находит позицию товара на конкретной странице подобно пользователю."""
 
         search_results_page = SearchResultsPage(self.driver, page_number, keyword.value)
@@ -99,7 +82,7 @@ class WildberriesParser:
                 # ожидание прогрузки
                 item.init(item.WaitCondition.VISIBLE)
                 item_id = int(item.get_attribute("data-nm-id"))
-                if item_id == vendor_code:
+                if item_id == keyword.item.vendor_code:
                     position = number
                     found = True
                     break
@@ -130,7 +113,7 @@ class WildberriesParser:
                     except JSONDecodeError:
                         if not try_success and try_number >= project_settings.ATTEMPT_NUMBER:
                             position = None
-                            # по идее, это не нужно
+                            page = None
                             break
                         else:
                             # еще одна попытка
@@ -185,8 +168,7 @@ class WildberriesParser:
     def run_position_parsing(self, city_dict: City) -> None:
         main_page = MainPage(self.driver)
         main_page.open()
-        address = main_page.set_city(city_dict["name"])
-        dest, regions = self.get_geo(address)
+        dest, regions = main_page.set_city(city_dict["name"])
         city_dict["dest"] = dest
         city_dict["regions"] = regions
         for keyword in self.position_parser_keywords:

@@ -1,11 +1,20 @@
+import json
 import time
 
+import requests
+from requests.exceptions import JSONDecodeError
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.expected_conditions import presence_of_all_elements_located
 
+from parser_project import project_settings
 from web_elements import ExtendedWebElement, ExtendedWebElementCollection
 from .wildberries_base_page import WildberriesPage
+
+
+class NotFoundGeoError(Exception):
+    pass
 
 
 # page_url = https://www.wildberries.ru/
@@ -29,13 +38,56 @@ class MainPage(WildberriesPage):
         self.captcha_image = ExtendedWebElement(self, '//img[@class = "form-block__captcha-img"]')
         self.captcha_input = ExtendedWebElement(self, '//input[@name = "smsCaptchaCode"]')
         # noinspection SpellCheckingInspection
-        self.sms_code_inputs = ExtendedWebElementCollection[ExtendedWebElement](
+        self.sms_code_inputs = ExtendedWebElementCollection(
             self, '//input[@class = "input-item j-b-charinput"]'
         )
 
         self.map = self.Map(self, '//div[contains(@class, "geocity-pop")]')
 
-    def set_city(self, city: str) -> str:
+    @staticmethod
+    def get_ll(address: str) -> tuple[str | None, str | None]:
+        # noinspection HttpUrlsUsage
+        url = "http://api.positionstack.com/v1/forward"
+        with open(project_settings.GEOPARSER_CREDENTIALS_PATH, 'r') as file:
+            credentials = json.load(file)
+        # noinspection SpellCheckingInspection
+        params = {
+            "access_key": credentials["api_key"],
+            "query": address,
+            "limit": 1
+        }
+        response = requests.get(url, params)
+        try:
+            data = response.json()["data"]
+            if len(data) > 0:
+                data = data[0]
+                latitude = data["latitude"]
+                longitude = data["longitude"]
+            else:
+                latitude = None
+                longitude = None
+        except JSONDecodeError:
+            latitude = None
+            longitude = None
+        return latitude, longitude
+
+    @staticmethod
+    def get_geo(latitude: str, longitude: str, address: str) -> tuple[str, str]:
+        url = f"https://user-geo-data.wildberries.ru/get-geo-info"
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "address": address,
+            "currency": "RUB",
+            "locale": "ru"
+        }
+        response = requests.get(url, params)
+        data = response.json()["xinfo"].split("&")
+        dest = data[2].split("=")[-1]
+        regions = data[3].split("=")[-1]
+        return dest, regions
+
+    def set_city(self, city: str) -> tuple[str, str]:
         # по рекламе определяется, когда страница загружена
         self.main_banner_container.init()
         self.geo_link.click()
@@ -49,17 +101,28 @@ class MainPage(WildberriesPage):
         )
         if len(clarifications) > 0:
             clarifications[0].click()
+        else:
+            self.map.find_button.click()
 
-        self.map.find_button.click()
-
-        first_address_accepted = ExtendedWebElement(
+        addresses_accepted = ExtendedWebElementCollection(
             self,
             f'//div[contains(@class, "address-item")]/div/span/span[contains(text(), "{city}")]'
         )
-        first_address_accepted.click()
+        addresses_accepted = addresses_accepted.wait.until(
+            presence_of_all_elements_located((By.XPATH, addresses_accepted.xpath))
+        )
+        for address in addresses_accepted:
+            latitude, longitude = self.get_ll(address.text)
+            if latitude is not None and longitude is not None:
+                address_accepted = address
+                dest, regions = self.get_geo(latitude, longitude, address)
+                break
+        else:
+            raise NotFoundGeoError()
+        address_accepted.click()
         choose_button = ExtendedWebElement(self, '//button[@class = "details-self__btn btn-main"]')
         choose_button.click()
-        return first_address_accepted.text
+        return dest, regions
 
     def authorize_manually(self) -> None:
         self.login_button.click()

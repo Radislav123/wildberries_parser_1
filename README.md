@@ -44,6 +44,9 @@
     2) заполнить `USER` и `PASSWORD`, которые указывались при установке [*postgres*](https://www.postgresql.org/)
     3) [*создать БД*](https://www.tutorialspoint.com/postgresql/postgresql_create_database.htm) и указать ее название в поле `NAME`
         1) `CREATE DATABASE wildberries_parser_1;`
+2) [*геопарсер*](https://positionstack.com/)
+    1) скопировать [*secrets/geoparser/credentials_example.json*](secrets/geoparser/credentials_example.json) в ту же папку, но назвать `credentials.json`
+    2) для работы парсера нужно только поле `api_key`
 
 
 # Разное

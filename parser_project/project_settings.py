@@ -44,6 +44,9 @@ SECRETS_FOLDER = "secrets"
 DATABASE_SECRETS_FOLDER = f"{SECRETS_FOLDER}/database"
 DATABASE_SETTINGS_PATH = f"{DATABASE_SECRETS_FOLDER}/credentials.json"
 
+GEOPARSER_SECRETS_FOLDER = f"{SECRETS_FOLDER}/geoparser"
+GEOPARSER_CREDENTIALS_PATH = f"{GEOPARSER_SECRETS_FOLDER}/credentials.json"
+
 # Настройки логгера
 LOG_FORMAT = "[%(asctime)s] - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
 LOG_FOLDER = "logs"

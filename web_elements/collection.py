@@ -1,4 +1,4 @@
-from typing import Callable, TYPE_CHECKING, TypeVar, Generic
+from typing import Callable, TYPE_CHECKING
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.expected_conditions import presence_of_all_elements_located
@@ -8,21 +8,18 @@ from parser_project import project_settings
 from .element import ExtendedWebElement
 
 
-ElementClass = TypeVar("ElementClass")
-
-
 if TYPE_CHECKING:
     from pages.base_page import BasePage
 
 
-class ExtendedWebElementCollection(Generic[ElementClass]):
+class ExtendedWebElementCollection:
     def __init__(self, page: "BasePage", xpath: str) -> None:
         self.page = page
         self.driver = page.driver
 
         self.xpath = xpath
         self.wait = WebDriverWait(self.driver, project_settings.DEFAULT_TIMEOUT)
-        self.elements: None | list[ElementClass] = None
+        self.elements: None | list[ExtendedWebElement] = None
         self.initialized: dict[Callable, bool] = {}
 
     def reset(self) -> None:
