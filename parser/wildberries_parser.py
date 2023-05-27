@@ -74,6 +74,7 @@ class WildberriesParser:
     def teardown_method(self):
         self.driver.quit()
 
+    # не используется, но оставлен
     def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:
         """Находит позицию товара на конкретной странице подобно пользователю."""
 
@@ -132,8 +133,8 @@ class WildberriesParser:
                         position += page_vendor_codes.index(keyword.item.vendor_code) + 1
                         break
                     else:
-                        page += 1
                         position += len(page_vendor_codes)
+                    page += 1
         except KeyError as error:
             if "data" in error.args:
                 # если возвращаемая позиция == None => товар не был найден по данному ключевому слову
