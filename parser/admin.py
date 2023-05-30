@@ -133,8 +133,8 @@ class PositionAdmin(ProjectAdmin):
 class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
-    list_filter = ("keyword__item", "keyword__item__name", "keyword", "city")
-    search_fields = ("keyword__item", "keyword__item__name", "keyword", "city")
+    list_filter = ("city", "keyword__item", "keyword__item__name", "keyword")
+    search_fields = ("city", "keyword__item", "keyword__item__name", "keyword")
     date_field_names: list[str] = []
     actions = (download_show_position_excel,)
 
