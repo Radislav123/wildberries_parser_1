@@ -134,7 +134,6 @@ class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
     list_filter = ("city", "keyword__item", "keyword__item__name", "keyword")
-    search_fields = ("city", "keyword__item", "keyword__item__name", "keyword")
     date_field_names: list[str] = []
     actions = (download_show_position_excel,)
 
@@ -188,7 +187,6 @@ class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
     default_list_display = ("item", "item_name")
     list_filter = ("item", "item__name",)
-    search_fields = ("item", "item__name",)
     date_field_names: list[str] = []
     actions = (download_show_price_excel,)
 
