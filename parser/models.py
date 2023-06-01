@@ -77,7 +77,7 @@ class Price(ProjectModel):
     price = models.DecimalField("Цена до СПП", max_digits = 15, decimal_places = 2)
     final_price = models.DecimalField("Финальная цена", max_digits = 15, decimal_places = 2)
     # скидка постоянного покупателя
-    personal_sale = models.IntegerField("СПП")
+    personal_sale = models.IntegerField("СПП", null = True)
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)
     parse_date = models.DateField("Дата парсинга", auto_now = True)
 
