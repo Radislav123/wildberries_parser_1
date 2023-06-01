@@ -181,7 +181,13 @@ class ShowPositionAdmin(ProjectAdmin):
 
 class PriceAdmin(ProjectAdmin):
     model = models.Price
-    list_display = ("item", "final_price", "price", "personal_sale", "parse_time")
+    list_display = ("item", "item_name", "final_price", "price", "personal_sale", "parse_time")
+
+    def item_name(self, obj: model) -> str:
+        return obj.item.name
+
+    # noinspection PyProtectedMember
+    item_name.short_description = models.Item._meta.get_field("name").verbose_name
 
 
 class ShowPriceAdmin(ProjectAdmin):
