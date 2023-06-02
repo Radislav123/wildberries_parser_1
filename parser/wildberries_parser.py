@@ -188,14 +188,21 @@ class WildberriesParser:
     def parse_price(self, item: models.Item) -> tuple[float, float, int | None]:
         page = ItemPage(self.driver, item.vendor_code)
         page.open()
-        page.price_block.open()
 
-        price = float("".join(page.price_block.price.text.split()[:-1]))
         try:
-            final_price = float("".join(page.price_block.final_price.text.split()[:-1]))
-            personal_sale = int(page.price_block.personal_sale.text.split()[-1][:-1])
+            page.sold_out.init_if_necessary()
         except TimeoutException:
-            final_price = float("".join(page.price_block.price.text.split()[:-1]))
+            page.price_block.open()
+            price = float("".join(page.price_block.price.text.split()[:-1]))
+            try:
+                final_price = float("".join(page.price_block.final_price.text.split()[:-1]))
+                personal_sale = int(page.price_block.personal_sale.text.split()[-1][:-1])
+            except TimeoutException:
+                final_price = float("".join(page.price_block.price.text.split()[:-1]))
+                personal_sale = None
+        else:
+            price = None
+            final_price = None
             personal_sale = None
 
         return price, final_price, personal_sale

@@ -31,3 +31,4 @@ class ItemPage(WildberriesPage):
         self.path = f"catalog/{self.vendor_code}/detail.aspx"
         self.vendor_code = ExtendedWebElement(self, '//span[@id = "productNmId"]')
         self.price_block = self.PriceBlock(self, '//del')
+        self.sold_out = ExtendedWebElement(self, '//span[@class = "sold-out-product__text"]')

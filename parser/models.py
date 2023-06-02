@@ -74,8 +74,8 @@ class ShowPosition(Position):
 
 class Price(ProjectModel):
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
-    price = models.DecimalField("Цена до СПП", max_digits = 15, decimal_places = 2)
-    final_price = models.DecimalField("Финальная цена", max_digits = 15, decimal_places = 2)
+    price = models.DecimalField("Цена до СПП", max_digits = 15, decimal_places = 2, null = True)
+    final_price = models.DecimalField("Финальная цена", max_digits = 15, decimal_places = 2, null = True)
     # скидка постоянного покупателя
     personal_sale = models.IntegerField("СПП", null = True)
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)
