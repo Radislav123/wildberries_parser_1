@@ -59,7 +59,7 @@
     2) запуск парсера цен - [*start/price_parser.bat*](start/price_parser.bat)
     3) чтобы только проверить, что выбираются нужные тесты - `python run.py prices --collect-only`
     4) в конце команды можно добавлять любые аргументы `pytest`
-        1) они перезапишут те, что определены в [*parser_project/project_settings.py*](parser_project/project_settings.py) `PYTEST_ARGS`
+        1) они перезапишут те, что определены в [*parser/settings.py*](parser/settings.py) `PYTEST_ARGS`
         2) пример - `python run.py prices --collect-only`
 3) до запуска парсера не получится зайти в административную панель
     1) перед первым запуском парсера необходимо выполнить миграцию - `python manage.py migrate`
@@ -69,5 +69,5 @@
    нажать `Go`
 5) первый поиск может давать неправильные результаты
 6) [панель администратора](http://127.0.0.1:8000/admin/) (локально)
-
-
+7) для возможности парсинга цен необходимо авторизоваться в окне, открываемом скриптом [*run_authorization_window.py*](run_authorization_window.py)
+    1) окно закрывать нельзя

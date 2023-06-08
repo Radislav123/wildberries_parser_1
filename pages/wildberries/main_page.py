@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.expected_conditions import presence_of_all_elements_located
 
-from parser_project import project_settings
+from parser import settings
 from web_elements import ExtendedWebElement, ExtendedWebElementCollection
 from .wildberries_base_page import WildberriesPage
 
@@ -32,15 +32,6 @@ class MainPage(WildberriesPage):
             self,
             '//div[contains(@class, "swiper-container j-main-banners")]'
         )
-        self.login_button = ExtendedWebElement(self, '//a[@data-wba-header-name = "Login"]')
-        self.phone_number_input = ExtendedWebElement(self, '//input[@class = "input-item"]')
-        self.get_code_button = ExtendedWebElement(self, '//button[@id = "requestCode"]')
-        self.captcha_image = ExtendedWebElement(self, '//img[@class = "form-block__captcha-img"]')
-        self.captcha_input = ExtendedWebElement(self, '//input[@name = "smsCaptchaCode"]')
-        # noinspection SpellCheckingInspection
-        self.sms_code_inputs = ExtendedWebElementCollection(
-            self, '//input[@class = "input-item j-b-charinput"]'
-        )
 
         self.map = self.Map(self, '//div[contains(@class, "geocity-pop")]')
 
@@ -48,7 +39,7 @@ class MainPage(WildberriesPage):
     def get_ll(address: str) -> tuple[str | None, str | None]:
         # noinspection HttpUrlsUsage
         url = "http://api.positionstack.com/v1/forward"
-        with open(project_settings.GEOPARSER_CREDENTIALS_PATH, 'r') as file:
+        with open(settings.GEOPARSER_CREDENTIALS_PATH, 'r') as file:
             credentials = json.load(file)
         # noinspection SpellCheckingInspection
         params = {
@@ -123,7 +114,3 @@ class MainPage(WildberriesPage):
         choose_button = ExtendedWebElement(self, '//button[@class = "details-self__btn btn-main"]')
         choose_button.click()
         return dest, regions
-
-    def authorize_manually(self) -> None:
-        self.login_button.click()
-        input("\nНажмите ввод (enter), когда завершите авторизацию\n")

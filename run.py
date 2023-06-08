@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 # noinspection PyUnresolvedReferences
 import configure_django
-from parser_project import project_settings
+from parser import settings
 
 
 class Runner:
@@ -16,9 +16,9 @@ class Runner:
 
         command = sys.argv[1]
         if command == "positions":
-            project_settings.PRICE_POSITIONS = True
+            settings.PARSE_POSITIONS = True
         elif command == "prices":
-            project_settings.PARSE_PRICES = True
+            settings.PARSE_PRICES = True
 
         # опции командной строки, которые будут переданы в pytest
         pytest_options = sys.argv[2:]
@@ -37,7 +37,7 @@ class Runner:
 
     @staticmethod
     def pytest(args):
-        pytest_args = copy.deepcopy(project_settings.PYTEST_ARGS)
+        pytest_args = copy.deepcopy(settings.PYTEST_ARGS)
         pytest_args.extend(args)
         pytest.main(pytest_args)
 

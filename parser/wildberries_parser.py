@@ -1,4 +1,4 @@
-import random
+import json
 import time
 
 import openpyxl
@@ -6,22 +6,20 @@ import pytest
 import requests
 from requests.exceptions import JSONDecodeError
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver import Chrome, ChromeOptions, Remote
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from webdriver_manager.chrome import ChromeDriverManager
 
-from pages import ItemPage, MainPage, SearchResultsPage
-from parser_project import project_settings
-from . import models
+from pages import ItemPage, LogInPage, MainPage, SearchResultsPage
+from . import models, settings
 
-
-if project_settings.PRICE_POSITIONS:
-    from selenium.webdriver import Chrome, ChromeOptions
-else:
-    from seleniumwire.webdriver import Chrome, ChromeOptions
 
 City = dict[str, str]
 Item = dict[str, str | list[str]]
+
+
+class LogInException(Exception):
+    pass
 
 
 class WildberriesParser:
@@ -30,46 +28,18 @@ class WildberriesParser:
     driver: Chrome
     _proxies: dict = None
 
-    def get_proxy(self) -> str:
-        if self._proxies is None:
-            limit = 100
-            url = f"https://proxylist.geonode.com/api/proxy-list?limit={limit}" \
-                  f"&page=1&sort_by=lastChecked&sort_type=desc&speed=fast&protocols=http"
-            response = requests.get(url)
-            self._proxies = response.json()["data"]
-        proxy_number = random.randint(0, len(self._proxies) - 1)
-        # noinspection HttpUrlsUsage
-        return f"http://{self._proxies[proxy_number]['ip']}:{self._proxies[proxy_number]['port']}"
-
     def setup_method(self):
-        selenium_wire_options = {
-            "proxy": {
-                # "http": self.get_proxy()
-            }
-        }
-
         options = ChromeOptions()
         # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
         options.add_argument("--disable-blink-features=AutomationControlled")
-        if project_settings.PRICE_POSITIONS:
-            options.add_argument("--headless")
-            options.add_argument("--window-size=1920,1080")
+        options.add_argument("--headless")
+        options.add_argument("--window-size=1920,1080")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
         driver_manager = ChromeDriverManager(path = "").install()
         service = Service(executable_path = driver_manager)
 
-        desired_capabilities = DesiredCapabilities.CHROME
-        desired_capabilities["goog:loggingPrefs"] = {"browser": "ALL"}
-        parameters = {
-            "options": options,
-            "service": service,
-            "desired_capabilities": desired_capabilities
-        }
-
-        if project_settings.PARSE_PRICES:
-            parameters["seleniumwire_options"] = selenium_wire_options
-        self.driver = Chrome(**parameters)
+        self.driver = Chrome(options = options, service = service)
         self.driver.maximize_window()
 
     def teardown_method(self):
@@ -115,13 +85,13 @@ class WildberriesParser:
                 response = requests.get(url)
                 try_number = 0
                 try_success = False
-                while try_number < project_settings.ATTEMPT_NUMBER and not try_success:
+                while try_number < settings.ATTEMPTS_AMOUNT and not try_success:
                     try_number += 1
                     try:
                         page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
                         try_success = True
                     except JSONDecodeError:
-                        if not try_success and try_number >= project_settings.ATTEMPT_NUMBER:
+                        if not try_success and try_number >= settings.ATTEMPTS_AMOUNT:
                             position = None
                             page = None
                             break
@@ -146,7 +116,7 @@ class WildberriesParser:
 
     @property
     def position_parser_item_dicts(self) -> list[dict[str, str | int]]:
-        book = openpyxl.load_workbook(project_settings.POSITION_PARSER_DATA_PATH)
+        book = openpyxl.load_workbook(settings.POSITION_PARSER_DATA_PATH)
         sheet = book.active
         items = []
         row = 2
@@ -173,8 +143,8 @@ class WildberriesParser:
                     for x in item_dicts]
         return keywords
 
-    @pytest.mark.skipif(project_settings.PARSE_PRICES, reason = "parse only prices")
-    @pytest.mark.parametrize("city_dict", project_settings.CITIES)
+    @pytest.mark.skipif(settings.PARSE_PRICES, reason = "parse only prices")
+    @pytest.mark.parametrize("city_dict", settings.CITIES)
     def run_position_parsing(self, city_dict: City) -> None:
         main_page = MainPage(self.driver)
         main_page.open()
@@ -209,7 +179,7 @@ class WildberriesParser:
 
     @property
     def price_parser_items(self) -> list[models.Item]:
-        book = openpyxl.load_workbook(project_settings.PRICE_PARSER_DATA_PATH)
+        book = openpyxl.load_workbook(settings.PRICE_PARSER_DATA_PATH)
         sheet = book.active
         items = []
         row = 2
@@ -223,11 +193,32 @@ class WildberriesParser:
             row += 1
         return items
 
-    @pytest.mark.skipif(project_settings.PRICE_POSITIONS, reason = "parse only positions")
+    @staticmethod
+    def connect_authorization_driver() -> Remote:
+        options = ChromeOptions()
+        options.add_argument("--headless")
+        with open(settings.LOG_IN_DRIVER_DATA_PATH, 'r') as file:
+            authorization_driver_data = json.load(file)
+        driver = Remote(authorization_driver_data["url"], options = options)
+        driver.close()
+        driver.session_id = authorization_driver_data["session_id"]
+        return driver
+
+    @pytest.mark.skipif(settings.PARSE_POSITIONS, reason = "parse only positions")
     def run_price_parsing(self) -> None:
-        main_page = MainPage(self.driver)
-        main_page.open()
-        main_page.authorize_manually()
+        log_in_attempt = 0
+        while log_in_attempt < settings.LOG_IN_ATTEMPTS_AMOUNT:
+            log_in_page = LogInPage(self.driver, self.connect_authorization_driver())
+            log_in_page.open()
+            try:
+                log_in_page.log_in()
+                break
+            except TimeoutException:
+                log_in_page.log_in_manually()
+            log_in_attempt += 1
+        else:
+            raise LogInException()
+
         for item in self.price_parser_items:
             price, final_price, personal_sale = self.parse_price(item)
             price = models.Price(

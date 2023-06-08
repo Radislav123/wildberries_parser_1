@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.expected_conditions import presence_of_all_elements_located
 from selenium.webdriver.support.wait import WebDriverWait
 
-from parser_project import project_settings
+from parser import settings
 from .element import ExtendedWebElement
 
 
@@ -18,7 +18,7 @@ class ExtendedWebElementCollection:
         self.driver = page.driver
 
         self.xpath = xpath
-        self.wait = WebDriverWait(self.driver, project_settings.DEFAULT_TIMEOUT)
+        self.wait = WebDriverWait(self.driver, settings.DEFAULT_TIMEOUT)
         self.elements: None | list[ExtendedWebElement] = None
         self.initialized: dict[Callable, bool] = {}
 

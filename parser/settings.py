@@ -22,8 +22,9 @@ DEFAULT_TIMEOUT = 5
 
 # Настройки парсера
 PARSE_PRICES = False
-PRICE_POSITIONS = False
-ATTEMPT_NUMBER = 10
+PARSE_POSITIONS = False
+ATTEMPTS_AMOUNT = 10
+LOG_IN_ATTEMPTS_AMOUNT = 3
 
 # Данные для парсинга
 PARSER_DATA_FOLDER = "parser_data"
@@ -33,6 +34,8 @@ CITIES = read_json(CITIES_PATH)
 
 PRICE_PARSER_DATA_PATH = f"{PARSER_DATA_FOLDER}/price_parser_data.xlsx"
 POSITION_PARSER_DATA_PATH = f"{PARSER_DATA_FOLDER}/position_parser_data.xlsx"
+
+LOG_IN_DRIVER_DATA_PATH = f"{PARSER_DATA_FOLDER}/log_in_driver_data.json"
 
 # Настройки административной панели
 # noinspection SpellCheckingInspection
@@ -46,6 +49,9 @@ DATABASE_SETTINGS_PATH = f"{DATABASE_SECRETS_FOLDER}/credentials.json"
 
 GEOPARSER_SECRETS_FOLDER = f"{SECRETS_FOLDER}/geoparser"
 GEOPARSER_CREDENTIALS_PATH = f"{GEOPARSER_SECRETS_FOLDER}/credentials.json"
+
+LOG_IN_SECRETS_FOLDER = f"{SECRETS_FOLDER}/log_in"
+LOG_IN_CREDENTIALS_PATH = f"{LOG_IN_SECRETS_FOLDER}/credentials.json"
 
 # Настройки логгера
 LOG_FORMAT = "[%(asctime)s] - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"

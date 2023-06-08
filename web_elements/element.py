@@ -6,7 +6,7 @@ from selenium.webdriver.support.expected_conditions import element_to_be_clickab
     visibility_of_element_located
 from selenium.webdriver.support.wait import WebDriverWait
 
-from parser_project import project_settings
+from parser import settings
 
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ class ExtendedWebElement:
         self.driver = page.driver
 
         self.xpath = xpath
-        self.wait = WebDriverWait(self.driver, project_settings.DEFAULT_TIMEOUT)
+        self.wait = WebDriverWait(self.driver, settings.DEFAULT_TIMEOUT)
         self.initialized: dict[Callable, bool] = {}
         self._selenium_element: None | WebElement = None
 

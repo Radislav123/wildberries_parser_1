@@ -1,13 +1,13 @@
 import logging
 from pathlib import Path
 
-from parser_project import project_settings
+from parser import settings
 
 
 class Logger:
     """Обертка для logging <https://docs.python.org/3/library/logging.html>."""
 
-    LOG_FORMATTER = logging.Formatter(project_settings.LOG_FORMAT)
+    LOG_FORMATTER = logging.Formatter(settings.LOG_FORMAT)
     LOG_LEVEL_NAMES = {
         logging.WARNING: "warning",
         logging.INFO: "info",
@@ -20,7 +20,7 @@ class Logger:
 
     @classmethod
     def get_log_filepath(cls, filename):
-        return f"{project_settings.LOG_FOLDER}/{filename}.log"
+        return f"{settings.LOG_FOLDER}/{filename}.log"
 
     @classmethod
     def construct_handler(cls, log_level = logging.INFO, to_console = False):
@@ -36,15 +36,15 @@ class Logger:
     # уровни отображения логов описаны в documentation/LOGGING.md в разделе Информация о логировании
     def __new__(cls, logger_name):
         # создает папку для логов, если ее нет
-        Path(project_settings.LOG_FOLDER).mkdir(parents = True, exist_ok = True)
+        Path(settings.LOG_FOLDER).mkdir(parents = True, exist_ok = True)
         logger = logging.getLogger(logger_name)
         logger.setLevel(logging.DEBUG)
         # в файл
         # noinspection PyTypeChecker
-        logger.addHandler(cls.construct_handler(project_settings.FILE_LOG_LEVEL))
+        logger.addHandler(cls.construct_handler(settings.FILE_LOG_LEVEL))
         # в консоль
         # noinspection PyTypeChecker
-        logger.addHandler(cls.construct_handler(project_settings.CONSOLE_LOG_LEVEL, True))
+        logger.addHandler(cls.construct_handler(settings.CONSOLE_LOG_LEVEL, True))
         return logger
 
 

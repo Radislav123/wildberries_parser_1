@@ -7,7 +7,7 @@ from django.contrib import admin
 from django.db import models as django_models
 from django.http import HttpRequest, HttpResponse
 
-from parser_project import project_settings
+from parser import settings
 from . import models
 
 
@@ -48,7 +48,7 @@ def download_show_position_excel(
     book.close()
 
     stream.seek(0)
-    response = HttpResponse(stream.read(), content_type = project_settings.DOWNLOAD_EXCEL_CONTENT_TYPE)
+    response = HttpResponse(stream.read(), content_type = settings.DOWNLOAD_EXCEL_CONTENT_TYPE)
     response["Content-Disposition"] = f"attachment;filename={model_name}.xlsx"
     return response
 
@@ -82,7 +82,7 @@ def download_show_price_excel(
     book.close()
 
     stream.seek(0)
-    response = HttpResponse(stream.read(), content_type = project_settings.DOWNLOAD_EXCEL_CONTENT_TYPE)
+    response = HttpResponse(stream.read(), content_type = settings.DOWNLOAD_EXCEL_CONTENT_TYPE)
     response["Content-Disposition"] = f"attachment;filename={model_name}.xlsx"
     return response
 

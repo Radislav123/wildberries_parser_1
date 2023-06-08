@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import json
 from pathlib import Path
 
-from . import project_settings
+from parser import settings
 
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
@@ -69,7 +69,7 @@ WSGI_APPLICATION = "parser_project.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-with open(project_settings.DATABASE_SETTINGS_PATH, 'r') as database_settings_file:
+with open(settings.DATABASE_SETTINGS_PATH, 'r') as database_settings_file:
     DATABASES = {"default": json.load(database_settings_file)}
 
 # Password validation
