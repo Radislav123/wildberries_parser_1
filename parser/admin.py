@@ -68,7 +68,8 @@ def download_show_price_excel(
     # noinspection PyProtectedMember
     header = [
                  models.Item._meta.get_field("vendor_code").verbose_name,
-                 models.Item._meta.get_field("name").verbose_name
+                 models.Item._meta.get_field("name").verbose_name,
+                 models.Price._meta.get_field("reviews_amount").verbose_name,
              ] + admin_model.date_field_names
     for row_number, column_name in enumerate(header):
         sheet.write(0, row_number, column_name)
@@ -76,7 +77,8 @@ def download_show_price_excel(
         data: admin_model.model
         sheet.write(row_number, 0, data.item.vendor_code)
         sheet.write(row_number, 1, data.item.name)
-        for column_number, date_field in enumerate(admin_model.date_field_names, 2):
+        sheet.write(row_number, 2, data.reviews_amount)
+        for column_number, date_field in enumerate(admin_model.date_field_names, 3):
             sheet.write(row_number, column_number, getattr(data, date_field)())
     sheet.autofit()
     book.close()
@@ -181,7 +183,7 @@ class ShowPositionAdmin(ProjectAdmin):
 
 class PriceAdmin(ProjectAdmin):
     model = models.Price
-    list_display = ("item", "item_name", "final_price", "price", "personal_sale", "parse_time")
+    list_display = ("item", "item_name", "reviews_amount", "final_price", "price", "personal_sale", "parse_time")
 
     def item_name(self, obj: model) -> str:
         return obj.item.name
@@ -192,7 +194,7 @@ class PriceAdmin(ProjectAdmin):
 
 class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
-    default_list_display = ("item", "item_name")
+    default_list_display = ("item", "item_name", "reviews_amount")
     list_filter = ("item", "item__name",)
     date_field_names: list[str] = []
     actions = (download_show_price_excel,)

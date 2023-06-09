@@ -10,7 +10,7 @@ from selenium.webdriver import Chrome, ChromeOptions, Remote
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from pages import ItemPage, LogInPage, MainPage, SearchResultsPage
+from pages import ItemPage, MainPage, SearchResultsPage
 from . import models, settings
 
 
@@ -171,7 +171,7 @@ class WildberriesParser:
             position = self.find_position(city_dict, keyword)
             position.save()
 
-    def parse_price(self, item: models.Item) -> tuple[float, float, int | None]:
+    def parse_price(self, item: models.Item) -> tuple[float, float, int | None, int]:
         page = ItemPage(self.driver, item.vendor_code)
         page.open()
         page.transfer_cookies(self.log_in_driver)
@@ -192,7 +192,9 @@ class WildberriesParser:
             final_price = None
             personal_sale = None
 
-        return price, final_price, personal_sale
+        reviews_amount = int("".join([x for x in page.review_amount.text.split()[:-1]]))
+
+        return price, final_price, personal_sale, reviews_amount
 
     @property
     def price_parser_items(self) -> list[models.Item]:
@@ -210,29 +212,15 @@ class WildberriesParser:
             row += 1
         return items
 
-    # не используется, но оставлен
-    def try_auto_log_in(self) -> None:
-        log_in_attempt = 0
-        while log_in_attempt < settings.LOG_IN_ATTEMPTS_AMOUNT:
-            log_in_page = LogInPage(self.driver, self.log_in_driver)
-            log_in_page.open()
-            try:
-                log_in_page.log_in()
-                break
-            except TimeoutException:
-                log_in_page.log_in_manually()
-            log_in_attempt += 1
-        else:
-            raise LogInException()
-
     @pytest.mark.skipif(settings.PARSE_POSITIONS, reason = "parse only positions")
     def run_price_parsing(self) -> None:
         for item in self.price_parser_items:
-            price, final_price, personal_sale = self.parse_price(item)
+            price, final_price, personal_sale, reviews_amount = self.parse_price(item)
             price = models.Price(
                 item = item,
                 price = price,
                 final_price = final_price,
                 personal_sale = personal_sale,
+                reviews_amount = reviews_amount
             )
             price.save()

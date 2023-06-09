@@ -32,3 +32,4 @@ class ItemPage(WildberriesPage):
         self.vendor_code = ExtendedWebElement(self, '//span[@id = "productNmId"]')
         self.price_block = self.PriceBlock(self, '//del')
         self.sold_out = ExtendedWebElement(self, '//span[@class = "sold-out-product__text"]')
+        self.review_amount = ExtendedWebElement(self, '//span[@class = "product-review__count-review"]')
