@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 
 import openpyxl
@@ -10,6 +11,7 @@ from selenium.webdriver import Chrome, ChromeOptions, Remote
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
+from logger import Logger
 from pages import ItemPage, MainPage, SearchResultsPage
 from . import models, settings
 
@@ -25,11 +27,20 @@ class LogInException(Exception):
 class WildberriesParser:
     """Отвечает за весь процесс парсинга."""
 
+    logger: logging.Logger
     driver: Chrome
     log_in_driver: Chrome
     _proxies: dict = None
 
     def setup_method(self):
+        if settings.PARSE_PRICES:
+            logger_name = "price_parser"
+        if settings.PARSE_POSITIONS:
+            logger_name = "position_parser"
+        # noinspection PyUnboundLocalVariable
+        self.logger = Logger(logger_name)
+        self.logger.info("Start")
+
         options = ChromeOptions()
         # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
         options.add_argument("--no-sandbox")
@@ -92,7 +103,7 @@ class WildberriesParser:
 
         try:
             page = 1
-            position = 0
+            position = None
             while page:
                 # noinspection SpellCheckingInspection
                 url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub" \
@@ -108,7 +119,6 @@ class WildberriesParser:
                         try_success = True
                     except JSONDecodeError:
                         if not try_success and try_number >= settings.ATTEMPTS_AMOUNT:
-                            position = None
                             page = None
                             break
                         else:
@@ -117,18 +127,17 @@ class WildberriesParser:
                 else:
                     # noinspection PyUnboundLocalVariable
                     if keyword.item.vendor_code in page_vendor_codes:
-                        position += page_vendor_codes.index(keyword.item.vendor_code) + 1
+                        position = page_vendor_codes.index(keyword.item.vendor_code) + 1
                         break
-                    else:
-                        position += len(page_vendor_codes)
                     page += 1
         except KeyError as error:
             if "data" in error.args:
                 # если возвращаемая позиция == None => товар не был найден по данному ключевому слову
+                page = None
                 position = None
             else:
                 raise error
-        return models.Position(keyword = keyword, city = city_dict["name"], value = position)
+        return models.Position(keyword = keyword, city = city_dict["name"], page = page, value = position)
 
     @property
     def position_parser_item_dicts(self) -> list[dict[str, str | int]]:

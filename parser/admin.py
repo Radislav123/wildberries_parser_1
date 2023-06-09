@@ -105,7 +105,7 @@ class KeywordAdmin(ProjectAdmin):
 
 class PositionAdmin(ProjectAdmin):
     model = models.Position
-    list_display = ("item", "item_name", "city", "keyword", "value", "day_position", "month_position", "parse_time")
+    list_display = ("item", "item_name", "city", "keyword", "page", "value", "parse_time")
     list_filter = ("city", "keyword__item", "keyword__item__name", "keyword")
 
     def item(self, obj: model) -> models.Item:
@@ -120,12 +120,20 @@ class PositionAdmin(ProjectAdmin):
     # noinspection PyProtectedMember
     item_name.short_description = models.Item._meta.get_field("name").verbose_name
 
+    def position(self, obj: model) -> str:
+        return obj.position_repr
+
+    # noinspection PyProtectedMember
+    position.short_description = model._meta.get_field("value").verbose_name
+
+    # todo: нужно переделать, так как после введения страницы вычисляется неверно
     def day_position(self, obj: model) -> int | None:
         return obj.day_position
 
     # noinspection PyProtectedMember
     day_position.short_description = "Средняя позиция за день"
 
+    # todo: нужно переделать, так как после введения страницы вычисляется неверно
     def month_position(self, obj: model) -> int | None:
         return obj.month_position
 
@@ -163,7 +171,7 @@ class ShowPositionAdmin(ProjectAdmin):
                                 parse_date = inner_date
                             ).order_by("parse_time").last()
                             if position_object is not None:
-                                position = getattr(position_object, "value")
+                                position = getattr(position_object, "position_repr")
                             else:
                                 position = None
                             return position

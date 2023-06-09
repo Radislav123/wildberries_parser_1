@@ -32,7 +32,8 @@ class Position(ProjectModel):
     # noinspection PyProtectedMember
     keyword = models.ForeignKey(Keyword, models.PROTECT, verbose_name = Keyword._meta.get_field("value").verbose_name)
     city = models.CharField("Город")
-    value = models.IntegerField("Позиция в выдаче", null = True)
+    page = models.PositiveIntegerField("Страница", null = True)
+    value = models.PositiveIntegerField("Позиция", null = True)
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)
     parse_date = models.DateField("Дата парсинга", auto_now = True)
 
@@ -66,6 +67,13 @@ class Position(ProjectModel):
 
         return self.get_average_position_for(30)
 
+    @property
+    def position_repr(self) -> str:
+        page = self.page
+        if page is None:
+            page = "-"
+        return f"{page}/{self.value}"
+
 
 class ShowPosition(Position):
     class Meta:
@@ -74,13 +82,13 @@ class ShowPosition(Position):
 
 class Price(ProjectModel):
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
+    reviews_amount = models.PositiveIntegerField("Количество отзывов", null = True)
     price = models.DecimalField("Цена до СПП", max_digits = 15, decimal_places = 2, null = True)
     final_price = models.DecimalField("Финальная цена", max_digits = 15, decimal_places = 2, null = True)
     # скидка постоянного покупателя
     personal_sale = models.PositiveIntegerField("СПП", null = True)
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)
     parse_date = models.DateField("Дата парсинга", auto_now = True)
-    reviews_amount = models.PositiveIntegerField("Количество отзывов", null = True)
 
     def __str__(self) -> str:
         return str(self.item.vendor_code)

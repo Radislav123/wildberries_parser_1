@@ -34,7 +34,7 @@ class Logger:
         return handler
 
     # уровни отображения логов описаны в documentation/LOGGING.md в разделе Информация о логировании
-    def __new__(cls, logger_name):
+    def __new__(cls, logger_name) -> logging.Logger:
         # создает папку для логов, если ее нет
         Path(settings.LOG_FOLDER).mkdir(parents = True, exist_ok = True)
         logger = logging.getLogger(logger_name)
