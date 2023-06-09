@@ -12,6 +12,7 @@ from parser import settings
 def get_authorization_driver():
     options = ChromeOptions()
 
+    options.add_argument("--no-sandbox")
     driver_manager = ChromeDriverManager(path = "").install()
     service = Service(executable_path = driver_manager)
 

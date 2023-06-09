@@ -32,6 +32,7 @@ class WildberriesParser:
     def setup_method(self):
         options = ChromeOptions()
         # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
+        options.add_argument("--no-sandbox")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--headless")
         options.add_argument("--window-size=1920,1080")
