@@ -26,6 +26,7 @@ class WildberriesParser:
     """Отвечает за весь процесс парсинга."""
 
     driver: Chrome
+    log_in_driver: Chrome
     _proxies: dict = None
 
     def setup_method(self):
@@ -42,8 +43,22 @@ class WildberriesParser:
         self.driver = Chrome(options = options, service = service)
         self.driver.maximize_window()
 
+        if settings.PARSE_PRICES:
+            self.log_in_driver = self.connect_log_in_driver()
+
     def teardown_method(self):
         self.driver.quit()
+
+    @staticmethod
+    def connect_log_in_driver() -> Remote:
+        options = ChromeOptions()
+        options.add_argument("--headless")
+        with open(settings.LOG_IN_DRIVER_DATA_PATH, 'r') as file:
+            authorization_driver_data = json.load(file)
+        driver = Remote(authorization_driver_data["url"], options = options)
+        driver.close()
+        driver.session_id = authorization_driver_data["session_id"]
+        return driver
 
     # не используется, но оставлен
     def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:
@@ -158,6 +173,7 @@ class WildberriesParser:
     def parse_price(self, item: models.Item) -> tuple[float, float, int | None]:
         page = ItemPage(self.driver, item.vendor_code)
         page.open()
+        page.transfer_cookies(self.log_in_driver)
 
         try:
             page.sold_out.init_if_necessary()
@@ -193,22 +209,11 @@ class WildberriesParser:
             row += 1
         return items
 
-    @staticmethod
-    def connect_authorization_driver() -> Remote:
-        options = ChromeOptions()
-        options.add_argument("--headless")
-        with open(settings.LOG_IN_DRIVER_DATA_PATH, 'r') as file:
-            authorization_driver_data = json.load(file)
-        driver = Remote(authorization_driver_data["url"], options = options)
-        driver.close()
-        driver.session_id = authorization_driver_data["session_id"]
-        return driver
-
-    @pytest.mark.skipif(settings.PARSE_POSITIONS, reason = "parse only positions")
-    def run_price_parsing(self) -> None:
+    # не используется, но оставлен
+    def try_auto_log_in(self) -> None:
         log_in_attempt = 0
         while log_in_attempt < settings.LOG_IN_ATTEMPTS_AMOUNT:
-            log_in_page = LogInPage(self.driver, self.connect_authorization_driver())
+            log_in_page = LogInPage(self.driver, self.log_in_driver)
             log_in_page.open()
             try:
                 log_in_page.log_in()
@@ -219,6 +224,8 @@ class WildberriesParser:
         else:
             raise LogInException()
 
+    @pytest.mark.skipif(settings.PARSE_POSITIONS, reason = "parse only positions")
+    def run_price_parsing(self) -> None:
         for item in self.price_parser_items:
             price, final_price, personal_sale = self.parse_price(item)
             price = models.Price(

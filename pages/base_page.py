@@ -36,11 +36,17 @@ class BasePage:
             url = url[:-1]
         return url
 
-    def scroll(self, x_offset, y_offset):
+    def scroll(self, x_offset: int, y_offset: int):
         self.driver.execute_script(f"window.scrollBy({x_offset}, {y_offset});")
 
-    def scroll_up(self, offset):
+    def scroll_up(self, offset: int):
         self.scroll(0, -offset)
 
-    def scroll_down(self, offset):
+    def scroll_down(self, offset: int):
         self.scroll(0, offset)
+
+    def transfer_cookies(self, donor_driver: Chrome):
+        self.open()
+        for cookie in donor_driver.get_cookies():
+            self.driver.add_cookie(cookie)
+        self.open()
