@@ -105,7 +105,7 @@ class KeywordAdmin(ProjectAdmin):
 
 class PositionAdmin(ProjectAdmin):
     model = models.Position
-    list_display = ("item", "item_name", "city", "keyword", "page", "value", "parse_time")
+    list_display = ("item", "item_name", "city", "keyword", "page_capacities", "page", "value", "parse_time")
     list_filter = ("city", "keyword__item", "keyword__item__name", "keyword")
 
     def item(self, obj: model) -> models.Item:

@@ -1,5 +1,6 @@
 import datetime
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 
@@ -32,6 +33,8 @@ class Position(ProjectModel):
     # noinspection PyProtectedMember
     keyword = models.ForeignKey(Keyword, models.PROTECT, verbose_name = Keyword._meta.get_field("value").verbose_name)
     city = models.CharField("Город")
+    # количество товаров на страницах
+    page_capacities = ArrayField(models.PositiveIntegerField(), verbose_name = "Емкости страниц", null = True)
     page = models.PositiveIntegerField("Страница", null = True)
     value = models.PositiveIntegerField("Позиция", null = True)
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)

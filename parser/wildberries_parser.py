@@ -104,6 +104,7 @@ class WildberriesParser:
         try:
             page = 1
             position = None
+            page_capacities = []
             while page:
                 # noinspection SpellCheckingInspection
                 url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub" \
@@ -126,6 +127,7 @@ class WildberriesParser:
                             time.sleep(1)
                 else:
                     # noinspection PyUnboundLocalVariable
+                    page_capacities.append(len(page_vendor_codes))
                     if keyword.item.vendor_code in page_vendor_codes:
                         position = page_vendor_codes.index(keyword.item.vendor_code) + 1
                         break
@@ -133,11 +135,18 @@ class WildberriesParser:
         except KeyError as error:
             if "data" in error.args:
                 # если возвращаемая позиция == None => товар не был найден по данному ключевому слову
+                page_capacities = None
                 page = None
                 position = None
             else:
                 raise error
-        return models.Position(keyword = keyword, city = city_dict["name"], page = page, value = position)
+        return models.Position(
+            keyword = keyword,
+            city = city_dict["name"],
+            page_capacities = page_capacities,
+            page = page,
+            value = position
+        )
 
     @property
     def position_parser_item_dicts(self) -> list[dict[str, str | int]]:
