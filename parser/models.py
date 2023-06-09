@@ -77,6 +77,22 @@ class Position(ProjectModel):
             page = "-"
         return f"{page}/{self.value}"
 
+    @property
+    def real_position(self) -> int | None:
+        if self.page_capacities is not None:
+            real_position = sum(self.page_capacities[:self.page]) + self.value
+        else:
+            real_position = self.value
+        return real_position
+
+    def get_last_object_by_date(self, date: datetime.date) -> "Position":
+        obj = self.__class__.objects.filter(
+            keyword = self.keyword,
+            city = self.city,
+            parse_date = date
+        ).order_by("parse_time").last()
+        return obj
+
 
 class ShowPosition(Position):
     class Meta:

@@ -1,11 +1,15 @@
 import datetime
+import re
 import sys
 from io import BytesIO
+from typing import Callable
 
 import xlsxwriter
 from django.contrib import admin
 from django.db import models as django_models
 from django.http import HttpRequest, HttpResponse
+from django.utils.html import format_html
+from django.utils.safestring import SafeString
 
 from parser import settings
 from . import models
@@ -26,6 +30,12 @@ def download_show_position_excel(
     book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
     sheet = book.add_worksheet(model_name)
 
+    prepared_field_names = []
+    for field_name in admin_model.addition_field_names:
+        if "movement" in field_name:
+            prepared_field_names.append("")
+        else:
+            prepared_field_names.append(field_name)
     # {name: column width}
     # noinspection PyProtectedMember
     header = [
@@ -33,7 +43,7 @@ def download_show_position_excel(
                  models.Item._meta.get_field("name").verbose_name,
                  models.Keyword._meta.get_field("value").verbose_name,
                  models.Position._meta.get_field("city").verbose_name
-             ] + admin_model.date_field_names
+             ] + prepared_field_names
     for row_number, column_name in enumerate(header):
         sheet.write(0, row_number, column_name)
     for row_number, data in enumerate(queryset, 1):
@@ -42,8 +52,11 @@ def download_show_position_excel(
         sheet.write(row_number, 1, data.keyword.item.name)
         sheet.write(row_number, 2, data.keyword.value)
         sheet.write(row_number, 3, data.city)
-        for column_number, date_field in enumerate(admin_model.date_field_names, 4):
-            sheet.write(row_number, column_number, getattr(data, date_field)())
+        for column_number, additional_field in enumerate(admin_model.addition_field_names, 4):
+            field_data = getattr(data, additional_field)()
+            if type(field_data) is SafeString:
+                field_data = re.search("<span[^>]*>(.+)</span[^>]*>", field_data).group(1)
+            sheet.write(row_number, column_number, field_data)
     sheet.autofit()
     book.close()
 
@@ -145,7 +158,7 @@ class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
     list_filter = ("city", "keyword__item", "keyword__item__name", "keyword")
-    date_field_names: list[str] = []
+    addition_field_names: list[str] = []
     actions = (download_show_position_excel,)
 
     item = PositionAdmin.item
@@ -161,15 +174,13 @@ class ShowPositionAdmin(ProjectAdmin):
                 for day in range(day_delta):
                     date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
                     str_date = str(date)
+                    movement_field_name = f"{str_date}_movement"
                     self.list_display.append(str_date)
+                    self.list_display.append(movement_field_name)
 
-                    def wrapper(inner_date):
-                        def last_data(obj: model) -> int | None:
-                            position_object = self.model.objects.filter(
-                                keyword = obj.keyword,
-                                city = obj.city,
-                                parse_date = inner_date
-                            ).order_by("parse_time").last()
+                    def data_wrapper(inner_date: datetime.date) -> Callable:
+                        def last_data(obj: models.Position) -> int | None:
+                            position_object = obj.get_last_object_by_date(inner_date)
                             if position_object is not None:
                                 position = getattr(position_object, "position_repr")
                             else:
@@ -179,8 +190,33 @@ class ShowPositionAdmin(ProjectAdmin):
                         last_data.__name__ = str_date
                         return last_data
 
-                    self.date_field_names.append(str_date)
-                    setattr(model, str_date, wrapper(date))
+                    self.addition_field_names.append(str_date)
+                    setattr(model, str_date, data_wrapper(date))
+
+                    def movement_wrapper(inner_date: datetime.date) -> Callable:
+                        def movement(obj: models.Position) -> str | None:
+                            current_object = obj.get_last_object_by_date(inner_date)
+                            previous_object = obj.get_last_object_by_date(inner_date - datetime.timedelta(days = 1))
+                            if current_object is not None and previous_object is not None and \
+                                    current_object.real_position is not None and \
+                                    previous_object.real_position is not None:
+                                data = current_object.real_position - previous_object.real_position
+                                if data > 0:
+                                    string = format_html(f'<span style="color: #ef6f6f;">+{data}</span>')
+                                elif data < 0:
+                                    string = format_html(f'<span style="color: #6aa84f;">{data}</span>')
+                                else:
+                                    string = str(data)
+                            else:
+                                string = None
+                            return string
+
+                        movement.__name__ = movement_field_name
+                        movement.short_description = ""
+                        return movement
+
+                    self.addition_field_names.append(movement_field_name)
+                    setattr(model, movement_field_name, movement_wrapper(date))
 
     def get_queryset(self, request: HttpRequest):
         queryset: django_models.QuerySet = super().get_queryset(request)
@@ -224,7 +260,7 @@ class ShowPriceAdmin(ProjectAdmin):
                     date = (datetime.datetime.today() - datetime.timedelta(days = day)).date()
 
                     def wrapper(inner_date, field_name):
-                        def last_data(obj: model) -> int | None:
+                        def last_data(obj: models.Price) -> int | None:
                             price_object = self.model.objects.filter(item = obj.item, parse_date = inner_date) \
                                 .order_by("parse_time").last()
                             if price_object is not None:
