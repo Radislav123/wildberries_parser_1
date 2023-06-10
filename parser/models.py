@@ -79,7 +79,7 @@ class Position(ProjectModel):
 
     @property
     def real_position(self) -> int | None:
-        if self.page_capacities is not None:
+        if self.page_capacities is not None and self.value is not None:
             real_position = sum(self.page_capacities[:self.page]) + self.value
         else:
             real_position = self.value
