@@ -116,3 +116,8 @@ class Price(ProjectModel):
 class ShowPrice(Price):
     class Meta:
         proxy = True
+
+
+class DateComment(ProjectModel):
+    text = models.TextField()
+    date = models.DateField()

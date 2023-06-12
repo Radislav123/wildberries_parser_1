@@ -4,8 +4,10 @@ import sys
 from io import BytesIO
 from typing import Callable
 
+import django.template.response
 import xlsxwriter
 from django.contrib import admin
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models as django_models
 from django.http import HttpRequest, HttpResponse
 from django.utils.html import format_html
@@ -159,6 +161,7 @@ class ShowPositionAdmin(ProjectAdmin):
     default_list_display = ("item", "item_name", "keyword", "city")
     list_filter = ("city", "keyword__item", "keyword__item__name", "keyword")
     addition_field_names: list[str] = []
+    addition_dates: list[datetime.date] = []
     actions = (download_show_position_excel,)
 
     item = PositionAdmin.item
@@ -218,11 +221,40 @@ class ShowPositionAdmin(ProjectAdmin):
                     self.addition_field_names.append(movement_field_name)
                     setattr(model, movement_field_name, movement_wrapper(date))
 
-    def get_queryset(self, request: HttpRequest):
+                    self.addition_dates.append(date)
+
+    def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
         fields_to_group_by = ("keyword", "city")
         new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
         return new_queryset
+
+    def changelist_view(
+            self,
+            request: HttpRequest,
+            extra_context: dict = None
+    ) -> django.template.response.TemplateResponse:
+        if extra_context is None:
+            extra_context = {}
+        extra_context["date_comments"] = []
+        column_width = len(str(self.addition_dates[0]))
+        comments = models.DateComment.objects.all()
+        for date in self.addition_dates:
+            try:
+                comment = comments.get(date = date)
+                string = comment.text
+                if len(string) > column_width:
+                    string = f"{string[:column_width]}..."
+                # noinspection SpellCheckingInspection
+                link = f"/admin/parser/datecomment/{comment.id}/change/"
+            except ObjectDoesNotExist:
+                string = "---"
+                # noinspection SpellCheckingInspection
+                link = f"/admin/parser/datecomment/add/?date={date}"
+            # noinspection SpellCheckingInspection
+            data = format_html(f'<a style="color: #5abfe1;" href="{link}">{string}</a>')
+            extra_context["date_comments"].append(data)
+        return super().changelist_view(request, extra_context)
 
 
 class PriceAdmin(ProjectAdmin):
@@ -284,6 +316,11 @@ class ShowPriceAdmin(ProjectAdmin):
         queryset: django_models.QuerySet = super().get_queryset(request)
         new_queryset = queryset.order_by("item").distinct("item")
         return new_queryset
+
+
+class DateCommentAdmin(ProjectAdmin):
+    model = models.DateComment
+    list_display = ("text", "date")
 
 
 def register_models():

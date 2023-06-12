@@ -4,6 +4,8 @@
 # временные файлы
 temp*
 *template*
+!templates/
+!templatetags/
 
 # логи
 logs/
