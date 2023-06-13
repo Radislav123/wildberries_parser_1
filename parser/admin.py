@@ -47,8 +47,8 @@ def download_show_position_excel(
                  models.Position._meta.get_field("city").verbose_name
              ] + prepared_field_names
     for row_number, column_name in enumerate(header):
-        sheet.write(0, row_number, column_name)
-    for row_number, data in enumerate(queryset, 1):
+        sheet.write(1, row_number, column_name)
+    for row_number, data in enumerate(queryset, 2):
         data: admin_model.model
         sheet.write(row_number, 0, data.keyword.item.vendor_code)
         sheet.write(row_number, 1, data.keyword.item.name)
@@ -60,6 +60,15 @@ def download_show_position_excel(
                 field_data = re.search("<span[^>]*>(.+)</span[^>]*>", field_data).group(1)
             sheet.write(row_number, column_number, field_data)
     sheet.autofit()
+
+    comments = models.DateComment.objects.all()
+    for column_number, date in zip(range(4, len(admin_model.addition_dates), 2), admin_model.addition_dates):
+        try:
+            comment = comments.get(date = date)
+            sheet.write(0, column_number, comment.text)
+        except ObjectDoesNotExist:
+            pass
+
     book.close()
 
     stream.seek(0)
