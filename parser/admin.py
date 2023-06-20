@@ -152,7 +152,7 @@ class PositionAdmin(ProjectAdmin):
         return obj.keyword.item_name
 
     # noinspection PyProtectedMember
-    item_name.short_description = models.Item._meta.get_field("name").verbose_name
+    item_name.short_description = models.Keyword._meta.get_field("item_name").verbose_name
 
     def position(self, obj: model) -> str:
         return obj.position_repr
