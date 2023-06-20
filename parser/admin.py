@@ -146,22 +146,19 @@ class PositionAdmin(ProjectAdmin):
         return obj.keyword.item
 
     # noinspection PyProtectedMember
-    # todo: return this after deploy
-    # item.short_description = models.Item._meta.get_field("vendor_code").verbose_name
+    item.short_description = models.Item._meta.get_field("vendor_code").verbose_name
 
     def item_name(self, obj: model) -> str:
         return obj.keyword.item_name
 
     # noinspection PyProtectedMember
-    # todo: return this after deploy
-    # item_name.short_description = models.Item._meta.get_field("name").verbose_name
+    item_name.short_description = models.Item._meta.get_field("name").verbose_name
 
     def position(self, obj: model) -> str:
         return obj.position_repr
 
     # noinspection PyProtectedMember
-    # todo: return this after deploy
-    # position.short_description = model._meta.get_field("value").verbose_name
+    position.short_description = model._meta.get_field("value").verbose_name
 
 
 class ShowPositionAdmin(ProjectAdmin):
