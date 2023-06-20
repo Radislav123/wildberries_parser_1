@@ -1,4 +1,5 @@
 import datetime
+import os
 import re
 import sys
 from io import BytesIO
@@ -15,6 +16,7 @@ from django.utils.safestring import SafeString
 
 from parser import settings
 from . import models
+from .wildberries_parser import WildberriesParser
 
 
 def is_migration() -> bool:
@@ -170,6 +172,7 @@ class ShowPositionAdmin(ProjectAdmin):
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
     addition_download_dates: list[datetime.date] = []
+    last_names_update_time: datetime.datetime = None
     actions = (download_show_position_excel,)
 
     item = PositionAdmin.item
@@ -265,11 +268,26 @@ class ShowPositionAdmin(ProjectAdmin):
         new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
         return new_queryset
 
+    def update_object_names(self) -> None:
+        """Обновляет названия товаров в соответствии с таковыми в excel-файле."""
+
+        file_modification_time = datetime.datetime.fromtimestamp(os.path.getmtime(settings.POSITION_PARSER_DATA_PATH))
+        if self.last_names_update_time is None or file_modification_time > self.last_names_update_time:
+            self.last_names_update_time = datetime.datetime.now()
+            item_dicts = WildberriesParser.get_position_parser_item_dicts()
+            # обновление названий и создание отсутствующих товаров
+            # noinspection PyStatementEffect
+            [models.Item.objects.update_or_create(
+                vendor_code = x["vendor_code"],
+                defaults = {"name_position": x["name_position"]}
+            )[0] for x in item_dicts]
+
     def changelist_view(
             self,
             request: HttpRequest,
             extra_context: dict = None
     ) -> django.template.response.TemplateResponse:
+        # добавление контекста для выведения комментариев
         if extra_context is None:
             extra_context = {}
         extra_context["date_comments"] = []
@@ -290,6 +308,8 @@ class ShowPositionAdmin(ProjectAdmin):
             # noinspection SpellCheckingInspection
             data = format_html(f'<a style="color: #5abfe1;" href="{link}">{string}</a>')
             extra_context["date_comments"].append(data)
+
+        self.update_object_names()
         return super().changelist_view(request, extra_context)
 
 
@@ -313,6 +333,7 @@ class ShowPriceAdmin(ProjectAdmin):
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
     addition_download_dates: list[datetime.date] = []
+    last_names_update_time: datetime.datetime = None
     actions = (download_show_price_excel,)
 
     item_name = PriceAdmin.item_name
@@ -375,6 +396,22 @@ class ShowPriceAdmin(ProjectAdmin):
         queryset: django_models.QuerySet = super().get_queryset(request)
         new_queryset = queryset.order_by("item").distinct("item")
         return new_queryset
+
+    def update_object_names(self) -> None:
+        """Обновляет названия товаров в соответствии с таковыми в excel-файле."""
+
+        file_modification_time = datetime.datetime.fromtimestamp(os.path.getmtime(settings.PRICE_PARSER_DATA_PATH))
+        if self.last_names_update_time is None or file_modification_time > self.last_names_update_time:
+            self.last_names_update_time = datetime.datetime.now()
+            WildberriesParser.get_price_parser_items()
+
+    def changelist_view(
+            self,
+            request: HttpRequest,
+            extra_context: dict = None
+    ) -> django.template.response.TemplateResponse:
+        self.update_object_names()
+        return super().changelist_view(request, extra_context)
 
 
 class DateCommentAdmin(ProjectAdmin):

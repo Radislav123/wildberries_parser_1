@@ -148,8 +148,8 @@ class WildberriesParser:
             value = position
         )
 
-    @property
-    def position_parser_item_dicts(self) -> list[dict[str, str | int]]:
+    @staticmethod
+    def get_position_parser_item_dicts() -> list[dict[str, str | int]]:
         book = openpyxl.load_workbook(settings.POSITION_PARSER_DATA_PATH)
         sheet = book.active
         items = []
@@ -165,9 +165,9 @@ class WildberriesParser:
             row += 1
         return items
 
-    @property
-    def position_parser_keywords(self) -> list[models.Keyword]:
-        item_dicts = self.position_parser_item_dicts
+    @classmethod
+    def get_position_parser_keywords(cls) -> list[models.Keyword]:
+        item_dicts = cls.get_position_parser_item_dicts()
         # создание отсутствующих товаров в БД
         # noinspection PyStatementEffect
         [models.Item.objects.update_or_create(
@@ -187,7 +187,7 @@ class WildberriesParser:
         dest, regions = main_page.set_city(city_dict["name"])
         city_dict["dest"] = dest
         city_dict["regions"] = regions
-        for keyword in self.position_parser_keywords:
+        for keyword in self.get_position_parser_keywords():
             position = self.find_position(city_dict, keyword)
             position.save()
 
@@ -216,8 +216,8 @@ class WildberriesParser:
 
         return price, final_price, personal_sale, reviews_amount
 
-    @property
-    def price_parser_items(self) -> list[models.Item]:
+    @staticmethod
+    def get_price_parser_items() -> list[models.Item]:
         book = openpyxl.load_workbook(settings.PRICE_PARSER_DATA_PATH)
         sheet = book.active
         items = []
@@ -234,7 +234,7 @@ class WildberriesParser:
 
     @pytest.mark.skipif(settings.PARSE_POSITIONS, reason = "parse only positions")
     def run_price_parsing(self) -> None:
-        for item in self.price_parser_items:
+        for item in self.get_price_parser_items():
             price, final_price, personal_sale, reviews_amount = self.parse_price(item)
             price = models.Price(
                 item = item,
