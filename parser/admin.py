@@ -168,7 +168,7 @@ class PositionAdmin(ProjectAdmin):
 class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
-    list_filter = ("city", "keyword__item", "keyword__item__name", "keyword")
+    list_filter = ("city", "keyword__item__name")
     addition_field_names: list[str] = []
     addition_dates: list[datetime.date] = []
     actions = (download_show_position_excel,)
@@ -280,7 +280,7 @@ class PriceAdmin(ProjectAdmin):
 class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
     default_list_display = ("item", "item_name", "reviews_amount")
-    list_filter = ("item", "item__name",)
+    list_filter = ("item__name",)
     date_field_names: list[str] = []
     actions = (download_show_price_excel,)
 
