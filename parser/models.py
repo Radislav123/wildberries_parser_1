@@ -11,7 +11,10 @@ class ProjectModel(models.Model):
 
 class Item(ProjectModel):
     vendor_code = models.PositiveIntegerField("Артикул", primary_key = True)
-    name = models.CharField("Название товара", null = True)
+    # название для сводной таблицы позиций
+    name_position = models.CharField("Название товара", null = True)
+    # название для сводной таблицы цен
+    name_price = models.CharField("Название товара", null = True)
 
     def __str__(self) -> str:
         return str(self.vendor_code)
@@ -57,18 +60,6 @@ class Position(ProjectModel):
         else:
             average_position = round(sum(positions) / len(positions))
         return average_position
-
-    @property
-    def day_position(self) -> None | int:
-        """Средняя позиция за день, когда выполнялся парсинг данной позиции."""
-
-        return self.get_average_position_for(1)
-
-    @property
-    def month_position(self) -> None | int:
-        """Средняя позиция за 30 дней предшествующих дню, когда выполнялся парсинг данной позиции."""
-
-        return self.get_average_position_for(30)
 
     @property
     def position_repr(self) -> str:

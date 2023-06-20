@@ -54,7 +54,7 @@ def download_show_position_excel(
     for row_number, data in enumerate(queryset, 2):
         data: admin_model.model
         sheet.write(row_number, 0, data.keyword.item.vendor_code)
-        sheet.write(row_number, 1, data.keyword.item.name)
+        sheet.write(row_number, 1, data.keyword.item.name_position)
         sheet.write(row_number, 2, data.keyword.value)
         sheet.write(row_number, 3, data.city)
         for column_number, additional_field in enumerate(admin_model.addition_download_field_names, 4):
@@ -108,7 +108,7 @@ def download_show_price_excel(
     for row_number, data in enumerate(queryset, 1):
         data: admin_model.model
         sheet.write(row_number, 0, data.item.vendor_code)
-        sheet.write(row_number, 1, data.item.name)
+        sheet.write(row_number, 1, data.item.name_position)
         sheet.write(row_number, 2, data.reviews_amount)
         for column_number, date_field in enumerate(admin_model.addition_download_field_names, 3):
             sheet.write(row_number, column_number, getattr(data, date_field)())
@@ -127,7 +127,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
 class ItemAdmin(ProjectAdmin):
     model = models.Item
-    list_display = ("name", "vendor_code")
+    list_display = ("name_position", "name_price", "vendor_code")
 
 
 class KeywordAdmin(ProjectAdmin):
@@ -138,45 +138,34 @@ class KeywordAdmin(ProjectAdmin):
 class PositionAdmin(ProjectAdmin):
     model = models.Position
     list_display = ("item", "item_name", "city", "keyword", "page_capacities", "page", "value", "parse_time")
-    list_filter = ("city", "keyword__item", "keyword__item__name", "keyword")
+    list_filter = ("city", "keyword__item", "keyword__item__name_position", "keyword")
 
     def item(self, obj: model) -> models.Item:
         return obj.keyword.item
 
     # noinspection PyProtectedMember
-    item.short_description = models.Item._meta.get_field("vendor_code").verbose_name
+    # todo: return this after deploy
+    # item.short_description = models.Item._meta.get_field("vendor_code").verbose_name
 
     def item_name(self, obj: model) -> str:
-        return obj.keyword.item.name
+        return obj.keyword.item.name_position
 
     # noinspection PyProtectedMember
-    item_name.short_description = models.Item._meta.get_field("name").verbose_name
+    # todo: return this after deploy
+    # item_name.short_description = models.Item._meta.get_field("name").verbose_name
 
     def position(self, obj: model) -> str:
         return obj.position_repr
 
     # noinspection PyProtectedMember
-    position.short_description = model._meta.get_field("value").verbose_name
-
-    # todo: нужно переделать, так как после введения страницы вычисляется неверно
-    def day_position(self, obj: model) -> int | None:
-        return obj.day_position
-
-    # noinspection PyProtectedMember
-    day_position.short_description = "Средняя позиция за день"
-
-    # todo: нужно переделать, так как после введения страницы вычисляется неверно
-    def month_position(self, obj: model) -> int | None:
-        return obj.month_position
-
-    # noinspection PyProtectedMember
-    month_position.short_description = "Средняя позиция за месяц"
+    # todo: return this after deploy
+    # position.short_description = model._meta.get_field("value").verbose_name
 
 
 class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
-    list_filter = ("city", "keyword__item__name")
+    list_filter = ("city", "keyword__item__name_position")
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
@@ -309,27 +298,24 @@ class PriceAdmin(ProjectAdmin):
     list_display = ("item", "item_name", "reviews_amount", "final_price", "price", "personal_sale", "parse_time")
 
     def item_name(self, obj: model) -> str:
-        return obj.item.name
+        return obj.item.name_price
 
     # noinspection PyProtectedMember
-    item_name.short_description = models.Item._meta.get_field("name").verbose_name
+    # todo: return this after deploy
+    # item_name.short_description = models.Item._meta.get_field("name").verbose_name
 
 
 class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
     default_list_display = ("item", "item_name", "reviews_amount")
-    list_filter = ("item__name",)
+    list_filter = ("item__name_price",)
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
     addition_download_dates: list[datetime.date] = []
     actions = (download_show_price_excel,)
 
-    def item_name(self, obj: model) -> str:
-        return obj.item.name
-
-    # noinspection PyProtectedMember
-    item_name.short_description = models.Item._meta.get_field("name").verbose_name
+    item_name = PriceAdmin.item_name
 
     def __init__(self, model: models.ShowPrice, admin_site):
         super().__init__(model, admin_site)

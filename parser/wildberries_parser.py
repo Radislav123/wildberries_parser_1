@@ -158,7 +158,7 @@ class WildberriesParser:
             items.append(
                 {
                     "vendor_code": int(sheet.cell(row, 1).value),
-                    "name": sheet.cell(row, 2).value,
+                    "name_position": sheet.cell(row, 2).value,
                     "keyword": sheet.cell(row, 3).value
                 }
             )
@@ -170,8 +170,10 @@ class WildberriesParser:
         item_dicts = self.position_parser_item_dicts
         # создание отсутствующих товаров в БД
         # noinspection PyStatementEffect
-        [models.Item.objects.update_or_create(vendor_code = x["vendor_code"], defaults = {"name": x["name"]})[0]
-         for x in item_dicts]
+        [models.Item.objects.update_or_create(
+            vendor_code = x["vendor_code"],
+            defaults = {"name_position": x["name_position"]}
+        )[0] for x in item_dicts]
 
         keywords = [models.Keyword.objects.get_or_create(value = x["keyword"], item_id = x["vendor_code"])[0]
                     for x in item_dicts]
@@ -224,7 +226,7 @@ class WildberriesParser:
             items.append(
                 models.Item.objects.update_or_create(
                     vendor_code = sheet.cell(row, 1).value,
-                    defaults = {"name": sheet.cell(row, 2).value}
+                    defaults = {"name_price": sheet.cell(row, 2).value}
                 )[0]
             )
             row += 1
