@@ -9,6 +9,10 @@ import configure_django
 from parser import settings
 
 
+class UnknownParserOption(Exception):
+    pass
+
+
 class Runner:
     # оригинал - https://git.miem.hse.ru/447/framework/-/blob/master/service/run.py
     def run(self):
@@ -17,11 +21,15 @@ class Runner:
         command = sys.argv[1]
         if command == "positions":
             settings.PARSE_POSITIONS = True
+            pytest_options = ["-o", "python_functions=run_position_parsing"]
         elif command == "prices":
             settings.PARSE_PRICES = True
+            pytest_options = ["-o", "python_functions=run_price_parsing"]
+        else:
+            raise UnknownParserOption()
 
         # опции командной строки, которые будут переданы в pytest
-        pytest_options = sys.argv[2:]
+        pytest_options.extend(sys.argv[2:])
         self.before_pytest()
         self.pytest(pytest_options)
         self.after_pytest()

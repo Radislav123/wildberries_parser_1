@@ -77,7 +77,8 @@ PYTEST_ARGS = [
     # соглашение об именовании тестов
     "-o", "python_files=*.py",
     "-o", "python_classes=*Parser",
-    "-o", "python_functions=run*",
+    # задается в run.Runner.run
+    # "-o", "python_functions=run*",
 
     # вывод логов в командную строку
     "-o", "log_cli=true",

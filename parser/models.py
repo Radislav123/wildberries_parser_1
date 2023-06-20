@@ -11,9 +11,6 @@ class ProjectModel(models.Model):
 
 class Item(ProjectModel):
     vendor_code = models.PositiveIntegerField("Артикул", primary_key = True)
-    # название для сводной таблицы позиций
-    name_position = models.CharField("Название товара", null = True)
-    # название для сводной таблицы цен
     name_price = models.CharField("Название товара", null = True)
 
     def __str__(self) -> str:
@@ -24,6 +21,7 @@ class Keyword(ProjectModel):
     """Ключевые слова, привязанные к конкретному товару."""
 
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
+    item_name = models.CharField("Название товара", null = True)
     value = models.CharField("Ключевая фраза")
 
     def __str__(self) -> str:

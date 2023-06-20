@@ -35,7 +35,7 @@ class WildberriesParser:
     def setup_method(self):
         if settings.PARSE_PRICES:
             logger_name = "price_parser"
-        if settings.PARSE_POSITIONS:
+        elif settings.PARSE_POSITIONS:
             logger_name = "position_parser"
         # noinspection PyUnboundLocalVariable
         self.logger = Logger(logger_name)
@@ -170,13 +170,13 @@ class WildberriesParser:
         item_dicts = cls.get_position_parser_item_dicts()
         # создание отсутствующих товаров в БД
         # noinspection PyStatementEffect
-        [models.Item.objects.update_or_create(
-            vendor_code = x["vendor_code"],
-            defaults = {"name_position": x["name_position"]}
-        )[0] for x in item_dicts]
+        [models.Item.objects.get_or_create(vendor_code = x["vendor_code"])[0] for x in item_dicts]
 
-        keywords = [models.Keyword.objects.get_or_create(value = x["keyword"], item_id = x["vendor_code"])[0]
-                    for x in item_dicts]
+        keywords = [models.Keyword.objects.update_or_create(
+            value = x["keyword"],
+            item_id = x["vendor_code"],
+            defaults = {"item_name": x["name_position"]}
+        )[0] for x in item_dicts]
         return keywords
 
     @pytest.mark.skipif(settings.PARSE_PRICES, reason = "parse only prices")

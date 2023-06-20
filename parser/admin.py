@@ -15,8 +15,7 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
 from parser import settings
-from . import models
-from .wildberries_parser import WildberriesParser
+from . import models, wildberries_parser
 
 
 def is_migration() -> bool:
@@ -45,7 +44,7 @@ def download_show_position_excel(
     # noinspection PyProtectedMember
     header = [
                  models.Item._meta.get_field("vendor_code").verbose_name,
-                 models.Item._meta.get_field("name").verbose_name,
+                 models.Keyword._meta.get_field("item_name").verbose_name,
                  models.Keyword._meta.get_field("value").verbose_name,
                  models.Position._meta.get_field("city").verbose_name
              ] + prepared_field_names
@@ -56,7 +55,7 @@ def download_show_position_excel(
     for row_number, data in enumerate(queryset, 2):
         data: admin_model.model
         sheet.write(row_number, 0, data.keyword.item.vendor_code)
-        sheet.write(row_number, 1, data.keyword.item.name_position)
+        sheet.write(row_number, 1, data.keyword.item_name)
         sheet.write(row_number, 2, data.keyword.value)
         sheet.write(row_number, 3, data.city)
         for column_number, additional_field in enumerate(admin_model.addition_download_field_names, 4):
@@ -100,7 +99,7 @@ def download_show_price_excel(
     # noinspection PyProtectedMember
     header = [
                  models.Item._meta.get_field("vendor_code").verbose_name,
-                 models.Item._meta.get_field("name").verbose_name,
+                 models.Item._meta.get_field("name_price").verbose_name,
                  models.Price._meta.get_field("reviews_amount").verbose_name,
              ] + admin_model.addition_download_field_names
     for row_number, column_name in enumerate(header):
@@ -110,7 +109,7 @@ def download_show_price_excel(
     for row_number, data in enumerate(queryset, 1):
         data: admin_model.model
         sheet.write(row_number, 0, data.item.vendor_code)
-        sheet.write(row_number, 1, data.item.name_position)
+        sheet.write(row_number, 1, data.item.name_price)
         sheet.write(row_number, 2, data.reviews_amount)
         for column_number, date_field in enumerate(admin_model.addition_download_field_names, 3):
             sheet.write(row_number, column_number, getattr(data, date_field)())
@@ -129,7 +128,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
 class ItemAdmin(ProjectAdmin):
     model = models.Item
-    list_display = ("name_position", "name_price", "vendor_code")
+    list_display = ("vendor_code",)
 
 
 class KeywordAdmin(ProjectAdmin):
@@ -139,8 +138,9 @@ class KeywordAdmin(ProjectAdmin):
 
 class PositionAdmin(ProjectAdmin):
     model = models.Position
-    list_display = ("item", "item_name", "city", "keyword", "page_capacities", "page", "value", "parse_time")
-    list_filter = ("city", "keyword__item", "keyword__item__name_position", "keyword")
+    # noinspection PyProtectedMember
+    list_display = tuple(field.name for field in model._meta.get_fields())
+    list_filter = ("city", "keyword__item", "keyword")
 
     def item(self, obj: model) -> models.Item:
         return obj.keyword.item
@@ -150,7 +150,7 @@ class PositionAdmin(ProjectAdmin):
     # item.short_description = models.Item._meta.get_field("vendor_code").verbose_name
 
     def item_name(self, obj: model) -> str:
-        return obj.keyword.item.name_position
+        return obj.keyword.item_name
 
     # noinspection PyProtectedMember
     # todo: return this after deploy
@@ -167,7 +167,7 @@ class PositionAdmin(ProjectAdmin):
 class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
-    list_filter = ("city", "keyword__item__name_position")
+    list_filter = ("city", "keyword__item_name")
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
@@ -274,13 +274,7 @@ class ShowPositionAdmin(ProjectAdmin):
         file_modification_time = datetime.datetime.fromtimestamp(os.path.getmtime(settings.POSITION_PARSER_DATA_PATH))
         if self.last_names_update_time is None or file_modification_time > self.last_names_update_time:
             self.last_names_update_time = datetime.datetime.now()
-            item_dicts = WildberriesParser.get_position_parser_item_dicts()
-            # обновление названий и создание отсутствующих товаров
-            # noinspection PyStatementEffect
-            [models.Item.objects.update_or_create(
-                vendor_code = x["vendor_code"],
-                defaults = {"name_position": x["name_position"]}
-            )[0] for x in item_dicts]
+            wildberries_parser.WildberriesParser.get_position_parser_keywords()
 
     def changelist_view(
             self,
@@ -315,14 +309,11 @@ class ShowPositionAdmin(ProjectAdmin):
 
 class PriceAdmin(ProjectAdmin):
     model = models.Price
-    list_display = ("item", "item_name", "reviews_amount", "final_price", "price", "personal_sale", "parse_time")
+    # noinspection PyProtectedMember
+    list_display = tuple(field.name for field in model._meta.get_fields())
 
     def item_name(self, obj: model) -> str:
         return obj.item.name_price
-
-    # noinspection PyProtectedMember
-    # todo: return this after deploy
-    # item_name.short_description = models.Item._meta.get_field("name").verbose_name
 
 
 class ShowPriceAdmin(ProjectAdmin):
@@ -403,7 +394,7 @@ class ShowPriceAdmin(ProjectAdmin):
         file_modification_time = datetime.datetime.fromtimestamp(os.path.getmtime(settings.PRICE_PARSER_DATA_PATH))
         if self.last_names_update_time is None or file_modification_time > self.last_names_update_time:
             self.last_names_update_time = datetime.datetime.now()
-            WildberriesParser.get_price_parser_items()
+            wildberries_parser.WildberriesParser.get_price_parser_items()
 
     def changelist_view(
             self,
