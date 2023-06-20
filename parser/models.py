@@ -112,6 +112,13 @@ class Price(ProjectModel):
     def __str__(self) -> str:
         return str(self.item.vendor_code)
 
+    def get_last_object_by_date(self, date: datetime.date) -> "Price":
+        obj = self.__class__.objects.filter(
+            item = self.item,
+            parse_date = date
+        ).order_by("parse_time").last()
+        return obj
+
 
 class ShowPrice(Price):
     class Meta:

@@ -40,6 +40,13 @@ LOG_IN_DRIVER_DATA_PATH = f"{PARSER_DATA_FOLDER}/log_in_driver_data.json"
 # Настройки административной панели
 # noinspection SpellCheckingInspection
 DOWNLOAD_EXCEL_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+# количество дней, отображаемых в сводных таблицах
+SHOW_HISTORY_DEPTH = 7
+# количество дней, отображаемых в скачиваемых/выгружаемых excel-файлах
+DOWNLOAD_HISTORY_DEPTH = 30
+# если True - используются SHOW_HISTORY_DEPTH и DOWNLOAD_HISTORY_DEPTH,
+# иначе - отображаются и выгружаются все доступные даты
+USE_HISTORY_DEPTH = True
 
 # Пути секретов
 SECRETS_FOLDER = "secrets"
