@@ -164,6 +164,7 @@ class PositionAdmin(ProjectAdmin):
 class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
+    sortable_by = ()
     list_filter = ("city", "keyword__item_name")
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
@@ -312,10 +313,14 @@ class PriceAdmin(ProjectAdmin):
     def item_name(self, obj: model) -> str:
         return obj.item.name_price
 
+    # noinspection PyProtectedMember
+    item_name.short_description = models.Item._meta.get_field("name_price").verbose_name
+
 
 class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
     default_list_display = ("item", "item_name", "reviews_amount")
+    sortable_by = ()
     list_filter = ("item__name_price",)
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
@@ -380,9 +385,9 @@ class ShowPriceAdmin(ProjectAdmin):
         last_data.__name__ = f"{self.model._meta.get_field(field_name).verbose_name} {date}"
         return last_data
 
-    def get_queryset(self, request: HttpRequest):
+    def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
-        new_queryset = queryset.order_by("item").distinct("item")
+        new_queryset = queryset.order_by("item__name_price", "item").distinct("item__name_price", "item")
         return new_queryset
 
     def update_object_names(self) -> None:
