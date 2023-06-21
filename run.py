@@ -21,12 +21,16 @@ class Runner:
         command = sys.argv[1]
         if command == "positions":
             settings.PARSE_POSITIONS = True
-            pytest_options = ["-o", "python_functions=run_position_parsing"]
+            method_name = settings.POSITION_PARSER_METHOD_NAME
         elif command == "prices":
             settings.PARSE_PRICES = True
-            pytest_options = ["-o", "python_functions=run_price_parsing"]
+            method_name = settings.PRICE_PARSER_METHOD_NAME
         else:
             raise UnknownParserOption()
+        pytest_options = [
+            "-o", f"python_functions={method_name}",
+            f"--parser={settings.PARSER_NAMES[method_name]}"
+        ]
 
         # опции командной строки, которые будут переданы в pytest
         pytest_options.extend(sys.argv[2:])

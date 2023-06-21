@@ -3,7 +3,6 @@ import logging
 import time
 
 import openpyxl
-import pytest
 import requests
 from requests.exceptions import JSONDecodeError
 from selenium.common.exceptions import TimeoutException
@@ -30,7 +29,6 @@ class WildberriesParser:
     logger: logging.Logger
     driver: Chrome
     log_in_driver: Chrome
-    _proxies: dict = None
 
     def setup_method(self):
         if settings.PARSE_PRICES:
@@ -179,8 +177,6 @@ class WildberriesParser:
         )[0] for x in item_dicts]
         return keywords
 
-    @pytest.mark.skipif(settings.PARSE_PRICES, reason = "parse only prices")
-    @pytest.mark.parametrize("city_dict", settings.CITIES)
     def run_position_parsing(self, city_dict: City) -> None:
         main_page = MainPage(self.driver)
         main_page.open()
@@ -232,7 +228,6 @@ class WildberriesParser:
             row += 1
         return items
 
-    @pytest.mark.skipif(settings.PARSE_POSITIONS, reason = "parse only positions")
     def run_price_parsing(self) -> None:
         for item in self.get_price_parser_items():
             price, final_price, personal_sale, reviews_amount = self.parse_price(item)

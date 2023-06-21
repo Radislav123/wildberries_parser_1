@@ -15,12 +15,25 @@ def read_json(path: str) -> list[dict[str, str | list[str]]]:
     return data
 
 
+def prepare_settings(test_name: str):
+    if test_name == "run_price_parsing":
+        global PARSE_PRICES
+        PARSE_PRICES = True
+    elif test_name == "run_position_parsing":
+        global PARSE_POSITIONS
+        PARSE_POSITIONS = True
+
+
 PROJECT_ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 # Настройки selenium
 DEFAULT_TIMEOUT = 5
 
 # Настройки парсера
+PRICE_PARSER_METHOD_NAME = "run_price_parsing"
+POSITION_PARSER_METHOD_NAME = "run_position_parsing"
+PARSER_METHODS = {"prices": PRICE_PARSER_METHOD_NAME, "positions": POSITION_PARSER_METHOD_NAME}
+PARSER_NAMES = {PARSER_METHODS[x]: x for x in PARSER_METHODS}
 PARSE_PRICES = False
 PARSE_POSITIONS = False
 ATTEMPTS_AMOUNT = 10
@@ -103,5 +116,12 @@ PYTEST_ARGS = [
     "-o", "disable_test_id_escaping_and_forfeit_all_rights_to_community_support=True",
 
     # разрешает пользовательский ввод в командной строке
+    # не должно работать с pytest-xdist
     "-s",
+
+    # pytest-xdist - запуск парсинга параллельно
+    "--numprocesses=auto",
 ]
+
+# {marker_name: description}
+PYTEST_MARKERS = {}

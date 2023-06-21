@@ -1,20 +1,26 @@
 [
   {
-    "name": "Москва"
+    "name": "Москва",
+    "label": "Moscow"
   },
   {
-    "name": "Санкт-Петербург"
+    "name": "Санкт-Петербург",
+    "label": "Saint Petersburg"
   },
   {
-    "name": "Екатеринбург"
+    "name": "Екатеринбург",
+    "label": "Yekaterinburg"
   },
   {
-    "name": "Казань"
+    "name": "Казань",
+    "label": "Kazan"
   },
   {
-    "name": "Новосибирск"
+    "name": "Новосибирск",
+    "label": "Novosibirsk"
   },
   {
-    "name": "Краснодар"
+    "name": "Краснодар",
+    "label": "Krasnodar"
   }
 ]

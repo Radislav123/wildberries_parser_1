@@ -57,7 +57,7 @@ class MainPage(WildberriesPage):
             else:
                 latitude = None
                 longitude = None
-        except JSONDecodeError:
+        except (JSONDecodeError, TypeError):
             latitude = None
             longitude = None
         return latitude, longitude
