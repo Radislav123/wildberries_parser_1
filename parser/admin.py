@@ -155,7 +155,7 @@ class ShowPriceItemNameListFilter(admin.SimpleListFilter):
 
     def lookups(self, request: HttpRequest, model_admin: "ShowPriceAdmin") -> list[tuple[str, str]]:
         actual_keywords = wildberries_parser.WildberriesParser.get_price_parser_items()
-        item_names = [(x.name_price, x.name_price) for x in actual_keywords]
+        item_names = [(x, x) for x in sorted(set(y.name_price for y in actual_keywords))]
         return item_names
 
     def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
