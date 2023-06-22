@@ -134,7 +134,7 @@ class ShowPositionItemNameListFilter(admin.SimpleListFilter):
 
     def lookups(self, request: HttpRequest, model_admin: "ShowPositionAdmin") -> list[tuple[str, str]]:
         actual_keywords = wildberries_parser.WildberriesParser.get_position_parser_keywords()
-        item_names = [(x, x) for x in set(y.item_name for y in actual_keywords)]
+        item_names = [(x, x) for x in sorted(set(y.item_name for y in actual_keywords))]
         return item_names
 
     def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
