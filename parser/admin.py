@@ -130,7 +130,6 @@ class ShowPositionItemNameListFilter(admin.SimpleListFilter):
 
     # noinspection PyProtectedMember
     title = models.Keyword._meta.get_field("item_name").verbose_name
-
     parameter_name = "keyword__item_name"
 
     def lookups(self, request: HttpRequest, model_admin: "ShowPositionAdmin") -> list[tuple[str, str]]:
@@ -138,12 +137,10 @@ class ShowPositionItemNameListFilter(admin.SimpleListFilter):
         item_names = [(x.item_name, x.item_name) for x in actual_keywords]
         return item_names
 
-    def queryset(self, request: HttpRequest, queryset: django_models.QuerySet):
+    def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
         if self.value() is not None:
-            new_queryset = queryset.filter(keyword__item_name = self.value())
-        else:
-            new_queryset = queryset
-        return new_queryset
+            queryset = queryset.filter(keyword__item_name = self.value())
+        return queryset
 
 
 class ShowPriceItemNameListFilter(admin.SimpleListFilter):
@@ -154,7 +151,6 @@ class ShowPriceItemNameListFilter(admin.SimpleListFilter):
 
     # noinspection PyProtectedMember
     title = models.Item._meta.get_field("name_price").verbose_name
-
     parameter_name = "item__name_price"
 
     def lookups(self, request: HttpRequest, model_admin: "ShowPriceAdmin") -> list[tuple[str, str]]:
@@ -162,12 +158,56 @@ class ShowPriceItemNameListFilter(admin.SimpleListFilter):
         item_names = [(x.name_price, x.name_price) for x in actual_keywords]
         return item_names
 
-    def queryset(self, request: HttpRequest, queryset: django_models.QuerySet):
+    def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
         if self.value() is not None:
-            new_queryset = queryset.filter(item__name_price = self.value())
-        else:
-            new_queryset = queryset
-        return new_queryset
+            queryset = queryset.filter(item__name_price = self.value())
+        return queryset
+
+
+class ShowPositionActualListFilter(admin.SimpleListFilter):
+    """Оставляет только те товары, которые сейчас прописаны в excel-файле (position_parser_data.xlsx)."""
+
+    title = "Присутствие в excel-файле"
+    parameter_name = "actual"
+
+    def choices(self, changelist) -> list[dict]:
+        choices = list(super().choices(changelist))
+        choices[0]["display"] = "Только присутствующие"
+        return choices
+
+    def lookups(self, request: HttpRequest, model_admin: "ShowPositionAdmin") -> list[tuple[bool, str]]:
+        return [
+            (False, "Все")
+        ]
+
+    def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
+        if self.value() is None:
+            actual_keywords = wildberries_parser.WildberriesParser.get_position_parser_keywords()
+            queryset = queryset.filter(keyword__in = actual_keywords)
+        return queryset
+
+
+class ShowPriceActualListFilter(admin.SimpleListFilter):
+    """Оставляет только те товары, которые сейчас прописаны в excel-файле (price_parser_data.xlsx)."""
+
+    title = "Присутствие в excel-файле"
+    parameter_name = "actual"
+
+    def choices(self, changelist) -> list[dict]:
+        choices = list(super().choices(changelist))
+        choices[0]["display"] = "Только присутствующие"
+        return choices
+
+    def lookups(self, request: HttpRequest, model_admin: "ShowPriceAdmin") -> list[tuple[bool, str]]:
+        return [
+            (False, "Все")
+        ]
+
+    def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
+        if self.value() is None:
+            actual_items = wildberries_parser.WildberriesParser.get_price_parser_items()
+            queryset = queryset.filter(item__in = actual_items)
+        return queryset
 
 
 class ProjectAdmin(admin.ModelAdmin):
@@ -213,7 +253,7 @@ class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
     sortable_by = ()
-    list_filter = ("city", ShowPositionItemNameListFilter)
+    list_filter = ("city", ShowPositionItemNameListFilter, ShowPositionActualListFilter)
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
@@ -311,10 +351,7 @@ class ShowPositionAdmin(ProjectAdmin):
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
         fields_to_group_by = ("keyword__item_name", "keyword", "city")
-        # оставляет только те товары, которые сейчас прописаны в excel-файле (position_parser_data.xlsx)
-        actual_keywords = wildberries_parser.WildberriesParser.get_position_parser_keywords()
-        new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by) \
-            .filter(keyword__in = actual_keywords)
+        new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
         return new_queryset
 
     def update_object_names(self) -> None:
@@ -372,7 +409,7 @@ class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
     default_list_display = ("item", "item_name", "reviews_amount")
     sortable_by = ()
-    list_filter = (ShowPriceItemNameListFilter,)
+    list_filter = (ShowPriceItemNameListFilter, ShowPriceActualListFilter)
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
@@ -439,10 +476,7 @@ class ShowPriceAdmin(ProjectAdmin):
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
         fields_to_group_by = ("item__name_price", "item")
-        # оставляет только те товары, которые сейчас прописаны в excel-файле (price_parser_data.xlsx)
-        actual_items = wildberries_parser.WildberriesParser.get_price_parser_items()
-        new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by) \
-            .filter(item__in = actual_items)
+        new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
         return new_queryset
 
     def update_object_names(self) -> None:
