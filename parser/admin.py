@@ -122,6 +122,54 @@ def download_show_price_excel(
     return response
 
 
+class ShowPositionItemNameListFilter(admin.SimpleListFilter):
+    """
+    Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле
+    (position_parser_data.xlsx).
+    """
+
+    # noinspection PyProtectedMember
+    title = models.Keyword._meta.get_field("item_name").verbose_name
+
+    parameter_name = "keyword__item_name"
+
+    def lookups(self, request: HttpRequest, model_admin: "ShowPositionAdmin") -> list[tuple[str, str]]:
+        actual_keywords = wildberries_parser.WildberriesParser.get_position_parser_keywords()
+        item_names = [(x.item_name, x.item_name) for x in actual_keywords]
+        return item_names
+
+    def queryset(self, request: HttpRequest, queryset: django_models.QuerySet):
+        if self.value() is not None:
+            new_queryset = queryset.filter(keyword__item_name = self.value())
+        else:
+            new_queryset = queryset
+        return new_queryset
+
+
+class ShowPriceItemNameListFilter(admin.SimpleListFilter):
+    """
+    Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле
+    (price_parser_data.xlsx).
+    """
+
+    # noinspection PyProtectedMember
+    title = models.Item._meta.get_field("name_price").verbose_name
+
+    parameter_name = "item__name_price"
+
+    def lookups(self, request: HttpRequest, model_admin: "ShowPriceAdmin") -> list[tuple[str, str]]:
+        actual_keywords = wildberries_parser.WildberriesParser.get_price_parser_items()
+        item_names = [(x.name_price, x.name_price) for x in actual_keywords]
+        return item_names
+
+    def queryset(self, request: HttpRequest, queryset: django_models.QuerySet):
+        if self.value() is not None:
+            new_queryset = queryset.filter(item__name_price = self.value())
+        else:
+            new_queryset = queryset
+        return new_queryset
+
+
 class ProjectAdmin(admin.ModelAdmin):
     model: models.ProjectModel
 
@@ -165,7 +213,7 @@ class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
     default_list_display = ("item", "item_name", "keyword", "city")
     sortable_by = ()
-    list_filter = ("city", "keyword__item_name")
+    list_filter = ("city", ShowPositionItemNameListFilter)
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
@@ -262,8 +310,11 @@ class ShowPositionAdmin(ProjectAdmin):
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
-        fields_to_group_by = ("keyword", "city")
-        new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
+        fields_to_group_by = ("keyword__item_name", "keyword", "city")
+        # оставляет только те товары, которые сейчас прописаны в excel-файле (position_parser_data.xlsx)
+        actual_keywords = wildberries_parser.WildberriesParser.get_position_parser_keywords()
+        new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by) \
+            .filter(keyword__in = actual_keywords)
         return new_queryset
 
     def update_object_names(self) -> None:
@@ -321,7 +372,7 @@ class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
     default_list_display = ("item", "item_name", "reviews_amount")
     sortable_by = ()
-    list_filter = ("item__name_price",)
+    list_filter = (ShowPriceItemNameListFilter,)
     addition_show_field_names: list[str] = []
     addition_show_dates: list[datetime.date] = []
     addition_download_field_names: list[str] = []
@@ -387,7 +438,11 @@ class ShowPriceAdmin(ProjectAdmin):
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
-        new_queryset = queryset.order_by("item__name_price", "item").distinct("item__name_price", "item")
+        fields_to_group_by = ("item__name_price", "item")
+        # оставляет только те товары, которые сейчас прописаны в excel-файле (price_parser_data.xlsx)
+        actual_items = wildberries_parser.WildberriesParser.get_price_parser_items()
+        new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by) \
+            .filter(item__in = actual_items)
         return new_queryset
 
     def update_object_names(self) -> None:

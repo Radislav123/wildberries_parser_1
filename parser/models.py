@@ -21,7 +21,8 @@ class Keyword(ProjectModel):
     """Ключевые слова, привязанные к конкретному товару."""
 
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
-    item_name = models.CharField("Название товара", null = True)
+    # noinspection PyProtectedMember
+    item_name = models.CharField(Item._meta.get_field("name_price").verbose_name, null = True)
     value = models.CharField("Ключевая фраза")
 
     def __str__(self) -> str:
@@ -40,24 +41,6 @@ class Position(ProjectModel):
     value = models.PositiveIntegerField("Позиция", null = True)
     parse_time = models.DateTimeField("Время парсинга", auto_now = True)
     parse_date = models.DateField("Дата парсинга", auto_now = True)
-
-    def get_average_position_for(self, days: int) -> None | int:
-        """Средняя позиция за определенное количество дней."""
-
-        delta = datetime.timedelta(days = days)
-        positions = [
-            x.value for x in Position.objects.filter(
-                keyword = self.keyword,
-                city = self.city,
-                parse_time__gte = self.parse_date,
-                parse_time__lte = self.parse_date + delta
-            ) if x.value is not None
-        ]
-        if len(positions) == 0:
-            average_position = None
-        else:
-            average_position = round(sum(positions) / len(positions))
-        return average_position
 
     @property
     def position_repr(self) -> str:
