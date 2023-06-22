@@ -216,12 +216,12 @@ class ProjectAdmin(admin.ModelAdmin):
 
 class ItemAdmin(ProjectAdmin):
     model = models.Item
-    list_display = ("vendor_code",)
+    list_display = ("vendor_code", "name_price", "category")
 
 
 class KeywordAdmin(ProjectAdmin):
     model = models.Keyword
-    list_display = ("item", "value")
+    list_display = ("item", "item_name", "value")
 
 
 class PositionAdmin(ProjectAdmin):
@@ -354,7 +354,7 @@ class ShowPositionAdmin(ProjectAdmin):
         new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
         return new_queryset
 
-    def update_object_names(self) -> None:
+    def update_objects(self) -> None:
         """Обновляет названия товаров в соответствии с таковыми в excel-файле."""
 
         file_modification_time = datetime.datetime.fromtimestamp(os.path.getmtime(settings.POSITION_PARSER_DATA_PATH))
@@ -389,7 +389,7 @@ class ShowPositionAdmin(ProjectAdmin):
             data = format_html(f'<a style="color: #5abfe1;" href="{link}">{string}</a>')
             extra_context["date_comments"].append(data)
 
-        self.update_object_names()
+        self.update_objects()
         return super().changelist_view(request, extra_context)
 
 
@@ -404,10 +404,16 @@ class PriceAdmin(ProjectAdmin):
     # noinspection PyProtectedMember
     item_name.short_description = models.Item._meta.get_field("name_price").verbose_name
 
+    def item_category(self, obj: model) -> str:
+        return obj.item.category
+
+    # noinspection PyProtectedMember
+    item_category.short_description = models.Item._meta.get_field("category").verbose_name
+
 
 class ShowPriceAdmin(ProjectAdmin):
     model = models.ShowPrice
-    default_list_display = ("item", "item_name", "reviews_amount")
+    default_list_display = ("item", "item_name", "item_category", "reviews_amount")
     sortable_by = ()
     list_filter = (ShowPriceItemNameListFilter, ShowPriceActualListFilter)
     addition_show_field_names: list[str] = []
@@ -418,6 +424,7 @@ class ShowPriceAdmin(ProjectAdmin):
     actions = (download_show_price_excel,)
 
     item_name = PriceAdmin.item_name
+    item_category = PriceAdmin.item_category
 
     def __init__(self, model: models.ShowPrice, admin_site):
         super().__init__(model, admin_site)
@@ -479,7 +486,7 @@ class ShowPriceAdmin(ProjectAdmin):
         new_queryset = queryset.order_by(*fields_to_group_by).distinct(*fields_to_group_by)
         return new_queryset
 
-    def update_object_names(self) -> None:
+    def update_objects(self) -> None:
         """Обновляет названия товаров в соответствии с таковыми в excel-файле."""
 
         file_modification_time = datetime.datetime.fromtimestamp(os.path.getmtime(settings.PRICE_PARSER_DATA_PATH))
@@ -492,7 +499,7 @@ class ShowPriceAdmin(ProjectAdmin):
             request: HttpRequest,
             extra_context: dict = None
     ) -> django.template.response.TemplateResponse:
-        self.update_object_names()
+        self.update_objects()
         return super().changelist_view(request, extra_context)
 
 

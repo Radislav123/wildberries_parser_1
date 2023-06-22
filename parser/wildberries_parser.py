@@ -222,7 +222,7 @@ class WildberriesParser:
             items.append(
                 models.Item.objects.update_or_create(
                     vendor_code = sheet.cell(row, 1).value,
-                    defaults = {"name_price": sheet.cell(row, 2).value}
+                    defaults = {"name_price": sheet.cell(row, 2).value, "category": sheet.cell(row, 3).value}
                 )[0]
             )
             row += 1

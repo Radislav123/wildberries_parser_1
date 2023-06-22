@@ -12,6 +12,7 @@ class ProjectModel(models.Model):
 class Item(ProjectModel):
     vendor_code = models.PositiveIntegerField("Артикул", primary_key = True)
     name_price = models.CharField("Название товара", null = True)
+    category = models.CharField("Предмет", null = True)
 
     def __str__(self) -> str:
         return str(self.vendor_code)
