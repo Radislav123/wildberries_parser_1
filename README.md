@@ -31,6 +31,7 @@
     2) если все же нужно
         1) поле `name` необходимо заполнить официальным названием
             1) к примеру, для `Санкт-Петербурга` должно быть `Санкт-Петербург`, а не `Питер`
+        2) поле `label` - отображаемое название
 2) [*parser_data/position_parser_data.xlsx*](parser_data/position_parser_data.xlsx)
     1) пример заполнения - [*parser_data/position_parser_data_example.xlsx*](parser_data/position_parser_data_example.xlsx)
 3) [*parser_data/price_parser_data.xlsx*](parser_data/price_parser_data.xlsx)
@@ -71,3 +72,4 @@
 6) [панель администратора](http://127.0.0.1:8000/admin/) (локально)
 7) для возможности парсинга цен необходимо авторизоваться в окне, открываемом скриптом [*run_log_in_window.py*](run_log_in_window.py)
     1) окно закрывать нельзя
+8) [*delete_duplicated_keywords.py*](delete_duplicated_keywords.py) - убирает дублирующиеся ключевые фразы

@@ -99,6 +99,9 @@ class MainPage(WildberriesPage):
             self,
             f'//div[contains(@class, "address-item")]/div/span/span[contains(text(), "{city}")]'
         )
+        # при выборе пункта выдаче в некоторых городах (Краснодар) элементы списка пункта выдачи
+        # вызывают ошибку StaleElementReferenceException без ожидания
+        time.sleep(3)
         addresses_accepted = addresses_accepted.wait.until(
             presence_of_all_elements_located((By.XPATH, addresses_accepted.xpath))
         )
