@@ -32,8 +32,16 @@ def colorize_movement(data: int | None) -> SafeString | str | None:
         else:
             string = str(data)
     else:
-        string = None
+        string = data
     return string
+
+
+def discolor_movement(string: SafeString | str | None) -> int | None:
+    if string is not None and type(string) is not str:
+        data = int(re.search("<span[^>]*>(.+)</span[^>]*>", string).group(1))
+    else:
+        data = string
+    return data
 
 
 # noinspection PyUnusedLocal
@@ -55,12 +63,13 @@ def download_show_position_excel(
         else:
             prepared_field_names.append(field_name)
     # {name: column width}
-    # noinspection PyProtectedMember
+    # noinspection PyProtectedMember,PyUnresolvedReferences
     header = [
                  models.Item._meta.get_field("vendor_code").verbose_name,
                  models.Keyword._meta.get_field("item_name").verbose_name,
                  models.Keyword._meta.get_field("value").verbose_name,
-                 models.Position._meta.get_field("city").verbose_name
+                 models.Position._meta.get_field("city").verbose_name,
+                 ShowPositionAdmin.long_movement.short_description,
              ] + prepared_field_names
     for row_number, column_name in enumerate(header):
         sheet.write(1, row_number, column_name)
@@ -72,17 +81,18 @@ def download_show_position_excel(
         sheet.write(row_number, 1, data.keyword.item_name)
         sheet.write(row_number, 2, data.keyword.value)
         sheet.write(row_number, 3, data.city)
-        for column_number, additional_field in enumerate(admin_model.addition_download_field_names, 4):
+        sheet.write(row_number, 4, discolor_movement(getattr(admin_model, "long_movement")(data)))
+        for column_number, additional_field in enumerate(admin_model.addition_download_field_names, 5):
             field_data = getattr(data, additional_field)()
             if type(field_data) is SafeString:
-                field_data = re.search("<span[^>]*>(.+)</span[^>]*>", field_data).group(1)
+                field_data = discolor_movement(field_data)
             sheet.write(row_number, column_number, field_data)
     sheet.autofit()
 
     # запись комментариев
     comments = models.DateComment.objects.all()
     for column_number, date in \
-            zip(range(4, len(admin_model.addition_download_dates), 2), admin_model.addition_download_dates):
+            zip(range(5, len(admin_model.addition_download_dates), 2), admin_model.addition_download_dates):
         try:
             comment = comments.get(date = date)
             sheet.write(0, column_number, comment.text)
@@ -115,6 +125,7 @@ def download_show_price_excel(
                  models.Item._meta.get_field("vendor_code").verbose_name,
                  models.Item._meta.get_field("name_price").verbose_name,
                  models.Price._meta.get_field("reviews_amount").verbose_name,
+                 models.Item._meta.get_field("category").verbose_name,
              ] + admin_model.addition_download_field_names
     for row_number, column_name in enumerate(header):
         sheet.write(0, row_number, column_name)
@@ -125,7 +136,8 @@ def download_show_price_excel(
         sheet.write(row_number, 0, data.item.vendor_code)
         sheet.write(row_number, 1, data.item.name_price)
         sheet.write(row_number, 2, data.reviews_amount)
-        for column_number, date_field in enumerate(admin_model.addition_download_field_names, 3):
+        sheet.write(row_number, 3, data.item.category)
+        for column_number, date_field in enumerate(admin_model.addition_download_field_names, 4):
             sheet.write(row_number, column_number, getattr(data, date_field)())
     sheet.autofit()
     book.close()
