@@ -60,6 +60,8 @@ DOWNLOAD_HISTORY_DEPTH = 30
 # если True - используются SHOW_HISTORY_DEPTH и DOWNLOAD_HISTORY_DEPTH,
 # иначе - отображаются и выгружаются все доступные даты
 USE_HISTORY_DEPTH = True
+# количество дней для расчета долгих изменений позиции
+LONG_MOVEMENT_DELTA = 5
 
 # Пути секретов
 SECRETS_FOLDER = "secrets"

@@ -52,6 +52,10 @@ class Position(ProjectModel):
 
     @property
     def real_position(self) -> int | None:
+        """Позиция с учетом страницы."""
+        # 5 страница, все страницы с заполненностью по 100, 30 позиция
+        # 100 * (5 - 1) + 30 = 430
+
         if self.page_capacities is not None and self.value is not None:
             real_position = sum(self.page_capacities[:self.page - 1]) + self.value
         else:

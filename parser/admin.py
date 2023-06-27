@@ -1,3 +1,4 @@
+import copy
 import datetime
 import os
 import re
@@ -20,6 +21,19 @@ from . import models, wildberries_parser
 
 def is_migration() -> bool:
     return "makemigrations" in sys.argv or "migrate" in sys.argv
+
+
+def colorize_movement(data: int | None) -> SafeString | str | None:
+    if data is not None:
+        if data > 0:
+            string = format_html(f'<span style="color: #ef6f6f;">+{data}</span>')
+        elif data < 0:
+            string = format_html(f'<span style="color: #6aa84f;">{data}</span>')
+        else:
+            string = str(data)
+    else:
+        string = None
+    return string
 
 
 # noinspection PyUnusedLocal
@@ -248,10 +262,45 @@ class PositionAdmin(ProjectAdmin):
     # noinspection PyProtectedMember
     position.short_description = model._meta.get_field("value").verbose_name
 
+    def long_movement(self, obj: model) -> SafeString | str | None:
+        today = datetime.date.today()
+        one_day_delta = datetime.timedelta(1)
+        date_delta = datetime.timedelta(settings.LONG_MOVEMENT_DELTA - 1)
+        previous_date = today - date_delta
+        order_field = "parse_time"
+
+        current_date = copy.deepcopy(today)
+        current_filters = {
+            "keyword": obj.keyword,
+            "city": obj.city,
+            "parse_date": current_date
+        }
+        current = self.model.objects.filter(**current_filters).order_by(order_field).last()
+        while (current is None or current.real_position is None) and current_filters["parse_date"] != previous_date:
+            current_filters["parse_date"] -= one_day_delta
+            current = self.model.objects.filter(**current_filters).order_by(order_field).last()
+
+        previous_filters = copy.deepcopy(current_filters)
+        previous_filters["parse_date"] = previous_date
+        previous = self.model.objects.filter(**previous_filters).order_by(order_field).last()
+        while (previous is None or previous.real_position is None) and previous_filters["parse_date"] != current_date:
+            previous_filters["parse_date"] += one_day_delta
+            previous = self.model.objects.filter(**previous_filters).order_by(order_field).last()
+
+        if current is None or current.real_position is None:
+            data = None
+        else:
+            data = current.real_position - previous.real_position
+        string = colorize_movement(data)
+
+        return string
+
+    long_movement.short_description = f"За {settings.LONG_MOVEMENT_DELTA} дней"
+
 
 class ShowPositionAdmin(ProjectAdmin):
     model = models.ShowPosition
-    default_list_display = ("item", "item_name", "keyword", "city")
+    default_list_display = ("item", "item_name", "keyword", "city", "long_movement")
     sortable_by = ()
     list_filter = ("city", ShowPositionItemNameListFilter, ShowPositionActualListFilter)
     addition_show_field_names: list[str] = []
@@ -263,6 +312,7 @@ class ShowPositionAdmin(ProjectAdmin):
 
     item = PositionAdmin.item
     item_name = PositionAdmin.item_name
+    long_movement = PositionAdmin.long_movement
 
     def __init__(self, model: model, admin_site):
         super().__init__(model, admin_site)
@@ -325,7 +375,7 @@ class ShowPositionAdmin(ProjectAdmin):
 
     @staticmethod
     def movement_wrapper(date: datetime.date, method_name: str) -> Callable:
-        def movement(obj: models.Position) -> str | None:
+        def movement(obj: models.Position) -> SafeString:
             """Изменение между последними результатами за указанный и предыдущий дни."""
 
             current_object = obj.get_last_object_by_date(date)
@@ -334,14 +384,9 @@ class ShowPositionAdmin(ProjectAdmin):
                     current_object.real_position is not None and \
                     previous_object.real_position is not None:
                 data = current_object.real_position - previous_object.real_position
-                if data > 0:
-                    string = format_html(f'<span style="color: #ef6f6f;">+{data}</span>')
-                elif data < 0:
-                    string = format_html(f'<span style="color: #6aa84f;">{data}</span>')
-                else:
-                    string = str(data)
             else:
-                string = None
+                data = None
+            string = colorize_movement(data)
             return string
 
         movement.__name__ = method_name
