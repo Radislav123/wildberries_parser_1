@@ -1,4 +1,3 @@
-import json
 import logging
 import time
 
@@ -12,7 +11,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from logger import Logger
 from pages import ItemPage, MainPage, SearchResultsPage
-from . import models, settings
+from . import models
+from .settings import Settings
 
 
 City = dict[str, str]
@@ -26,17 +26,13 @@ class LogInException(Exception):
 class WildberriesParser:
     """Отвечает за весь процесс парсинга."""
 
+    settings = Settings()
     logger: logging.Logger
     driver: Chrome
     log_in_driver: Chrome
 
     def setup_method(self):
-        if settings.PARSE_PRICES:
-            logger_name = "price_parser"
-        elif settings.PARSE_POSITIONS:
-            logger_name = "position_parser"
-        # noinspection PyUnboundLocalVariable
-        self.logger = Logger(logger_name)
+        self.logger = Logger("parser")
         self.logger.info("Start")
 
         options = ChromeOptions()
@@ -53,28 +49,22 @@ class WildberriesParser:
         self.driver = Chrome(options = options, service = service)
         self.driver.maximize_window()
 
-        if settings.PARSE_PRICES:
-            self.log_in_driver = self.connect_log_in_driver()
-
     def teardown_method(self):
         self.driver.quit()
 
-    @staticmethod
-    def connect_log_in_driver() -> Remote:
+    def connect_log_in_driver(self) -> Remote:
         options = ChromeOptions()
         options.add_argument("--headless")
-        with open(settings.LOG_IN_DRIVER_DATA_PATH, 'r') as file:
-            authorization_driver_data = json.load(file)
-        driver = Remote(authorization_driver_data["url"], options = options)
+        driver = Remote(self.settings.secrets.wildberries_log_in_driver.url, options = options)
         driver.close()
-        driver.session_id = authorization_driver_data["session_id"]
+        driver.session_id = self.settings.secrets.wildberries_log_in_driver.session_id
         return driver
 
     # не используется, но оставлен
     def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:
         """Находит позицию товара на конкретной странице подобно пользователю."""
 
-        search_results_page = SearchResultsPage(self.driver, page_number, keyword.value)
+        search_results_page = SearchResultsPage(self.driver, self.settings, page_number, keyword.value)
         search_results_page.open()
         checked_items = 0
         found = False
@@ -95,8 +85,7 @@ class WildberriesParser:
             search_results_page.items.reset()
         return position
 
-    @staticmethod
-    def find_position(city_dict: City, keyword: models.Keyword) -> models.Position:
+    def find_position(self, city_dict: City, keyword: models.Keyword) -> models.Position:
         """Находит позицию товара в выдаче поиска по ключевому слову среди всех страниц."""
 
         try:
@@ -111,13 +100,13 @@ class WildberriesParser:
                 response = requests.get(url)
                 try_number = 0
                 try_success = False
-                while try_number < settings.ATTEMPTS_AMOUNT and not try_success:
+                while try_number < self.settings.ATTEMPTS_AMOUNT and not try_success:
                     try_number += 1
                     try:
                         page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
                         try_success = True
                     except JSONDecodeError:
-                        if not try_success and try_number >= settings.ATTEMPTS_AMOUNT:
+                        if not try_success and try_number >= self.settings.ATTEMPTS_AMOUNT:
                             page = None
                             break
                         else:
@@ -146,9 +135,9 @@ class WildberriesParser:
             value = position
         )
 
-    @staticmethod
-    def get_position_parser_item_dicts() -> list[dict[str, str | int]]:
-        book = openpyxl.load_workbook(settings.POSITION_PARSER_DATA_PATH)
+    @classmethod
+    def get_position_parser_item_dicts(cls) -> list[dict[str, str | int]]:
+        book = openpyxl.load_workbook(cls.settings.POSITION_PARSER_DATA_PATH)
         sheet = book.active
         items = []
         row = 2
@@ -178,7 +167,7 @@ class WildberriesParser:
         return keywords
 
     def run_position_parsing(self, city_dict: City) -> None:
-        main_page = MainPage(self.driver)
+        main_page = MainPage(self.driver, self.settings)
         main_page.open()
         dest, regions = main_page.set_city(city_dict["name"])
         city_dict["dest"] = dest
@@ -188,7 +177,7 @@ class WildberriesParser:
             position.save()
 
     def parse_price(self, item: models.Item) -> tuple[float, float, int | None, int]:
-        page = ItemPage(self.driver, item.vendor_code)
+        page = ItemPage(self.driver, self.settings, item.vendor_code)
         page.open()
         page.transfer_cookies(self.log_in_driver)
 
@@ -212,9 +201,9 @@ class WildberriesParser:
 
         return price, final_price, personal_sale, reviews_amount
 
-    @staticmethod
-    def get_price_parser_items() -> list[models.Item]:
-        book = openpyxl.load_workbook(settings.PRICE_PARSER_DATA_PATH)
+    @classmethod
+    def get_price_parser_items(cls) -> list[models.Item]:
+        book = openpyxl.load_workbook(cls.settings.PRICE_PARSER_DATA_PATH)
         sheet = book.active
         items = []
         row = 2
@@ -229,6 +218,8 @@ class WildberriesParser:
         return items
 
     def run_price_parsing(self) -> None:
+        self.log_in_driver = self.connect_log_in_driver()
+
         for item in self.get_price_parser_items():
             price, final_price, personal_sale, reviews_amount = self.parse_price(item)
             price = models.Price(

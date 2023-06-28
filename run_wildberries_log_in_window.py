@@ -6,7 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from pages import LogInPage
-from parser import settings
+from parser.settings import Settings
 
 
 def get_authorization_driver():
@@ -21,17 +21,18 @@ def get_authorization_driver():
     return driver
 
 
-def write_driver_info(driver: Chrome) -> None:
-    with open(settings.LOG_IN_DRIVER_DATA_PATH, 'w') as file:
+def write_driver_info(driver: Chrome, settings: Settings) -> None:
+    with open(settings.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH, 'w') as file:
         # noinspection PyProtectedMember
         json.dump({"url": driver.command_executor._url, "session_id": driver.session_id}, file, indent = 2)
 
 
 def main():
+    settings = Settings()
     driver = get_authorization_driver()
-    login_page = LogInPage(driver)
+    login_page = LogInPage(driver, settings)
     login_page.open()
-    write_driver_info(driver)
+    write_driver_info(driver, settings)
     while True:
         time.sleep(100)
 

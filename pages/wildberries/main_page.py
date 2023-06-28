@@ -2,14 +2,14 @@ import json
 import time
 
 import requests
+from parsing_helper.web_elements import ExtendedWebElement, ExtendedWebElementCollection
 from requests.exceptions import JSONDecodeError
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.expected_conditions import presence_of_all_elements_located
 
-from parser import settings
-from web_elements import ExtendedWebElement, ExtendedWebElementCollection
+from parser.settings import Settings
 from .wildberries_base_page import WildberriesPage
 
 
@@ -25,8 +25,8 @@ class MainPage(WildberriesPage):
             self.address_input = ExtendedWebElement(self.page, '//input[@placeholder = "Введите адрес"]')
             self.find_button = ExtendedWebElement(self.page, '//ymaps[@class = "ymaps-2-1-79-searchbox__button-cell"]')
 
-    def __init__(self, driver: Chrome) -> None:
-        super().__init__(driver)
+    def __init__(self, driver: Chrome, settings: Settings) -> None:
+        super().__init__(driver, settings)
         self.geo_link = ExtendedWebElement(self, '//span[contains(@class, "geocity-link")]')
         self.main_banner_container = ExtendedWebElement(
             self,
@@ -35,11 +35,10 @@ class MainPage(WildberriesPage):
 
         self.map = self.Map(self, '//div[contains(@class, "geocity-pop")]')
 
-    @staticmethod
-    def get_ll(address: str) -> tuple[str | None, str | None]:
+    def get_ll(self, address: str) -> tuple[str | None, str | None]:
         # noinspection HttpUrlsUsage
         url = "http://api.positionstack.com/v1/forward"
-        with open(settings.GEOPARSER_CREDENTIALS_PATH, 'r') as file:
+        with open(self.settings.GEOPARSER_CREDENTIALS_PATH, 'r') as file:
             credentials = json.load(file)
         # noinspection SpellCheckingInspection
         params = {

@@ -2,11 +2,10 @@ import copy
 import sys
 
 import pytest
-from django.contrib.auth import get_user_model
 
 # noinspection PyUnresolvedReferences
 import configure_django
-from parser import settings
+from parser.settings import Settings
 
 
 class UnknownParserOption(Exception):
@@ -14,22 +13,21 @@ class UnknownParserOption(Exception):
 
 
 class Runner:
-    # оригинал - https://git.miem.hse.ru/447/framework/-/blob/master/service/run.py
+    settings = Settings()
+
     def run(self):
         """Разбирает поступающую из командной строки команду и выполняет заданные операции."""
 
         command = sys.argv[1]
         if command == "positions":
-            settings.PARSE_POSITIONS = True
-            method_name = settings.POSITION_PARSER_METHOD_NAME
+            method_name = self.settings.POSITION_PARSER_METHOD_NAME
         elif command == "prices":
-            settings.PARSE_PRICES = True
-            method_name = settings.PRICE_PARSER_METHOD_NAME
+            method_name = self.settings.PRICE_PARSER_METHOD_NAME
         else:
             raise UnknownParserOption()
         pytest_options = [
             "-o", f"python_functions={method_name}",
-            f"--parser={settings.PARSER_NAMES[method_name]}"
+            f"--parser={self.settings.PARSER_NAMES[method_name]}"
         ]
 
         # опции командной строки, которые будут переданы в pytest
@@ -38,18 +36,14 @@ class Runner:
         self.pytest(pytest_options)
         self.after_pytest()
 
-    @staticmethod
-    def before_pytest():
-        user = get_user_model()
-        if not user.objects.filter(username = "admin").exists():
-            user.objects.create_superuser("admin", "", "admin")
+    def before_pytest(self):
+        pass
 
     def after_pytest(self):
         pass
 
-    @staticmethod
-    def pytest(args):
-        pytest_args = copy.deepcopy(settings.PYTEST_ARGS)
+    def pytest(self, args):
+        pytest_args = copy.deepcopy(self.settings.PYTEST_ARGS)
         pytest_args.extend(args)
         pytest.main(pytest_args)
 

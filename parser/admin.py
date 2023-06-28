@@ -15,8 +15,10 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
-from parser import settings
+from parser.settings import Settings
 from . import models, wildberries_parser
+
+settings = Settings()
 
 
 def is_migration() -> bool:

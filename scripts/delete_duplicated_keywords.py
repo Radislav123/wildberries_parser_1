@@ -1,7 +1,5 @@
 from django.db import models as django_models
 
-# noinspection PyUnresolvedReferences
-import configure_django
 from parser import models
 
 
@@ -18,11 +16,7 @@ def get_ids_to_remove(duplicates: dict) -> list[int]:
     return ids
 
 
-def main():
+def run():
     for obj_id in get_ids_to_remove(get_duplicates()):
         models.Keyword.objects.get(id = obj_id).delete()
         print(f"{models.Keyword.__name__} {obj_id} was deleted")
-
-
-if __name__ == "__main__":
-    main()

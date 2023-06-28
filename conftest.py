@@ -2,7 +2,10 @@ import pytest
 from _pytest.config import Config
 from _pytest.python import FunctionDefinition, Metafunc
 
-from parser import settings
+from parser.settings import Settings
+
+
+settings = Settings()
 
 
 @pytest.fixture(autouse = True)
@@ -17,8 +20,6 @@ def pytest_addoption(parser):
 
 # https://docs.pytest.org/en/7.1.x/reference/reference.html#pytest.hookspec.pytest_configure
 def pytest_configure(config: Config):
-    settings.prepare_settings(settings.PARSER_METHODS[config.option.parser])
-
     for marker in settings.PYTEST_MARKERS:
         config.addinivalue_line("markers", f"{marker}: {settings.PYTEST_MARKERS[marker]}")
 

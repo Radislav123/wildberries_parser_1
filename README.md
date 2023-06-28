@@ -48,6 +48,9 @@
 2) [*геопарсер*](https://positionstack.com/)
     1) скопировать [*secrets/geoparser/credentials_example.json*](secrets/geoparser/credentials_example.json) в ту же папку, но назвать `credentials.json`
     2) для работы парсера нужно только поле `api_key`
+3) бот в Telegram
+    1) скопировать [*secrets/telegram_bot/credentials_example.json*](secrets/telegram_bot/credentials_example.json) в ту же папку, но назвать `credentials.json`
+    2) для работы бота нужно только поле `token`
 
 
 # Разное
@@ -62,14 +65,17 @@
     4) в конце команды можно добавлять любые аргументы `pytest`
         1) они перезапишут те, что определены в [*parser/settings.py*](parser/settings.py) `PYTEST_ARGS`
         2) пример - `python run.py prices --collect-only`
-3) до запуска парсера не получится зайти в административную панель
-    1) перед первым запуском парсера необходимо выполнить миграцию - `python manage.py migrate`
-    2) сейчас логин и пароль - `admin` и `admin`
-        1) смотреть [*run.py*](run.py) `before_pytest`
+3) для создания в административной панели пользователя с правами администратора необходимо запустить скрипт
+   [*scripts/create_django_admin_user*](scripts/create_django_admin_user.py)
+    1) `python manage.py runscript create_django_admin_user`
+    2) перед первым запуском парсера необходимо выполнить миграцию - `python manage.py migrate`
+    3) сейчас логин и пароль - `admin` и `admin`
 4) скачать excel-файл - открыть таблицу в панели администратора => отметить галочкой необходимые объекты => в поле `Action` выбрать `Download ... excel` =>
    нажать `Go`
 5) первый поиск может давать неправильные результаты
 6) [панель администратора](http://127.0.0.1:8000/admin/) (локально)
-7) для возможности парсинга цен необходимо авторизоваться в окне, открываемом скриптом [*run_log_in_window.py*](run_log_in_window.py)
-    1) окно закрывать нельзя
-8) [*delete_duplicated_keywords.py*](delete_duplicated_keywords.py) - убирает дублирующиеся ключевые фразы
+7) для возможности парсинга цен необходимо авторизоваться в окне, открываемом скриптом [*run_wildberries_log_in_window.py*](run_wildberries_log_in_window.py)
+    1) `python run_wildberries_log_in_window.py`
+    2) окно закрывать нельзя
+8) [*scripts/delete_duplicated_keywords.py*](scripts/delete_duplicated_keywords.py) - убирает дублирующиеся ключевые фразы
+    1) `python manage.py runscript delete_duplicated_keywords`

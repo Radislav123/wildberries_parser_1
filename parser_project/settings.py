@@ -10,11 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-import json
 from pathlib import Path
 
-from parser import settings
+from parser.settings import Settings
 
+
+settings = Settings()
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
+    "django_extensions",
 
     "parser",
 ]
@@ -69,8 +72,7 @@ WSGI_APPLICATION = "parser_project.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-with open(settings.DATABASE_SETTINGS_PATH, 'r') as database_settings_file:
-    DATABASES = {"default": json.load(database_settings_file)}
+DATABASES = {"default": settings.secrets.database.json}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
