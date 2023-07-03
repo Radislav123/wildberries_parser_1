@@ -3,35 +3,32 @@ import sys
 
 import pytest
 
-# noinspection PyUnresolvedReferences
-import configure_django
-from parser.settings import Settings
+from core import settings as core_settings
+from parser_position import settings as parser_position_settings
+from parser_price import settings as parser_price_settings
 
 
 class UnknownParserOption(Exception):
     pass
 
 
+# todo: update README.md
 class Runner:
-    settings = Settings()
+    settings: core_settings.Settings
 
     def run(self):
         """Разбирает поступающую из командной строки команду и выполняет заданные операции."""
 
         command = sys.argv[1]
-        if command == "positions":
-            method_name = self.settings.POSITION_PARSER_METHOD_NAME
-        elif command == "prices":
-            method_name = self.settings.PRICE_PARSER_METHOD_NAME
+        if command == "position":
+            self.settings = parser_position_settings.Settings()
+        elif command == "price":
+            self.settings = parser_price_settings.Settings()
         else:
             raise UnknownParserOption()
-        pytest_options = [
-            "-o", f"python_functions={method_name}",
-            f"--parser={self.settings.PARSER_NAMES[method_name]}"
-        ]
 
         # опции командной строки, которые будут переданы в pytest
-        pytest_options.extend(sys.argv[2:])
+        pytest_options = sys.argv[2:]
         self.before_pytest()
         self.pytest(pytest_options)
         self.after_pytest()

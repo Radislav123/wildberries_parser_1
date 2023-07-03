@@ -6,9 +6,10 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from pages import LogInPage
-from parser.settings import Settings
+from parser_price.settings import Settings
 
 
+# todo: move it to price parser
 def get_authorization_driver():
     options = ChromeOptions()
 
@@ -27,7 +28,7 @@ def write_driver_info(driver: Chrome, settings: Settings) -> None:
         json.dump({"url": driver.command_executor._url, "session_id": driver.session_id}, file, indent = 2)
 
 
-def main():
+def run():
     settings = Settings()
     driver = get_authorization_driver()
     login_page = LogInPage(driver, settings)
@@ -35,7 +36,3 @@ def main():
     write_driver_info(driver, settings)
     while True:
         time.sleep(100)
-
-
-if __name__ == "__main__":
-    main()

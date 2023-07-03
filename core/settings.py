@@ -3,34 +3,39 @@ import logging
 import os
 
 from secret_keeper import SecretKeeper
+from .apps import CoreConfig
 
 
 # todo: move it to parsing_helper
-# todo: spit settings with parsers
 class Settings:
-    def __init__(self):
-        self.PROJECT_ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
+    NAME = CoreConfig.name
 
+    def __init__(self):
         # Настройки selenium
         self.DEFAULT_TIMEOUT = 5
 
-        # Настройки парсера
+        # Настройки парсеров
+        # todo: remove setting
         self.PRICE_PARSER_METHOD_NAME = "run_price_parsing"
+        # todo: remove setting
         self.POSITION_PARSER_METHOD_NAME = "run_position_parsing"
+        # todo: remove setting
         self.PARSER_METHODS = {"prices": self.PRICE_PARSER_METHOD_NAME, "positions": self.POSITION_PARSER_METHOD_NAME}
         self.PARSER_NAMES = {self.PARSER_METHODS[x]: x for x in self.PARSER_METHODS}
-        self.REQUEST_PAGE_ATTEMPTS_AMOUNT = 10
+        self.ATTEMPTS_AMOUNT = 10
 
         # Данные для парсинга
-        self.PARSER_DATA_FOLDER = "parsing_data"
+        self.PARSING_DATA_FOLDER = "parsing_data"
 
-        self.CITIES_PATH = f"{self.PARSER_DATA_FOLDER}/cities.json"
+        self.CITIES_PATH = f"{self.PARSING_DATA_FOLDER}/cities.json"
         self.CITIES = self.read_json(self.CITIES_PATH)
 
-        self.PRICE_PARSER_DATA_PATH = f"{self.PARSER_DATA_FOLDER}/price_parser_data.xlsx"
-        self.POSITION_PARSER_DATA_PATH = f"{self.PARSER_DATA_FOLDER}/position_parser_data.xlsx"
+        # todo: move it to its app settings
+        self.PRICE_PARSER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/price_parser_data.xlsx"
+        # todo: move it to its app settings
+        self.POSITION_PARSER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/position_parser_data.xlsx"
 
-        self.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH = f"{self.PARSER_DATA_FOLDER}/wildberries_log_in_driver_data.json"
+        self.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/wildberries_log_in_driver_data.json"
 
         # Настройки административной панели
         # noinspection SpellCheckingInspection
@@ -51,9 +56,11 @@ class Settings:
         self.DATABASE_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/database"
         self.DATABASE_CREDENTIALS_PATH = f"{self.DATABASE_SECRETS_FOLDER}/credentials.json"
 
+        # todo: move it to its app settings
         self.GEOPARSER_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/geoparser"
         self.GEOPARSER_CREDENTIALS_PATH = f"{self.GEOPARSER_SECRETS_FOLDER}/credentials.json"
 
+        # todo: move it to its app settings
         self.TELEGRAM_BOT_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/telegram_bot"
         self.TELEGRAM_BOT_CREDENTIALS_PATH = f"{self.TELEGRAM_BOT_SECRETS_FOLDER}/credentials.json"
 
@@ -67,16 +74,15 @@ class Settings:
         # Настройки pytest
         self.PYTEST_ARGS = [
             # путь до тестов
-            "-o", f"testpaths={self.PROJECT_ROOT_PATH}/parser",
+            "-o", f"testpaths={self.APP_ROOT_PATH}",
 
             # игнорирование базовых тестов (родителей для наследования)
             "--ignore-glob=**/*base*",
 
             # соглашение об именовании тестов
-            "-o", "python_files=*.py",
-            "-o", "python_classes=*Parser",
-            # задается в run.Runner.run
-            # "-o", "python_functions=run*",
+            "-o", "python_files=parser.py",
+            "-o", "python_classes=Parser*",
+            "-o", "python_functions=run",
 
             # вывод логов в командную строку
             "-o", "log_cli=true",
@@ -118,3 +124,8 @@ class Settings:
         with open(path, 'r', encoding = "utf-8") as file:
             data = json.load(file)
         return data
+
+    # noinspection PyPep8Naming
+    @property
+    def APP_ROOT_PATH(self) -> str:
+        return os.path.abspath(f"{__file__}/../../{self.NAME}")

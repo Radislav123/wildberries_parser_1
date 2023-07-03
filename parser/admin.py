@@ -4,7 +4,7 @@ import os
 import re
 import sys
 from io import BytesIO
-from typing import Callable
+from typing import Callable, Type
 
 import django.template.response
 import xlsxwriter
@@ -567,8 +567,8 @@ class DateCommentAdmin(ProjectAdmin):
     list_display = ("text", "date")
 
 
-def register_models():
-    models_with_admin_page = ProjectAdmin.__subclasses__()
+def register_models(admin_model: Type[ProjectAdmin]):
+    models_with_admin_page = admin_model.__subclasses__()
 
     for admin_model in models_with_admin_page:
         admin.site.register(admin_model.model, admin_model)
@@ -578,4 +578,4 @@ def register_models():
         admin.site.register(model)
 
 
-register_models()
+register_models(ProjectAdmin)

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from parser.settings import Settings
+    from core.settings import Settings
 
 
 # todo: replace (inherit from) with one from parsing_helper

@@ -41,7 +41,11 @@ INSTALLED_APPS = [
 
     "django_extensions",
 
+    # todo: удалить приложение parser и все его файлы
     "parser",
+    "core",
+    "parser_price",
+    "parser_position",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

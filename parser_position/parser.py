@@ -1,65 +1,18 @@
-import logging
 import time
 
 import openpyxl
 import requests
 from requests.exceptions import JSONDecodeError
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver import Chrome, ChromeOptions, Remote
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
-from logger import Logger
-from pages import ItemPage, MainPage, SearchResultsPage
+from core import parser as parser_core
+from pages import MainPage, SearchResultsPage
 from . import models
-from .settings import Settings
 
 
 City = dict[str, str]
-Item = dict[str, str | list[str]]
 
 
-class LogInException(Exception):
-    pass
-
-
-class WildberriesParser:
-    """Отвечает за весь процесс парсинга."""
-
-    settings = Settings()
-    logger: logging.Logger
-    driver: Chrome
-    log_in_driver: Chrome
-
-    def setup_method(self):
-        self.logger = Logger("parser")
-        self.logger.info("Start")
-
-        options = ChromeOptions()
-        # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--headless")
-        options.add_argument("--window-size=1920,1080")
-        options.add_experimental_option("excludeSwitches", ["enable-logging"])
-
-        driver_manager = ChromeDriverManager(path = "").install()
-        service = Service(executable_path = driver_manager)
-
-        self.driver = Chrome(options = options, service = service)
-        self.driver.maximize_window()
-
-    def teardown_method(self):
-        self.driver.quit()
-
-    def connect_log_in_driver(self) -> Remote:
-        options = ChromeOptions()
-        options.add_argument("--headless")
-        driver = Remote(self.settings.secrets.wildberries_log_in_driver.url, options = options)
-        driver.close()
-        driver.session_id = self.settings.secrets.wildberries_log_in_driver.session_id
-        return driver
-
+class ParserPosition(parser_core.ParserCore):
     # не используется, но оставлен
     def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:
         """Находит позицию товара на конкретной странице подобно пользователю."""
@@ -166,7 +119,7 @@ class WildberriesParser:
         )[0] for x in item_dicts]
         return keywords
 
-    def run_position_parsing(self, city_dict: City) -> None:
+    def run(self, city_dict: City) -> None:
         main_page = MainPage(self.driver, self.settings)
         main_page.open()
         dest, regions = main_page.set_city(city_dict["name"])
@@ -175,58 +128,3 @@ class WildberriesParser:
         for keyword in self.get_position_parser_keywords():
             position = self.find_position(city_dict, keyword)
             position.save()
-
-    def parse_price(self, item: models.Item) -> tuple[float, float, int | None, int]:
-        page = ItemPage(self.driver, self.settings, item.vendor_code)
-        page.open()
-        page.transfer_cookies(self.log_in_driver)
-
-        try:
-            page.sold_out.init_if_necessary()
-        except TimeoutException:
-            page.price_block.open()
-            price = float("".join(page.price_block.price.text.split()[:-1]))
-            try:
-                final_price = float("".join(page.price_block.final_price.text.split()[:-1]))
-                personal_sale = int(page.price_block.personal_sale.text.split()[-1][:-1])
-            except TimeoutException:
-                final_price = float("".join(page.price_block.price.text.split()[:-1]))
-                personal_sale = None
-        else:
-            price = None
-            final_price = None
-            personal_sale = None
-
-        reviews_amount = int("".join([x for x in page.review_amount.text.split()[:-1]]))
-
-        return price, final_price, personal_sale, reviews_amount
-
-    @classmethod
-    def get_price_parser_items(cls) -> list[models.Item]:
-        book = openpyxl.load_workbook(cls.settings.PRICE_PARSER_DATA_PATH)
-        sheet = book.active
-        items = []
-        row = 2
-        while sheet.cell(row, 1).value:
-            items.append(
-                models.Item.objects.update_or_create(
-                    vendor_code = sheet.cell(row, 1).value,
-                    defaults = {"name_price": sheet.cell(row, 2).value, "category": sheet.cell(row, 3).value}
-                )[0]
-            )
-            row += 1
-        return items
-
-    def run_price_parsing(self) -> None:
-        self.log_in_driver = self.connect_log_in_driver()
-
-        for item in self.get_price_parser_items():
-            price, final_price, personal_sale, reviews_amount = self.parse_price(item)
-            price = models.Price(
-                item = item,
-                price = price,
-                final_price = final_price,
-                personal_sale = personal_sale,
-                reviews_amount = reviews_amount
-            )
-            price.save()
