@@ -5,12 +5,11 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from logger import Logger
-from .settings import Settings
-from . import models
+from . import models, settings
 
 
 class ParserCore:
-    settings = Settings()
+    settings = settings.Settings()
     logger: logging.Logger
     driver: Chrome
     parsing: models.Parsing

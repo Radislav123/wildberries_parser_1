@@ -4,10 +4,11 @@ from selenium.webdriver import Chrome, ChromeOptions, Remote
 
 from core import parser as parser_core
 from pages import ItemPage
-from . import models
+from . import models, settings
 
 
 class ParserPrice(parser_core.ParserCore):
+    settings = settings.Settings()
     log_in_driver: Chrome
 
     def setup_method(self):

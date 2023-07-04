@@ -6,13 +6,15 @@ from requests.exceptions import JSONDecodeError
 
 from core import parser as parser_core
 from pages import MainPage, SearchResultsPage
-from . import models
+from . import models, settings
 
 
 City = dict[str, str]
 
 
 class ParserPosition(parser_core.ParserCore):
+    settings = settings.Settings()
+
     # не используется, но оставлен
     def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:
         """Находит позицию товара на конкретной странице подобно пользователю."""
@@ -53,13 +55,13 @@ class ParserPosition(parser_core.ParserCore):
                 response = requests.get(url)
                 try_number = 0
                 try_success = False
-                while try_number < self.settings.REQUEST_PAGE_ATTEMPTS_AMOUNT and not try_success:
+                while try_number < self.settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT and not try_success:
                     try_number += 1
                     try:
                         page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
                         try_success = True
                     except JSONDecodeError:
-                        if not try_success and try_number >= self.settings.REQUEST_PAGE_ATTEMPTS_AMOUNT:
+                        if not try_success and try_number >= self.settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT:
                             page = None
                             break
                         else:
@@ -82,6 +84,7 @@ class ParserPosition(parser_core.ParserCore):
                 raise error
         return models.Position(
             keyword = keyword,
+            parsing = self.parsing,
             city = city_dict["name"],
             page_capacities = page_capacities,
             page = page,
@@ -98,7 +101,7 @@ class ParserPosition(parser_core.ParserCore):
             items.append(
                 {
                     "vendor_code": int(sheet.cell(row, 1).value),
-                    "name_position": sheet.cell(row, 2).value,
+                    "name": sheet.cell(row, 2).value,
                     "keyword": sheet.cell(row, 3).value
                 }
             )
@@ -113,9 +116,9 @@ class ParserPosition(parser_core.ParserCore):
         [models.Item.objects.get_or_create(vendor_code = x["vendor_code"])[0] for x in item_dicts]
 
         keywords = [models.Keyword.objects.update_or_create(
-            value = x["keyword"],
             item_id = x["vendor_code"],
-            defaults = {"item_name": x["name_position"]}
+            value = x["keyword"],
+            defaults = {"item_name": x["name"]}
         )[0] for x in item_dicts]
         return keywords
 

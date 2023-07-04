@@ -22,7 +22,8 @@ class Settings:
         # todo: remove setting
         self.PARSER_METHODS = {"prices": self.PRICE_PARSER_METHOD_NAME, "positions": self.POSITION_PARSER_METHOD_NAME}
         self.PARSER_NAMES = {self.PARSER_METHODS[x]: x for x in self.PARSER_METHODS}
-        self.ATTEMPTS_AMOUNT = 10
+        # todo: move it it parser_position app
+        self.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT = 10
 
         # Данные для парсинга
         self.PARSING_DATA_FOLDER = "parsing_data"
