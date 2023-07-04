@@ -83,10 +83,10 @@ class Settings:
             # https://pytest-django.readthedocs.io/en/latest/tutorial.html#step-2-point-pytest-to-your-django-settings
             "-o", "DJANGO_SETTINGS_MODULE=parser_project.settings",
 
-            # todo: remove it?
+            # не используется, так как есть фикстура db_no_rollback
             # запрещает создание и удаление БД, вместо этого использует существующую
             # https://pytest-django.readthedocs.io/en/latest/database.html#reuse-db-reuse-the-testing-database-between-test-runs
-            "--reuse-db",
+            # "--reuse-db",
 
             # убирает экранирование не ASCII символов
             "-o", "disable_test_id_escaping_and_forfeit_all_rights_to_community_support=True",
