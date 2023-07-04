@@ -14,27 +14,14 @@ class Settings:
         # Настройки selenium
         self.DEFAULT_TIMEOUT = 5
 
-        # Настройки парсеров
-        # todo: remove setting
-        self.PRICE_PARSER_METHOD_NAME = "run_price_parsing"
-        # todo: remove setting
-        self.POSITION_PARSER_METHOD_NAME = "run_position_parsing"
-        # todo: remove setting
-        self.PARSER_METHODS = {"prices": self.PRICE_PARSER_METHOD_NAME, "positions": self.POSITION_PARSER_METHOD_NAME}
-        self.PARSER_NAMES = {self.PARSER_METHODS[x]: x for x in self.PARSER_METHODS}
-        # todo: move it it parser_position app
-        self.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT = 10
-
         # Данные для парсинга
         self.PARSING_DATA_FOLDER = "parsing_data"
 
         self.CITIES_PATH = f"{self.PARSING_DATA_FOLDER}/cities.json"
         self.CITIES = self.read_json(self.CITIES_PATH)
 
-        # todo: move it to its app settings
-        self.PRICE_PARSER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/price_parser_data.xlsx"
-        # todo: move it to its app settings
-        self.POSITION_PARSER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/position_parser_data.xlsx"
+        self.PARSER_PRICE_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_price_data.xlsx"
+        self.PARSER_POSITION_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_position_data.xlsx"
 
         self.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/wildberries_log_in_driver_data.json"
 
@@ -48,8 +35,6 @@ class Settings:
         # если True - используются SHOW_HISTORY_DEPTH и DOWNLOAD_HISTORY_DEPTH,
         # иначе - отображаются и выгружаются все доступные даты
         self.USE_HISTORY_DEPTH = True
-        # количество дней для расчета долгих изменений позиции
-        self.LONG_MOVEMENT_DELTA = 5
 
         # Пути секретов
         self.SECRETS_FOLDER = "secrets"
@@ -57,11 +42,9 @@ class Settings:
         self.DATABASE_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/database"
         self.DATABASE_CREDENTIALS_PATH = f"{self.DATABASE_SECRETS_FOLDER}/credentials.json"
 
-        # todo: move it to its app settings
         self.GEOPARSER_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/geoparser"
         self.GEOPARSER_CREDENTIALS_PATH = f"{self.GEOPARSER_SECRETS_FOLDER}/credentials.json"
 
-        # todo: move it to its app settings
         self.TELEGRAM_BOT_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/telegram_bot"
         self.TELEGRAM_BOT_CREDENTIALS_PATH = f"{self.TELEGRAM_BOT_SECRETS_FOLDER}/credentials.json"
 

@@ -1,7 +1,6 @@
 from parsing_helper.web_elements import ExtendedWebElement, ExtendedWebElementCollection
-from selenium.webdriver import Chrome, Remote
+from selenium.webdriver import Remote
 
-from parser.settings import Settings
 from .wildberries_base_page import WildberriesPage
 
 
@@ -9,8 +8,8 @@ from .wildberries_base_page import WildberriesPage
 class LogInPage(WildberriesPage):
     path = "security/login"
 
-    def __init__(self, driver: Chrome, settings: Settings, authorization_driver: Remote = None) -> None:
-        super().__init__(driver, settings)
+    def __init__(self, parser = None, authorization_driver: Remote = None) -> None:
+        super().__init__(parser)
         self.authorization_driver = authorization_driver
 
         self.geo_link = ExtendedWebElement(self, '//span[contains(@class, "geocity-link")]')

@@ -1,7 +1,7 @@
 import pytest
 from _pytest.python import FunctionDefinition, Metafunc
 
-from parser.settings import Settings
+from core.settings import Settings
 
 
 settings = Settings()

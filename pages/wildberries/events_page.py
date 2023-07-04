@@ -1,7 +1,5 @@
 from parsing_helper.web_elements import ExtendedWebElement
-from selenium.webdriver import Remote
 
-from parser.settings import Settings
 from .wildberries_base_page import WildberriesPage
 
 
@@ -9,8 +7,8 @@ from .wildberries_base_page import WildberriesPage
 class EventsPage(WildberriesPage):
     path = "lk/newsfeed/events"
 
-    def __init__(self, driver: Remote, settings: Settings) -> None:
-        super().__init__(driver, settings)
+    def __init__(self, parser) -> None:
+        super().__init__(parser)
 
         self.code_text = ExtendedWebElement(self, '//span[contains(text(), "Код подтверждения")]')
 

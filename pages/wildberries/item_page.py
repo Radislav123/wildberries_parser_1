@@ -1,7 +1,5 @@
 from parsing_helper.web_elements import ExtendedWebElement
-from selenium.webdriver import Chrome
 
-from parser.settings import Settings
 from .wildberries_base_page import WildberriesPage
 
 
@@ -26,8 +24,8 @@ class ItemPage(WildberriesPage):
                         "element.dispatchEvent(mouseoverEvent);"
             self.driver.execute_script(js_script)
 
-    def __init__(self, driver: Chrome, settings: Settings, vendor_code: int) -> None:
-        super().__init__(driver, settings)
+    def __init__(self, parser, vendor_code: int) -> None:
+        super().__init__(parser)
         self.vendor_code = vendor_code
         self.path = f"catalog/{self.vendor_code}/detail.aspx"
         self.vendor_code = ExtendedWebElement(self, '//span[@id = "productNmId"]')

@@ -1,13 +1,13 @@
 import logging
 from pathlib import Path
 
-from parser.settings import Settings
+from core import settings
 
 
 class Logger:
     """Обертка для logging <https://docs.python.org/3/library/logging.html>."""
 
-    settings = Settings()
+    settings = settings.Settings()
 
     LOG_FORMATTER = logging.Formatter(settings.LOG_FORMAT)
     LOG_LEVEL_NAMES = {

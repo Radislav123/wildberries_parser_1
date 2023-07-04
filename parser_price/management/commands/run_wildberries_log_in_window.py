@@ -10,7 +10,6 @@ from pages import LogInPage
 from parser_price.settings import Settings
 
 
-# todo: move it to price parser
 class Command(BaseCommand):
     help = "Открывает окно авторизации Wildberries для парсера цен"
 
@@ -35,7 +34,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         settings = Settings()
         driver = self.get_authorization_driver()
-        login_page = LogInPage(driver, settings)
+        login_page = LogInPage()
         login_page.open()
         self.write_driver_info(driver, settings)
         while True:

@@ -19,7 +19,7 @@ class ParserPosition(parser_core.ParserCore):
     def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:
         """Находит позицию товара на конкретной странице подобно пользователю."""
 
-        search_results_page = SearchResultsPage(self.driver, self.settings, page_number, keyword.value)
+        search_results_page = SearchResultsPage(self, page_number, keyword.value)
         search_results_page.open()
         checked_items = 0
         found = False
@@ -93,7 +93,7 @@ class ParserPosition(parser_core.ParserCore):
 
     @classmethod
     def get_position_parser_item_dicts(cls) -> list[dict[str, str | int]]:
-        book = openpyxl.load_workbook(cls.settings.POSITION_PARSER_DATA_PATH)
+        book = openpyxl.load_workbook(cls.settings.PARSER_POSITION_DATA_PATH)
         sheet = book.active
         items = []
         row = 2
@@ -123,7 +123,7 @@ class ParserPosition(parser_core.ParserCore):
         return keywords
 
     def run(self, city_dict: City) -> None:
-        main_page = MainPage(self.driver, self.settings)
+        main_page = MainPage(self)
         main_page.open()
         dest, regions = main_page.set_city(city_dict["name"])
         city_dict["dest"] = dest

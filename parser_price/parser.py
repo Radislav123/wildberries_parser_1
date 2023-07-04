@@ -24,7 +24,7 @@ class ParserPrice(parser_core.ParserCore):
         return driver
 
     def parse_price(self, item: models.Item) -> tuple[int, float, float, int | None]:
-        page = ItemPage(self.driver, self.settings, item.vendor_code)
+        page = ItemPage(self, item.vendor_code)
         page.open()
         page.transfer_cookies(self.log_in_driver)
 
@@ -50,7 +50,7 @@ class ParserPrice(parser_core.ParserCore):
 
     @classmethod
     def get_price_parser_items(cls) -> list[models.Item]:
-        book = openpyxl.load_workbook(cls.settings.PRICE_PARSER_DATA_PATH)
+        book = openpyxl.load_workbook(cls.settings.PARSER_PRICE_DATA_PATH)
         sheet = book.active
         items = []
         row = 2
