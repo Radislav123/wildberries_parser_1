@@ -22,7 +22,7 @@ class ParserPrice(parser_core.ParserCore):
         driver.session_id = self.settings.secrets.wildberries_log_in_driver.session_id
         return driver
 
-    def parse_price(self, item: models.Item) -> tuple[float, float, int | None, int]:
+    def parse_price(self, item: models.Item) -> tuple[int, float, float, int | None]:
         page = ItemPage(self.driver, self.settings, item.vendor_code)
         page.open()
         page.transfer_cookies(self.log_in_driver)
@@ -45,7 +45,7 @@ class ParserPrice(parser_core.ParserCore):
 
         reviews_amount = int("".join([x for x in page.review_amount.text.split()[:-1]]))
 
-        return price, final_price, personal_sale, reviews_amount
+        return reviews_amount, price, final_price, personal_sale
 
     @classmethod
     def get_price_parser_items(cls) -> list[models.Item]:
@@ -54,12 +54,16 @@ class ParserPrice(parser_core.ParserCore):
         items = []
         row = 2
         while sheet.cell(row, 1).value:
-            category = models.Category.objects.get_or_create(name = sheet.cell(row, 3).value)
+            category_name = sheet.cell(row, 3).value
+            if category_name is not None:
+                category = models.Category.objects.get_or_create(name = category_name)[0]
+            else:
+                category = None
 
             items.append(
                 models.Item.objects.update_or_create(
                     vendor_code = sheet.cell(row, 1).value,
-                    defaults = {"name_price": sheet.cell(row, 2).value, "category": category}
+                    defaults = {"name": sheet.cell(row, 2).value, "category": category}
                 )[0]
             )
             row += 1
@@ -67,12 +71,13 @@ class ParserPrice(parser_core.ParserCore):
 
     def run(self) -> None:
         for item in self.get_price_parser_items():
-            price, final_price, personal_sale, reviews_amount = self.parse_price(item)
+            reviews_amount, price, final_price, personal_sale = self.parse_price(item)
             price = models.Price(
                 item = item,
+                parsing = self.parsing,
+                reviews_amount = reviews_amount,
                 price = price,
                 final_price = final_price,
-                personal_sale = personal_sale,
-                reviews_amount = reviews_amount
+                personal_sale = personal_sale
             )
             price.save()

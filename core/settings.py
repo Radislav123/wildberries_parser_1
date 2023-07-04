@@ -8,7 +8,7 @@ from .apps import CoreConfig
 
 # todo: move it to parsing_helper
 class Settings:
-    NAME = CoreConfig.name
+    APP_NAME = CoreConfig.name
 
     def __init__(self):
         # Настройки selenium
@@ -74,7 +74,7 @@ class Settings:
         # Настройки pytest
         self.PYTEST_ARGS = [
             # путь до тестов
-            "-o", f"testpaths={self.APP_ROOT_PATH}",
+            "-o", f"testpaths={self.APP_NAME}",
 
             # игнорирование базовых тестов (родителей для наследования)
             "--ignore-glob=**/*base*",
@@ -128,4 +128,4 @@ class Settings:
     # noinspection PyPep8Naming
     @property
     def APP_ROOT_PATH(self) -> str:
-        return os.path.abspath(f"{__file__}/../../{self.NAME}")
+        return os.path.abspath(f"{__file__}/../../{self.APP_NAME}")

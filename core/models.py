@@ -10,6 +10,9 @@ class Parsing(CoreModel):
     date = models.DateField("Дата парсинга", auto_now_add = True)
     time = models.DateTimeField("Время парсинга", auto_now_add = True)
 
+    def __str__(self) -> str:
+        return f"{super().__str__()} at {self.time}"
+
 
 class Item(CoreModel):
     class Meta:

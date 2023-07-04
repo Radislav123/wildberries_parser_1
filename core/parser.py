@@ -6,15 +6,22 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from logger import Logger
 from .settings import Settings
+from . import models
 
 
 class ParserCore:
     settings = Settings()
     logger: logging.Logger
     driver: Chrome
+    parsing: models.Parsing
+
+    @classmethod
+    def setup_class(cls):
+        cls.logger = Logger("parser")
 
     def setup_method(self):
-        self.logger = Logger("parser")
+        self.parsing = models.Parsing()
+        self.parsing.save()
         self.logger.info("Start")
 
         options = ChromeOptions()
