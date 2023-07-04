@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
-from parser.settings import Settings
+from core.settings import Settings
 
 
 settings = Settings()
@@ -41,8 +41,6 @@ INSTALLED_APPS = [
 
     "django_extensions",
 
-    # todo: удалить приложение parser и все его файлы
-    "parser",
     "core",
     "parser_price",
     "parser_position",

@@ -100,6 +100,7 @@ class Settings:
             # https://pytest-django.readthedocs.io/en/latest/tutorial.html#step-2-point-pytest-to-your-django-settings
             "-o", "DJANGO_SETTINGS_MODULE=parser_project.settings",
 
+            # todo: remove it?
             # запрещает создание и удаление БД, вместо этого использует существующую
             # https://pytest-django.readthedocs.io/en/latest/database.html#reuse-db-reuse-the-testing-database-between-test-runs
             "--reuse-db",
