@@ -34,7 +34,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         settings = Settings()
         driver = self.get_authorization_driver()
-        login_page = LogInPage()
+        login_page = LogInPage.create_without_parser(driver)
         login_page.open()
         self.write_driver_info(driver, settings)
         while True:

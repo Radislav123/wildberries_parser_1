@@ -32,8 +32,10 @@ class Settings:
         self.SHOW_HISTORY_DEPTH = 14
         # количество дней, отображаемых в скачиваемых/выгружаемых excel-файлах
         self.DOWNLOAD_HISTORY_DEPTH = 30
+        self.MAX_HISTORY_DEPTH = max(self.SHOW_HISTORY_DEPTH, self.DOWNLOAD_HISTORY_DEPTH)
         # если True - используются SHOW_HISTORY_DEPTH и DOWNLOAD_HISTORY_DEPTH,
         # иначе - отображаются и выгружаются все доступные даты
+        # todo: remove setting?
         self.USE_HISTORY_DEPTH = True
 
         # Пути секретов

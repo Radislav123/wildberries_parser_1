@@ -1,12 +1,21 @@
-from django.db import models
-from django.contrib.postgres.fields import ArrayField
 import datetime
+from typing import Self
+
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
+
 from core import models as core_models
+from .settings import Settings
+
+
+settings = Settings()
 
 
 class ParserPositionModel(core_models.CoreModel):
     class Meta:
         abstract = True
+
+    settings = settings
 
 
 class Item(ParserPositionModel, core_models.Item):
@@ -17,7 +26,7 @@ class Keyword(ParserPositionModel):
     """Ключевая фраза, привязанная к конкретному товару."""
 
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
-    item_name = models.CharField("Название товара")
+    item_name = models.CharField("Название")
     value = models.CharField("Ключевая фраза")
 
     def __str__(self) -> str:
@@ -55,7 +64,8 @@ class Position(ParserPositionModel):
             real_position = self.value
         return real_position
 
-    def get_last_object_by_date(self, date: datetime.date) -> "Position":
+    # todo: remove method?
+    def get_last_object_by_date(self, date: datetime.date) -> Self:
         obj = self.__class__.objects.filter(
             keyword = self.keyword,
             city = self.city,

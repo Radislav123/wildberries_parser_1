@@ -8,7 +8,7 @@ from .wildberries_base_page import WildberriesPage
 class LogInPage(WildberriesPage):
     path = "security/login"
 
-    def __init__(self, parser = None, authorization_driver: Remote = None) -> None:
+    def __init__(self, parser, authorization_driver: Remote = None) -> None:
         super().__init__(parser)
         self.authorization_driver = authorization_driver
 

@@ -20,9 +20,9 @@ class Runner:
         """Разбирает поступающую из командной строки команду и выполняет заданные операции."""
 
         command = sys.argv[1]
-        if command == "position":
+        if command == "positions":
             self.settings = parser_position_settings.Settings()
-        elif command == "price":
+        elif command == "prices":
             self.settings = parser_price_settings.Settings()
         else:
             raise UnknownParserOption()
