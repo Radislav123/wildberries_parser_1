@@ -36,8 +36,7 @@ class Keyword(ParserPositionModel):
 class Position(ParserPositionModel):
     """Позиция товара в поисковой выдаче по конкретной ключевой фразе в определенный момент времени."""
 
-    # noinspection PyProtectedMember
-    keyword = models.ForeignKey(Keyword, models.PROTECT, verbose_name = Keyword._meta.get_field("value").verbose_name)
+    keyword = models.ForeignKey(Keyword, models.PROTECT, verbose_name = Keyword.get_field_verbose_name("value"))
     parsing = models.ForeignKey(core_models.Parsing, models.PROTECT)
     city = models.CharField("Город")
     # количества товаров на страницах

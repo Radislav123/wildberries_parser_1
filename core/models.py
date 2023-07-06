@@ -22,6 +22,10 @@ class CoreModel(models.Model):
         # todo: move logger to parsing_helper
         self.__class__.logger = logger.Logger(self.__class__.__name__)
 
+    @classmethod
+    def get_field_verbose_name(cls, field_name: str) -> str:
+        return cls._meta.get_field(field_name).verbose_name
+
 
 class Parsing(CoreModel):
     date = models.DateField("Дата парсинга", auto_now_add = True)

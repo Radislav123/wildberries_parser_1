@@ -37,18 +37,16 @@ class Category(ParserPriceModel):
 
 class Item(ParserPriceModel, core_models.Item):
     name = models.CharField("Название")
-    # noinspection PyProtectedMember
     category = models.ForeignKey(
         Category,
         models.PROTECT,
-        verbose_name = Category._meta.get_field("name").verbose_name,
+        verbose_name = Category.get_field_verbose_name("name"),
         null = True
     )
 
 
 class Price(ParserPriceModel):
-    # noinspection PyProtectedMember
-    item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item._meta.get_field("vendor_code").verbose_name)
+    item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"))
     parsing = models.ForeignKey(core_models.Parsing, models.PROTECT)
     reviews_amount = models.PositiveIntegerField("Количество отзывов")
     price = models.FloatField("Цена до СПП", null = True)
@@ -105,21 +103,14 @@ class PreparedPrice(ParserPriceModel):
     def get_dynamic_field_name(field_name: str, date_or_number: datetime.date | int) -> str:
         return f"{field_name} {date_or_number}"
 
-    @staticmethod
     @functools.cache
-    def resolve_dynamic_field_name(field_name: str) -> tuple[str, datetime.date]:
-        field_str, date_str = field_name.split()
-        date = datetime.date.fromisoformat(date_str)
-        return field_str, date
-
-    def get_dynamic_field_value(self, field_name: str) -> float | int:
+    def get_dynamic_field_value(self, field_name: str, date: datetime.date) -> float | int:
         fields = {
             "price": self.prices,
             "final_price": self.final_prices,
             "personal_sale": self.personal_sales
         }
-        field, date = self.resolve_dynamic_field_name(field_name)
-        field = fields[field]
+        field = fields[field_name]
         if date in field:
             data = field[date]
         else:
@@ -128,8 +119,7 @@ class PreparedPrice(ParserPriceModel):
 
     @staticmethod
     def get_pretty_field_name(field_name: str) -> str:
-        # noinspection PyProtectedMember
-        return Price._meta.get_field(field_name).verbose_name
+        return Price.get_field_verbose_name(field_name)
 
     @classmethod
     def prepare_prices(cls) -> None:
