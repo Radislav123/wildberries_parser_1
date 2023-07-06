@@ -15,6 +15,9 @@ class Settings:
         self.DEFAULT_TIMEOUT = 5
 
         # Данные для парсинга
+        self.COMMAND_PRICE = "prices"
+        self.COMMAND_POSITION = "positions"
+
         self.PARSING_DATA_FOLDER = "parsing_data"
 
         self.CITIES_PATH = f"{self.PARSING_DATA_FOLDER}/cities.json"

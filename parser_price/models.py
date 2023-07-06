@@ -123,7 +123,8 @@ class PreparedPrice(ParserPriceModel):
 
     @classmethod
     def prepare_prices(cls) -> None:
-        cls.objects.all().delete()
+        old_object_ids = list(cls.objects.all().values_list("id", flat = True))
+
         new_objects = [
             cls(
                 price = Price.objects.filter(item = item).order_by("parsing__time").last()
@@ -132,6 +133,7 @@ class PreparedPrice(ParserPriceModel):
 
         today = datetime.date.today()
         date_range = [today - datetime.timedelta(x) for x in range(cls.settings.MAX_HISTORY_DEPTH)]
+
         for obj in new_objects:
             obj.prices = {}
             obj.final_prices = {}
@@ -147,3 +149,5 @@ class PreparedPrice(ParserPriceModel):
                     obj.final_prices[date] = None
                     obj.personal_sales[date] = None
             obj.save()
+
+        cls.objects.filter(id__in = old_object_ids).delete()

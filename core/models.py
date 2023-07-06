@@ -1,5 +1,3 @@
-import logging
-
 from django.contrib.auth import models as auth_models
 from django.db import models
 
@@ -15,12 +13,8 @@ class CoreModel(models.Model):
         abstract = True
 
     settings = settings
-    logger: logging.Logger
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # todo: move logger to parsing_helper
-        self.__class__.logger = logger.Logger(self.__class__.__name__)
+    # todo: move logger to parsing_helper
+    logger = logger.Logger(Meta.__qualname__[:-5])
 
     @classmethod
     def get_field_verbose_name(cls, field_name: str) -> str:

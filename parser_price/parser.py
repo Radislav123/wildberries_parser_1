@@ -15,6 +15,10 @@ class ParserPrice(parser_core.ParserCore):
         super().setup_method()
         self.log_in_driver = self.connect_log_in_driver()
 
+    def teardown_method(self):
+        super().teardown_method()
+        models.PreparedPrice.prepare_prices()
+
     def connect_log_in_driver(self) -> Remote:
         options = ChromeOptions()
         options.add_argument("--headless")

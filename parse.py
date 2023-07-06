@@ -14,15 +14,15 @@ class UnknownParserOption(Exception):
 
 # todo: update README.md
 class Runner:
-    settings: core_settings.Settings
+    settings = core_settings.Settings()
 
     def run(self):
         """Разбирает поступающую из командной строки команду и выполняет заданные операции."""
 
         command = sys.argv[1]
-        if command == "positions":
+        if command == self.settings.COMMAND_POSITION:
             self.settings = parser_position_settings.Settings()
-        elif command == "prices":
+        elif command == self.settings.COMMAND_PRICE:
             self.settings = parser_price_settings.Settings()
         else:
             raise UnknownParserOption()
@@ -31,12 +31,12 @@ class Runner:
         pytest_options = sys.argv[2:]
         self.before_pytest()
         self.pytest(pytest_options)
-        self.after_pytest()
+        self.after_pytest(command)
 
     def before_pytest(self):
         pass
 
-    def after_pytest(self):
+    def after_pytest(self, command):
         pass
 
     def pytest(self, args):
