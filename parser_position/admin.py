@@ -1,9 +1,15 @@
 from core import admin as core_admin
 from . import models as parser_position_models
 
+from .settings import Settings
+
+
+settings = Settings()
+
 
 class ParserPositionAdmin(core_admin.CoreAdmin):
     model = parser_position_models.ParserPositionModel
+    settings = settings
 
 
 class ItemAdmin(ParserPositionAdmin):

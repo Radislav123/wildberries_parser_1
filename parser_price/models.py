@@ -1,4 +1,5 @@
 import datetime
+import functools
 import json
 from typing import Any, Self
 
@@ -98,6 +99,37 @@ class PreparedPrice(ParserPriceModel):
     prices = models.JSONField(encoder = DateKeyJSONFieldEncoder, decoder = DateKeyJsonFieldDecoder)
     final_prices = models.JSONField(encoder = DateKeyJSONFieldEncoder, decoder = DateKeyJsonFieldDecoder)
     personal_sales = models.JSONField(encoder = DateKeyJSONFieldEncoder, decoder = DateKeyJsonFieldDecoder)
+
+    @staticmethod
+    @functools.cache
+    def get_dynamic_field_name(field_name: str, date_or_number: datetime.date | int) -> str:
+        return f"{field_name} {date_or_number}"
+
+    @staticmethod
+    @functools.cache
+    def resolve_dynamic_field_name(field_name: str) -> tuple[str, datetime.date]:
+        field_str, date_str = field_name.split()
+        date = datetime.date.fromisoformat(date_str)
+        return field_str, date
+
+    def get_dynamic_field_value(self, field_name: str) -> float | int:
+        fields = {
+            "price": self.prices,
+            "final_price": self.final_prices,
+            "personal_sale": self.personal_sales
+        }
+        field, date = self.resolve_dynamic_field_name(field_name)
+        field = fields[field]
+        if date in field:
+            data = field[date]
+        else:
+            data = None
+        return data
+
+    @staticmethod
+    def get_pretty_field_name(field_name: str) -> str:
+        # noinspection PyProtectedMember
+        return Price._meta.get_field(field_name).verbose_name
 
     @classmethod
     def prepare_prices(cls) -> None:

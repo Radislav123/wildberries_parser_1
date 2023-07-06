@@ -4,6 +4,10 @@ from typing import Type
 from django.contrib import admin
 
 from . import models as core_models
+from .settings import Settings
+
+
+settings = Settings()
 
 
 # todo: remove this function?
@@ -18,9 +22,14 @@ def register_models(model_admins: list[Type["CoreAdmin"]]) -> None:
 
 class CoreAdmin(admin.ModelAdmin):
     model = core_models.CoreModel
+    settings = settings
+
+    def __init__(self, model, admin_site):
+        super().__init__(model, admin_site)
+        self.list_display = self._list_display
 
     @property
-    def list_display(self) -> tuple:
+    def _list_display(self) -> tuple:
         # noinspection PyProtectedMember
         return tuple(field.name for field in self.model._meta.fields)
 
