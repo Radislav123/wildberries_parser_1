@@ -1,3 +1,4 @@
 cd ..
 CALL venv\Scripts\activate.bat
-python manage.py runserver
+python parse.py positions
+pause
