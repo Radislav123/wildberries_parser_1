@@ -12,3 +12,9 @@ logs/
 
 # миграции БД
 migrations/
+
+# компилируемые файлы
+__pycache__/
+
+# python-окружение
+venv/
