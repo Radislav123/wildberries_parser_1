@@ -1,16 +1,16 @@
 import json
 import time
 
-from django.core.management.base import BaseCommand
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 from pages import LogInPage
+from parser_price.management.commands import parser_price_command
 from parser_price.settings import Settings
 
 
-class Command(BaseCommand):
+class Command(parser_price_command.ParserPriceCommand):
     help = "Открывает окно авторизации Wildberries для парсера цен"
 
     @staticmethod

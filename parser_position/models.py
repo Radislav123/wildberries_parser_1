@@ -1,6 +1,3 @@
-import datetime
-from typing import Self
-
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
@@ -19,7 +16,7 @@ class ParserPositionModel(core_models.CoreModel):
 
 
 class Item(ParserPositionModel, core_models.Item):
-    pass
+    user = models.ForeignKey(core_models.ParserUser, models.PROTECT, related_name = f"{settings.APP_NAME}_user")
 
 
 class Keyword(ParserPositionModel):
@@ -63,11 +60,39 @@ class Position(ParserPositionModel):
             real_position = self.value
         return real_position
 
-    # todo: remove method?
-    def get_last_object_by_date(self, date: datetime.date) -> Self:
-        obj = self.__class__.objects.filter(
-            keyword = self.keyword,
-            city = self.city,
-            parsing__date = date
-        ).order_by("parsing__time").last()
-        return obj
+
+class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
+    """Таблица для отображения необходимой пользователю информации."""
+
+    position = models.ForeignKey(Position, models.PROTECT)
+    long_movement = models.IntegerField(verbose_name = f"За {settings.LONG_MOVEMENT_DELTA} дней")
+    positions = models.JSONField(
+        encoder = core_models.DateKeyJSONFieldEncoder,
+        decoder = core_models.DateKeyJsonFieldDecoder
+    )
+    movements = models.JSONField(
+        encoder = core_models.DateKeyJSONFieldEncoder,
+        decoder = core_models.DateKeyJsonFieldDecoder
+    )
+    comment_ids = models.JSONField(
+        encoder = core_models.DateKeyJSONFieldEncoder,
+        decoder = core_models.DateKeyJsonFieldDecoder
+    )
+
+    dynamic_fields = {
+        "position": positions,
+        "movement": movements,
+        "comment_id": comment_ids
+    }
+
+    @classmethod
+    def prepare(cls) -> None:
+        old_object_ids = list(cls.objects.all().values_list("id", flat = True))
+
+        new_objects = [
+            cls(
+                position = Position.objects.filter()
+            ) for item in Item.objects.all()
+        ]
+
+        cls.objects.filter(id__in = old_object_ids).delete()

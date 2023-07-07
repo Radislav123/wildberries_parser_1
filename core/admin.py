@@ -1,3 +1,4 @@
+import abc
 import sys
 from typing import Type
 
@@ -20,6 +21,17 @@ def register_models(model_admins: list[Type["CoreAdmin"]]) -> None:
         admin.site.register(model_admin.model, model_admin)
 
 
+class CoreFilter(admin.SimpleListFilter, abc.ABC):
+    """
+    Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле (parser_price_data.xlsx).
+    """
+
+    @property
+    def user(self) -> core_models.ParserUser:
+        # todo: добавить логику выбора пользователя
+        return core_models.ParserUser.get_admin()
+
+
 class CoreAdmin(admin.ModelAdmin):
     model = core_models.CoreModel
     settings = settings
@@ -32,6 +44,11 @@ class CoreAdmin(admin.ModelAdmin):
     def _list_display(self) -> tuple:
         # noinspection PyProtectedMember
         return tuple(field.name for field in self.model._meta.fields)
+
+    @property
+    def user(self) -> core_models.ParserUser:
+        # todo: добавить логику выбора пользователя
+        return core_models.ParserUser.get_admin()
 
 
 class ParsingAdmin(CoreAdmin):

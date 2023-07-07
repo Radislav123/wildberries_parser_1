@@ -16,6 +16,9 @@ class SecretKeeper:
         json: dict
         secret_keeper: "SecretKeeper"
 
+        def get_dict(self) -> dict:
+            return self.json
+
     class Database(Module):
         ENGINE: str
         NAME: str
@@ -23,6 +26,11 @@ class SecretKeeper:
         PASSWORD: str
         HOST: str
         PORT: str
+
+    class AdminUser(Module):
+        username: str
+        email: str
+        password: str
 
     class Geoparser(Module):
         site: str
@@ -38,12 +46,14 @@ class SecretKeeper:
         session_id: str
 
     database: Database
+    admin_user: AdminUser
     geoparser: Geoparser
     telegram_bot: TelegramBot
     wildberries_log_in_driver: WildberriesLogInDriver
 
     def __init__(self, settings: "Settings") -> None:
         self.add_module("database", settings.DATABASE_CREDENTIALS_PATH)
+        self.add_module("admin_user", settings.ADMIN_USER_CREDENTIALS_PATH)
         self.add_module("geoparser", settings.GEOPARSER_CREDENTIALS_PATH)
         self.add_module("telegram_bot", settings.TELEGRAM_BOT_CREDENTIALS_PATH)
         self.add_module("wildberries_log_in_driver", settings.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH)
@@ -56,7 +66,7 @@ class SecretKeeper:
 
     def add_module(self, name: str, secrets_path: str) -> None:
         json_dict = self.read_json(secrets_path)
-        module = type(name, (self.Module,), json_dict)
+        module = type(name, (self.Module,), json_dict)()
         module.name = name
         module.secrets_path = secrets_path
         module.json = json_dict

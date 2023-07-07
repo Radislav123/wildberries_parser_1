@@ -47,6 +47,9 @@ class Settings:
         self.DATABASE_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/database"
         self.DATABASE_CREDENTIALS_PATH = f"{self.DATABASE_SECRETS_FOLDER}/credentials.json"
 
+        self.ADMIN_FOLDER = f"{self.SECRETS_FOLDER}/admin_panel"
+        self.ADMIN_USER_CREDENTIALS_PATH = f"{self.ADMIN_FOLDER}/admin_user.json"
+
         self.GEOPARSER_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/geoparser"
         self.GEOPARSER_CREDENTIALS_PATH = f"{self.GEOPARSER_SECRETS_FOLDER}/credentials.json"
 

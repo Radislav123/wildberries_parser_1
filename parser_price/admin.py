@@ -1,9 +1,9 @@
+import abc
 import datetime
 from io import BytesIO
 from typing import Callable
 
 import xlsxwriter
-from django.contrib import admin
 from django.db import models as django_models
 from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
@@ -38,7 +38,7 @@ def download_prepared_prices_excel(
     today = datetime.date.today()
     date_range = [today - datetime.timedelta(x) for x in range(admin_model.settings.DOWNLOAD_HISTORY_DEPTH)]
     dynamic_field_names = [
-        admin_model.model.get_dynamic_field_name(admin_model.model.get_pretty_field_name(field_name), date)
+        admin_model.model.get_dynamic_field_name(admin_model.model.get_field_verbose_name(field_name), date)
         for date in date_range
         for field_name in admin_model.settings.DYNAMIC_FIELDS_ORDER
     ]
@@ -74,26 +74,26 @@ def download_prepared_prices_excel(
     return response
 
 
-class PreparedPriceItemNameListFilter(admin.SimpleListFilter):
-    """
-    Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле (parser_price_data.xlsx).
-    """
+class ParserPriceFilter(core_admin.CoreFilter, abc.ABC):
+    pass
 
+
+class PreparedPriceItemNameListFilter(ParserPriceFilter):
     title = parser_price_models.Item.get_field_verbose_name("name")
     parameter_name = "price__item__name"
 
     def lookups(self, request: HttpRequest, model_admin: "PreparedPriceAdmin") -> list[tuple[str, str]]:
-        actual_keywords = parser.ParserPrice.get_price_parser_items()
+        actual_keywords = parser.ParserPrice.get_price_parser_items(self.user)
         item_names = [(x, x) for x in sorted(set(y.name for y in actual_keywords))]
         return item_names
 
     def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
         if self.value() is not None:
-            queryset = queryset.filter(price__item__name = self.value())
+            queryset = queryset.filter(price__item__name = self.value(), price__item__user = self.user)
         return queryset
 
 
-class PreparedPriceActualListFilter(admin.SimpleListFilter):
+class PreparedPriceActualListFilter(ParserPriceFilter):
     """Оставляет только те товары, которые сейчас прописаны в excel-файле (parser_price_data.xlsx)."""
 
     title = "Присутствие в excel-файле"
@@ -111,8 +111,8 @@ class PreparedPriceActualListFilter(admin.SimpleListFilter):
 
     def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
         if self.value() is None:
-            actual_items = parser.ParserPrice.get_price_parser_items()
-            queryset = queryset.filter(price__item__in = actual_items)
+            actual_items = parser.ParserPrice.get_price_parser_items(self.user)
+            queryset = queryset.filter(price__item__in = actual_items, price__item__user = self.user)
         return queryset
 
 
@@ -196,16 +196,17 @@ class PreparedPriceAdmin(ParserPriceAdmin):
             extra_context = {}
         today = datetime.date.today()
         date_range = [today - datetime.timedelta(x) for x in range(self.settings.SHOW_HISTORY_DEPTH)]
+        field_names = [parser_price_models.Price.get_field_verbose_name(x) for x in self.settings.DYNAMIC_FIELDS_ORDER]
         extra_context["dynamic_field_names"] = [
-            parser_price_models.PreparedPrice.get_dynamic_field_name(self.model.get_pretty_field_name(field_name), date)
+            self.model.get_dynamic_field_name(field_name, date)
             for date in date_range
-            for field_name in self.settings.DYNAMIC_FIELDS_ORDER
+            for field_name in field_names
         ]
         return super().changelist_view(request, extra_context)
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
-        new_queryset = queryset.order_by("price__item__name")
+        new_queryset = queryset.filter(price__item__user = self.user).order_by("price__item__name")
         return new_queryset
 
 

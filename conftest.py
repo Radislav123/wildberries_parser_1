@@ -2,9 +2,11 @@ import pytest
 from _pytest.config import Config
 
 from core.settings import Settings
+from logger import Logger
 
 
 settings = Settings()
+logger = Logger(__name__)
 
 
 @pytest.fixture(autouse = True)

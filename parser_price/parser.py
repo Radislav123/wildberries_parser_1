@@ -2,7 +2,7 @@ import openpyxl
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Chrome, ChromeOptions, Remote
 
-from core import parser as parser_core
+from core import parser as parser_core, models as core_models
 from pages import ItemPage
 from . import models, settings
 
@@ -17,7 +17,7 @@ class ParserPrice(parser_core.ParserCore):
 
     def teardown_method(self):
         super().teardown_method()
-        models.PreparedPrice.prepare_prices()
+        models.PreparedPrice.prepare()
 
     def connect_log_in_driver(self) -> Remote:
         options = ChromeOptions()
@@ -53,7 +53,7 @@ class ParserPrice(parser_core.ParserCore):
         return reviews_amount, price, final_price, personal_sale
 
     @classmethod
-    def get_price_parser_items(cls) -> list[models.Item]:
+    def get_price_parser_items(cls, user: core_models.ParserUser) -> list[models.Item]:
         book = openpyxl.load_workbook(cls.settings.PARSER_PRICE_DATA_PATH)
         sheet = book.active
         items = []
@@ -68,6 +68,7 @@ class ParserPrice(parser_core.ParserCore):
             items.append(
                 models.Item.objects.update_or_create(
                     vendor_code = sheet.cell(row, 1).value,
+                    user = user,
                     defaults = {"name": sheet.cell(row, 2).value, "category": category}
                 )[0]
             )
@@ -75,7 +76,7 @@ class ParserPrice(parser_core.ParserCore):
         return items
 
     def run(self) -> None:
-        for item in self.get_price_parser_items():
+        for item in self.get_price_parser_items(self.user):
             reviews_amount, price, final_price, personal_sale = self.parse_price(item)
             price = models.Price(
                 item = item,
