@@ -76,3 +76,5 @@
    [*parser_price/management/commands/run_wildberries_log_in_window.py*](parser_price/management/commands/run_wildberries_log_in_window.py)
     1) `python manage.py run_wildberries_log_in_window`
     2) без открытого окна с авторизованным аккаунтом `wildberries` парсинг цен будет ломаться
+7) для работы скрипта [*db_dumps/create_backup.bat*](db_dumps/create_backup.bat) без запрашивания пароля, необходимо установить переменную окружения
+   `PGPASSWORD` с паролем от пользователя `Postgres`, указанного в переменной `USERNAME` в скрипте
