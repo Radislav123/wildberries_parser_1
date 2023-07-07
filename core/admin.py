@@ -47,8 +47,13 @@ class CoreAdmin(admin.ModelAdmin):
 
     @property
     def user(self) -> core_models.ParserUser:
-        # todo: добавить логику выбора пользователя
-        return core_models.ParserUser.get_admin()
+        if not is_migration():
+            # todo: добавить логику выбора пользователя
+            user = core_models.ParserUser.get_admin()
+        else:
+            user = None
+        return user
+
 
 
 class DynamicFieldAdminMixin(admin.ModelAdmin):
