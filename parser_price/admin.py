@@ -9,8 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
 
 from core import admin as core_admin
-from parser_price import parser
-from . import models as parser_price_models
+from . import models as parser_price_models, parser
 from .settings import Settings
 
 
@@ -27,6 +26,7 @@ def download_prepared_prices_excel(
     stream = BytesIO()
     book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
     sheet = book.add_worksheet(model_name)
+    dynamic_fields_offset = 4
 
     # запись шапки
     header = [
@@ -38,15 +38,17 @@ def download_prepared_prices_excel(
     today = datetime.date.today()
     date_range = [today - datetime.timedelta(x) for x in range(admin_model.settings.DOWNLOAD_HISTORY_DEPTH)]
     dynamic_field_names = [
-        admin_model.model.get_dynamic_field_name(admin_model.model.get_field_verbose_name(field_name), date)
+        admin_model.model.get_dynamic_field_name(parser_price_models.Price.get_field_verbose_name(field_name), date)
         for date in date_range
         for field_name in admin_model.settings.DYNAMIC_FIELDS_ORDER
     ]
     header.extend(dynamic_field_names)
+
     for row_number, column_name in enumerate(header):
         sheet.write(0, row_number, column_name)
 
     # запись таблицы
+    dynamic_fields_number = len(admin_model.settings.DYNAMIC_FIELDS_ORDER)
     for row_number, data in enumerate(queryset, 1):
         data: admin_model.model
         sheet.write(row_number, 0, data.price.item.vendor_code)
@@ -58,10 +60,9 @@ def download_prepared_prices_excel(
             category_name = None
         sheet.write(row_number, 3, category_name)
         for column_multiplier, date in enumerate(date_range):
-            # 4 - сдвиг
-            final_price_column_number = 4 + column_multiplier * 3 + 0
-            price_column_number = 4 + column_multiplier * 3 + 1
-            personal_sale_column_number = 4 + column_multiplier * 3 + 2
+            final_price_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 0
+            price_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 1
+            personal_sale_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 2
             sheet.write(row_number, final_price_column_number, data.final_prices[date])
             sheet.write(row_number, price_column_number, data.prices[date])
             sheet.write(row_number, personal_sale_column_number, data.personal_sales[date])
@@ -79,6 +80,11 @@ class ParserPriceFilter(core_admin.CoreFilter, abc.ABC):
 
 
 class PreparedPriceItemNameListFilter(ParserPriceFilter):
+    """
+    Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле
+    (parser_price_data.xlsx).
+    """
+
     title = parser_price_models.Item.get_field_verbose_name("name")
     parameter_name = "price__item__name"
 
@@ -133,7 +139,7 @@ class PriceAdmin(ParserPriceAdmin):
     model = parser_price_models.Price
 
 
-class PreparedPriceAdmin(ParserPriceAdmin):
+class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
     model = parser_price_models.PreparedPrice
     default_list_display = ("vendor_code", "item_name", "category_name", "reviews_amount")
     list_filter = (PreparedPriceItemNameListFilter, PreparedPriceActualListFilter)
@@ -163,21 +169,6 @@ class PreparedPriceAdmin(ParserPriceAdmin):
 
     reviews_amount.short_description = parser_price_models.Price.get_field_verbose_name("reviews_amount")
 
-    def __init__(self, model: model, admin_site):
-        super().__init__(model, admin_site)
-        if not core_admin.is_migration():
-            # добавление колонок для динамических полей
-            self.list_display = [x for x in self.default_list_display]
-            # day_delta - дней назад
-            # 0 - сегодня
-            # 1 - вчера
-            # ...
-            for day_delta in range(self.settings.SHOW_HISTORY_DEPTH):
-                for field_name in self.settings.DYNAMIC_FIELDS_ORDER:
-                    data_function = self.wrapper(f"{field_name}s", field_name, day_delta)
-                    setattr(self, data_function.__name__, data_function)
-                    self.list_display.append(data_function.__name__)
-
     def wrapper(self, json_field_name: str, field_name: str, day_delta: int) -> Callable:
         def dynamic_field(obj: PreparedPriceAdmin.model) -> int | float:
             date = datetime.date.today() - datetime.timedelta(day_delta)
@@ -190,6 +181,7 @@ class PreparedPriceAdmin(ParserPriceAdmin):
         # добавление контекста для выведения правильных названий колонок динамических полей
         if extra_context is None:
             extra_context = {}
+
         today = datetime.date.today()
         date_range = [today - datetime.timedelta(x) for x in range(self.settings.SHOW_HISTORY_DEPTH)]
         field_names = [parser_price_models.Price.get_field_verbose_name(x) for x in self.settings.DYNAMIC_FIELDS_ORDER]
@@ -198,11 +190,13 @@ class PreparedPriceAdmin(ParserPriceAdmin):
             for date in date_range
             for field_name in field_names
         ]
+
         return super().changelist_view(request, extra_context)
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
-        new_queryset = queryset.filter(price__item__user = self.user).order_by("price__item__name")
+        new_queryset = queryset.filter(price__item__user = self.user) \
+            .order_by("price__item__name", "price__item")
         return new_queryset
 
 

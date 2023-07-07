@@ -80,7 +80,7 @@ class DynamicFieldModel(CoreModel):
     @staticmethod
     @functools.cache
     def get_dynamic_field_name(field_name: str, date_or_number: datetime.date | int) -> str:
-        return f"{field_name} {date_or_number}"
+        return f"{field_name} {date_or_number}".strip()
 
     @functools.cache
     def get_dynamic_field_value(self, field_name: str, date: datetime.date) -> Any:
@@ -93,5 +93,5 @@ class DynamicFieldModel(CoreModel):
 
     @classmethod
     @abc.abstractmethod
-    def prepare(cls, user: ParserUser) -> None:
+    def prepare(cls, *args, **kwargs) -> None:
         raise NotImplementedError()

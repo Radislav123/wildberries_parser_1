@@ -19,6 +19,7 @@ class ParserPositionModel(core_models.CoreModel):
 
 
 class DateComment(ParserPositionModel):
+    user = models.ForeignKey(core_models.ParserUser, models.PROTECT)
     text = models.TextField()
     date = models.DateField()
 
@@ -105,14 +106,14 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
     }
 
     @classmethod
-    def prepare(cls, user) -> None:
+    def prepare(cls, user: core_models.ParserUser, city: str) -> None:
         # todo: подготавливать только те позиции, которые только что парсились
-        old_object_ids = list(cls.objects.filter(position__keyword__item__user = user).values_list("id", flat = True))
+        old_object_ids = list(cls.objects.filter(position__city = city, position__keyword__item__user = user).values_list("id", flat = True))
 
         new_objects = [
             cls(
-                position = Position.objects.filter(keyword__item = item).order_by("parsing__time").last()
-            ) for item in Item.objects.filter(user = user)
+                position = Position.objects.filter(keyword = keyword, city = city).order_by("parsing__time").last()
+            ) for keyword in Keyword.objects.filter(item__user = user)
         ]
 
         today = datetime.date.today()

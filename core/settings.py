@@ -40,6 +40,8 @@ class Settings:
         # иначе - отображаются и выгружаются все доступные даты
         # todo: remove setting?
         self.USE_HISTORY_DEPTH = True
+        # должно задаваться в дочерних классах
+        self.DYNAMIC_FIELDS_ORDER: list[str] = []
 
         # Пути секретов
         self.SECRETS_FOLDER = "secrets"

@@ -132,4 +132,4 @@ class ParserPosition(parser_core.ParserCore):
             position = self.find_position(city_dict, keyword)
             position.save()
 
-        models.PreparedPosition.prepare(self.user)
+        models.PreparedPosition.prepare(self.user, city_dict["name"])

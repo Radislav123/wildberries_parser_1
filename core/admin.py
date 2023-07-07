@@ -1,6 +1,6 @@
 import abc
 import sys
-from typing import Type
+from typing import Type, Callable
 
 from django.contrib import admin
 
@@ -49,6 +49,30 @@ class CoreAdmin(admin.ModelAdmin):
     def user(self) -> core_models.ParserUser:
         # todo: добавить логику выбора пользователя
         return core_models.ParserUser.get_admin()
+
+
+class DynamicFieldAdminMixin(admin.ModelAdmin):
+    settings: settings
+    model: core_models.DynamicFieldModel
+    default_list_display: list[str]
+
+    def __init__(self, model: core_models.DynamicFieldModel, admin_site):
+        super().__init__(model, admin_site)
+        if not is_migration():
+            # добавление колонок для динамических полей
+            self.list_display = [x for x in self.default_list_display]
+            # day_delta - дней назад
+            # 0 - сегодня
+            # 1 - вчера
+            # ...
+            for day_delta in range(self.settings.SHOW_HISTORY_DEPTH):
+                for field_name in self.settings.DYNAMIC_FIELDS_ORDER:
+                    data_function = self.wrapper(f"{field_name}s", field_name, day_delta)
+                    setattr(self, data_function.__name__, data_function)
+                    self.list_display.append(data_function.__name__)
+
+    def wrapper(self, json_field_name: str, field_name: str, day_delta: int) -> Callable:
+        raise NotImplementedError()
 
 
 class ParsingAdmin(CoreAdmin):

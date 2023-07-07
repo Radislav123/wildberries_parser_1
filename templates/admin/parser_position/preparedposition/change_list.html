@@ -1,0 +1,10 @@
+{% extends "admin/change_list.html" %}
+{% load admin_list i18n %}
+{% load parser_position_tags %}
+
+
+{% block result_list %}
+{% if action_form and actions_on_top and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+{% results_list_with_context cl %}
+{% if action_form and actions_on_bottom and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+{% endblock %}

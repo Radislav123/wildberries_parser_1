@@ -81,7 +81,7 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
     }
 
     @classmethod
-    def prepare(cls, user) -> None:
+    def prepare(cls, user: core_models.ParserUser) -> None:
         # todo: подготавливать только те цены, которые только что парсились
         old_object_ids = list(cls.objects.filter(price__item__user = user).values_list("id", flat = True))
 

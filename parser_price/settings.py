@@ -10,4 +10,5 @@ class Settings(settings.Settings):
     def __init__(self):
         super().__init__()
 
+        # порядок отображение динамических полей в административной панели
         self.DYNAMIC_FIELDS_ORDER = ["final_price", "price", "personal_sale"]

@@ -15,3 +15,6 @@ class Settings(settings.Settings):
 
         # количество дней для расчета долгих изменений позиции
         self.LONG_MOVEMENT_DELTA = 5
+
+        # порядок отображение динамических полей в административной панели
+        self.DYNAMIC_FIELDS_ORDER = ["position_repr", "movement"]
