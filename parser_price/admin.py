@@ -82,7 +82,7 @@ class ParserPriceFilter(core_admin.CoreFilter, abc.ABC):
 class PreparedPriceItemNameListFilter(ParserPriceFilter):
     """
     Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле
-    (parser_price_data.xlsx).
+    (parser_price.xlsx).
     """
 
     title = parser_price_models.Item.get_field_verbose_name("name")
@@ -100,7 +100,7 @@ class PreparedPriceItemNameListFilter(ParserPriceFilter):
 
 
 class PreparedPriceActualListFilter(ParserPriceFilter):
-    """Оставляет только те товары, которые сейчас прописаны в excel-файле (parser_price_data.xlsx)."""
+    """Оставляет только те товары, которые сейчас прописаны в excel-файле (parser_price.xlsx)."""
 
     title = "Присутствие в excel-файле"
     parameter_name = "actual"

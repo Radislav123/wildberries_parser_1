@@ -35,10 +35,10 @@
         1) поле `name` необходимо заполнить официальным названием
             1) к примеру, для `Санкт-Петербурга` должно быть `Санкт-Петербург`, а не `Питер`
         2) поле `label` - отображаемое название
-2) [*parsing_data/parser_position_data.xlsx*](parsing_data/parser_position_data.xlsx)
-    1) пример заполнения - [*parsing_data/parser_position_data_example.xlsx*](parsing_data/parser_position_data_example.xlsx)
-3) [*parsing_data/parser_position_data.xlsx*](parsing_data/parser_position_data.xlsx)
-    1) пример заполнения - [*parsing_data/parser_position_data_example.xlsx*](parsing_data/parser_position_data_example.xlsx)
+2) [*parsing_data/parser_position.xlsx*](parsing_data/parser_position.xlsx)
+    1) пример заполнения - [*parsing_data/parser_position_example.xlsx*](parsing_data/parser_position_example.xlsx)
+3) [*parsing_data/parser_position.xlsx*](parsing_data/parser_position.xlsx)
+    1) пример заполнения - [*parsing_data/parser_position_example.xlsx*](parsing_data/parser_position_example.xlsx)
 
 
 # Секреты

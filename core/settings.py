@@ -23,8 +23,8 @@ class Settings:
         self.CITIES_PATH = f"{self.PARSING_DATA_FOLDER}/cities.json"
         self.CITIES = self.read_json(self.CITIES_PATH)
 
-        self.PARSER_PRICE_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_price_data.xlsx"
-        self.PARSER_POSITION_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_position_data.xlsx"
+        self.PARSER_PRICE_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_price.xlsx"
+        self.PARSER_POSITION_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_position.xlsx"
 
         self.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/wildberries_log_in_driver_data.json"
 
@@ -38,8 +38,6 @@ class Settings:
         self.MAX_HISTORY_DEPTH = max(self.SHOW_HISTORY_DEPTH, self.DOWNLOAD_HISTORY_DEPTH)
         # если True - используются SHOW_HISTORY_DEPTH и DOWNLOAD_HISTORY_DEPTH,
         # иначе - отображаются и выгружаются все доступные даты
-        # todo: remove setting?
-        self.USE_HISTORY_DEPTH = True
         # должно задаваться в дочерних классах
         self.DYNAMIC_FIELDS_ORDER: list[str] = []
 

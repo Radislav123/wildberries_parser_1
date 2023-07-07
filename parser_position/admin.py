@@ -104,7 +104,7 @@ class PreparedPositionFilter(core_admin.CoreFilter, abc.ABC):
 class PreparedPositionItemNameListFilter(PreparedPositionFilter):
     """
     Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле
-    (parser_position_data.xlsx).
+    (parser_position.xlsx).
     """
 
     title = parser_position_models.Keyword.get_field_verbose_name("item_name")
@@ -125,7 +125,7 @@ class PreparedPositionItemNameListFilter(PreparedPositionFilter):
 
 
 class PreparedPositionActualListFilter(PreparedPositionFilter):
-    """Оставляет только те товары, которые сейчас прописаны в excel-файле (parser_position_data.xlsx)."""
+    """Оставляет только те товары, которые сейчас прописаны в excel-файле (parser_position.xlsx)."""
 
     title = "Присутствие в excel-файле"
     parameter_name = "actual"

@@ -23,7 +23,7 @@ def register_models(model_admins: list[Type["CoreAdmin"]]) -> None:
 
 class CoreFilter(admin.SimpleListFilter, abc.ABC):
     """
-    Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле (parser_price_data.xlsx).
+    Предоставляет к выбору только те названия товаров, которые сейчас прописаны в excel-файле (parser_price.xlsx).
     """
 
     @property
