@@ -195,7 +195,7 @@ class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
-        new_queryset = queryset.filter(price__item__user = self.user) \
+        new_queryset = queryset.filter(price__item__user = self.get_user()) \
             .order_by("price__item__name", "price__item")
         return new_queryset
 

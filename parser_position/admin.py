@@ -233,7 +233,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
 
         # добавление контекста для выведения комментариев
         extra_context["date_comments"] = []
-        comments = parser_position_models.DateComment.objects.filter(user = self.user)
+        comments = parser_position_models.DateComment.objects.filter(user = self.get_user())
         column_width = len(str(date_range[0]))
         for date in date_range:
             comment = comments.filter(date = date).last()
@@ -253,7 +253,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         queryset: django_models.QuerySet = super().get_queryset(request)
-        new_queryset = queryset.filter(position__keyword__item__user = self.user) \
+        new_queryset = queryset.filter(position__keyword__item__user = self.get_user()) \
             .order_by("position__keyword__item_name", "position__keyword__item", "position__city")
         return new_queryset
 

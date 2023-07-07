@@ -1,6 +1,6 @@
 import abc
 import sys
-from typing import Type, Callable
+from typing import Callable, Type
 
 from django.contrib import admin
 
@@ -45,15 +45,13 @@ class CoreAdmin(admin.ModelAdmin):
         # noinspection PyProtectedMember
         return tuple(field.name for field in self.model._meta.fields)
 
-    @property
-    def user(self) -> core_models.ParserUser:
+    def get_user(self) -> core_models.ParserUser:
         if not is_migration():
             # todo: добавить логику выбора пользователя
             user = core_models.ParserUser.get_admin()
         else:
             user = None
         return user
-
 
 
 class DynamicFieldAdminMixin(admin.ModelAdmin):
