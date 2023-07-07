@@ -32,11 +32,11 @@ ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = [
-    "core",
     "django.contrib.staticfiles",
 
     "parser_price",
     "parser_position",
+    "core",
 
     "django_extensions",
 
