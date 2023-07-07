@@ -2,6 +2,7 @@ from django.core.management.commands import runserver
 from core.management.commands import core_command
 
 
+# todo: исправить - при запуске сервера этой командой не подтягиваются статичные файлы
 class Command(core_command.CoreCommand, runserver.Command):
     def on_bind(self, server_port):
         super().on_bind(server_port)
