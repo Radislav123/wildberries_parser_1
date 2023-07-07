@@ -2,7 +2,7 @@ import openpyxl
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Chrome, ChromeOptions, Remote
 
-from core import parser as parser_core, models as core_models
+from core import models as core_models, parser as parser_core
 from pages import ItemPage
 from . import models, settings
 
@@ -14,10 +14,6 @@ class ParserPrice(parser_core.ParserCore):
     def setup_method(self):
         super().setup_method()
         self.log_in_driver = self.connect_log_in_driver()
-
-    def teardown_method(self):
-        super().teardown_method()
-        models.PreparedPrice.prepare()
 
     def connect_log_in_driver(self) -> Remote:
         options = ChromeOptions()
@@ -87,3 +83,5 @@ class ParserPrice(parser_core.ParserCore):
                 personal_sale = personal_sale
             )
             price.save()
+
+        models.PreparedPrice.prepare(self.user)

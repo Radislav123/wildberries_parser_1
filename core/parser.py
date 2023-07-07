@@ -16,16 +16,12 @@ class ParserCore:
     user: models.ParserUser
 
     @classmethod
-    def setup_user(cls) -> None:
-        # todo: добавить логику выбора пользователя
-        cls.user = models.ParserUser.get_admin()
-
-    @classmethod
     def setup_class(cls):
-        cls.setup_user()
         cls.logger = Logger("parser")
 
     def setup_method(self):
+        # todo: добавить логику выбора пользователя
+        self.user = models.ParserUser.get_admin()
         self.parsing = models.Parsing(user = self.user)
         self.parsing.save()
         self.logger.info("Start")
@@ -44,5 +40,5 @@ class ParserCore:
         self.driver = Chrome(options = options, service = service)
         self.driver.maximize_window()
 
-    def teardown_method(self, *args, **kwargs):
+    def teardown_method(self):
         self.driver.quit()

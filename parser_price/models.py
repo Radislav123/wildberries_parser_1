@@ -17,11 +17,6 @@ class ParserPriceModel(core_models.CoreModel):
     settings = settings
 
 
-class DateComment(ParserPriceModel):
-    text = models.TextField()
-    date = models.DateField()
-
-
 class Category(ParserPriceModel):
     class Meta:
         verbose_name_plural = "Categories"
@@ -86,13 +81,14 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
     }
 
     @classmethod
-    def prepare(cls) -> None:
-        old_object_ids = list(cls.objects.all().values_list("id", flat = True))
+    def prepare(cls, user) -> None:
+        # todo: подготавливать только те цены, которые только что парсились
+        old_object_ids = list(cls.objects.filter(price__item__user = user).values_list("id", flat = True))
 
         new_objects = [
             cls(
                 price = Price.objects.filter(item = item).order_by("parsing__time").last()
-            ) for item in Item.objects.all()
+            ) for item in Item.objects.filter(user = user)
         ]
 
         today = datetime.date.today()

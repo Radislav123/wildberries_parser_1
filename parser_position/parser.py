@@ -4,7 +4,7 @@ import openpyxl
 import requests
 from requests.exceptions import JSONDecodeError
 
-from core import parser as parser_core
+from core import models as core_models, parser as parser_core
 from pages import MainPage, SearchResultsPage
 from . import models, settings
 
@@ -109,11 +109,11 @@ class ParserPosition(parser_core.ParserCore):
         return items
 
     @classmethod
-    def get_position_parser_keywords(cls) -> list[models.Keyword]:
+    def get_position_parser_keywords(cls, user: core_models.ParserUser) -> list[models.Keyword]:
         item_dicts = cls.get_position_parser_item_dicts()
         # создание отсутствующих товаров в БД
         # noinspection PyStatementEffect
-        [models.Item.objects.get_or_create(vendor_code = x["vendor_code"])[0] for x in item_dicts]
+        [models.Item.objects.get_or_create(vendor_code = x["vendor_code"], user = user)[0] for x in item_dicts]
 
         keywords = [models.Keyword.objects.update_or_create(
             item_id = x["vendor_code"],
@@ -128,6 +128,8 @@ class ParserPosition(parser_core.ParserCore):
         dest, regions = main_page.set_city(city_dict["name"])
         city_dict["dest"] = dest
         city_dict["regions"] = regions
-        for keyword in self.get_position_parser_keywords():
+        for keyword in self.get_position_parser_keywords(self.user):
             position = self.find_position(city_dict, keyword)
             position.save()
+
+        models.PreparedPosition.prepare(self.user)

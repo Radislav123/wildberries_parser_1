@@ -1,3 +1,6 @@
+import datetime
+from typing import Self
+
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
@@ -13,6 +16,11 @@ class ParserPositionModel(core_models.CoreModel):
         abstract = True
 
     settings = settings
+
+
+class DateComment(ParserPositionModel):
+    text = models.TextField()
+    date = models.DateField()
 
 
 class Item(ParserPositionModel, core_models.Item):
@@ -60,13 +68,28 @@ class Position(ParserPositionModel):
             real_position = self.value
         return real_position
 
+    @classmethod
+    def get_last_by_keyword_date(cls, keyword: Keyword, date: datetime.date) -> Self:
+        obj = cls.objects.filter(
+            keyword = keyword,
+            parsing__date = date
+        ).order_by("parsing__time").last()
+        return obj
+
+    def movement_from(self, other: "Position") -> int:
+        return self.value - other.value
+
 
 class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
     """Таблица для отображения необходимой пользователю информации."""
 
     position = models.ForeignKey(Position, models.PROTECT)
-    long_movement = models.IntegerField(verbose_name = f"За {settings.LONG_MOVEMENT_DELTA} дней")
+    long_movement = models.IntegerField(verbose_name = f"За {settings.LONG_MOVEMENT_DELTA} дней", null = True)
     positions = models.JSONField(
+        encoder = core_models.DateKeyJSONFieldEncoder,
+        decoder = core_models.DateKeyJsonFieldDecoder
+    )
+    position_reprs = models.JSONField(
         encoder = core_models.DateKeyJSONFieldEncoder,
         decoder = core_models.DateKeyJsonFieldDecoder
     )
@@ -74,25 +97,66 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
         encoder = core_models.DateKeyJSONFieldEncoder,
         decoder = core_models.DateKeyJsonFieldDecoder
     )
-    comment_ids = models.JSONField(
-        encoder = core_models.DateKeyJSONFieldEncoder,
-        decoder = core_models.DateKeyJsonFieldDecoder
-    )
 
     dynamic_fields = {
         "position": positions,
-        "movement": movements,
-        "comment_id": comment_ids
+        "position_repr": position_reprs,
+        "movement": movements
     }
 
     @classmethod
-    def prepare(cls) -> None:
-        old_object_ids = list(cls.objects.all().values_list("id", flat = True))
+    def prepare(cls, user) -> None:
+        # todo: подготавливать только те позиции, которые только что парсились
+        old_object_ids = list(cls.objects.filter(position__keyword__item__user = user).values_list("id", flat = True))
 
         new_objects = [
             cls(
-                position = Position.objects.filter()
-            ) for item in Item.objects.all()
+                position = Position.objects.filter(keyword__item = item).order_by("parsing__time").last()
+            ) for item in Item.objects.filter(user = user)
         ]
 
+        today = datetime.date.today()
+        date_range = [today - datetime.timedelta(x) for x in range(cls.settings.MAX_HISTORY_DEPTH + 1)]
+
+        for obj in new_objects:
+            obj.positions = {}
+            obj.position_reprs = {}
+            obj.movements = {}
+            last_positions = [Position.get_last_by_keyword_date(obj.position.keyword, date) for date in date_range]
+            for number, date in enumerate(date_range[:-1]):
+                if last_positions[number] is not None:
+                    obj.positions[date] = last_positions[number].value
+                    obj.position_reprs[date] = last_positions[number].position_repr
+                    if last_positions[number + 1] is not None:
+                        obj.movements[date] = last_positions[number].movement_from(last_positions[number + 1])
+                    else:
+                        obj.movements[date] = None
+                else:
+                    obj.positions[date] = None
+                    obj.position_reprs[date] = None
+                    obj.movements[date] = None
+
+            obj.prepare_long_movement()
+            obj.save()
+
         cls.objects.filter(id__in = old_object_ids).delete()
+
+    def prepare_long_movement(self) -> None:
+        # self.long_movement = last_positions[0].movement_from(last_positions[self.settings.LONG_MOVEMENT_DELTA])
+        today = datetime.date.today()
+        one_day_delta = datetime.timedelta(1)
+        current_date = datetime.date.today()
+        previous_date = today - datetime.timedelta(settings.LONG_MOVEMENT_DELTA)
+
+        while self.positions[current_date] is None and current_date != previous_date:
+            current_date -= one_day_delta
+
+        while self.positions[previous_date] is None and previous_date != current_date:
+            previous_date += one_day_delta
+
+        current = self.positions[current_date]
+        previous = self.positions[previous_date]
+        if current is not None:
+            self.long_movement = current - previous
+        else:
+            self.long_movement = None

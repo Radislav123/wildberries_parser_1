@@ -121,10 +121,6 @@ class ParserPriceAdmin(core_admin.CoreAdmin):
     settings = settings
 
 
-class DateCommentAdmin(ParserPriceAdmin):
-    model = parser_price_models.DateComment
-
-
 class CategoryAdmin(ParserPriceAdmin):
     model = parser_price_models.Category
 
@@ -210,5 +206,5 @@ class PreparedPriceAdmin(ParserPriceAdmin):
         return new_queryset
 
 
-model_admins_to_register = [DateCommentAdmin, CategoryAdmin, ItemAdmin, PriceAdmin, PreparedPriceAdmin]
+model_admins_to_register = [CategoryAdmin, ItemAdmin, PriceAdmin, PreparedPriceAdmin]
 core_admin.register_models(model_admins_to_register)

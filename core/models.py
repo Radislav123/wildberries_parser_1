@@ -17,7 +17,7 @@ settings = Settings()
 
 class DateKeyJSONFieldEncoder(DjangoJSONEncoder):
     def encode(self, o: Any) -> str:
-        if type(list(o.keys())[0]) is str:
+        if len(o) > 0 and type(list(o.keys())[0]) is str:
             string = super().encode(o)
         else:
             new_object = {self.default(key): o[key] for key in o}
@@ -93,5 +93,5 @@ class DynamicFieldModel(CoreModel):
 
     @classmethod
     @abc.abstractmethod
-    def prepare(cls) -> None:
+    def prepare(cls, user: ParserUser) -> None:
         raise NotImplementedError()
