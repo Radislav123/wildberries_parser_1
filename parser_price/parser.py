@@ -1,3 +1,5 @@
+from typing import Any
+
 import openpyxl
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Chrome, ChromeOptions, Remote
@@ -49,30 +51,45 @@ class ParserPrice(parser_core.ParserCore):
         return reviews_amount, price, final_price, personal_sale
 
     @classmethod
-    def get_price_parser_items(cls, user: core_models.ParserUser) -> list[models.Item]:
+    def get_price_parser_item_dicts(cls) -> list[dict[str, Any]]:
         book = openpyxl.load_workbook(cls.settings.PARSER_PRICE_DATA_PATH)
         sheet = book.active
-        items = []
+        item_dicts = []
         row = 2
         while sheet.cell(row, 1).value:
-            category_name = sheet.cell(row, 3).value
-            if category_name is not None:
-                category = models.Category.objects.get_or_create(name = category_name)[0]
+            item_dicts.append(
+                {
+                    "vendor_code": sheet.cell(row, 1).value,
+                    "name": sheet.cell(row, 2).value,
+                    "category_name": sheet.cell(row, 3).value
+                }
+            )
+            row += 1
+        return item_dicts
+
+    @classmethod
+    def get_price_parser_items(cls, user: core_models.ParserUser) -> list[models.Item]:
+        item_dicts = cls.get_price_parser_item_dicts()
+        items = []
+
+        for item_dict in item_dicts:
+            if item_dict["category_name"] is not None:
+                category = models.Category.objects.get_or_create(name = item_dict["category_name"])[0]
             else:
                 category = None
 
             items.append(
                 models.Item.objects.update_or_create(
-                    vendor_code = sheet.cell(row, 1).value,
+                    vendor_code = item_dict["vendor_code"],
                     user = user,
-                    defaults = {"name": sheet.cell(row, 2).value, "category": category}
+                    defaults = {"name": item_dict["name"], "category": category}
                 )[0]
             )
-            row += 1
         return items
 
-    def run(self) -> None:
-        for item in self.get_price_parser_items(self.user):
+    def run(self, vendor_codes: list[int]) -> None:
+        items = models.Item.objects.filter(vendor_code__in = vendor_codes, user = self.user)
+        for item in items:
             reviews_amount, price, final_price, personal_sale = self.parse_price(item)
             price = models.Price(
                 item = item,
@@ -84,4 +101,4 @@ class ParserPrice(parser_core.ParserCore):
             )
             price.save()
 
-        models.PreparedPrice.prepare(self.user)
+        models.PreparedPrice.prepare(self.user, items)

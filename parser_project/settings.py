@@ -35,8 +35,6 @@ INSTALLED_APPS = [
     "parser_price",
     "parser_position",
     "core",
-    # todo: remove this app and all its files
-    "parser",
 
     "django_extensions",
 

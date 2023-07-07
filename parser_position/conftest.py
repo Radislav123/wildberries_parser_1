@@ -1,7 +1,7 @@
 import pytest
 from _pytest.python import FunctionDefinition, Metafunc
 
-from core.settings import Settings
+from .settings import Settings
 
 
 settings = Settings()
