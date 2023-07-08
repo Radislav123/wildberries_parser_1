@@ -1,4 +1,2 @@
-cd ..
-CALL venv\Scripts\activate.bat
-python parse.py prices
+run_parser_price_for_scheduler.bat
 pause
