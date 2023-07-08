@@ -1,3 +1,4 @@
 *
 !.gitignore
-!create_backup.bat
+!create_data_backup.bat
+!create_schema_backup.bat
