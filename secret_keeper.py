@@ -38,8 +38,10 @@ class SecretKeeper:
         password: str
         api_key: str
 
-    class TelegramBot(Module):
+    class BotTelegram(Module):
         token: str
+        name: str
+        username: str
 
     class WildberriesLogInDriver(Module):
         url: str
@@ -48,14 +50,14 @@ class SecretKeeper:
     database: Database
     admin_user: AdminUser
     geoparser: Geoparser
-    telegram_bot: TelegramBot
+    bot_telegram: BotTelegram
     wildberries_log_in_driver: WildberriesLogInDriver
 
     def __init__(self, settings: "Settings") -> None:
         self.add_module("database", settings.DATABASE_CREDENTIALS_PATH)
         self.add_module("admin_user", settings.ADMIN_USER_CREDENTIALS_PATH)
         self.add_module("geoparser", settings.GEOPARSER_CREDENTIALS_PATH)
-        self.add_module("telegram_bot", settings.TELEGRAM_BOT_CREDENTIALS_PATH)
+        self.add_module("bot_telegram", settings.BOT_TELEGRAM_CREDENTIALS_PATH)
         self.add_module("wildberries_log_in_driver", settings.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH)
 
     @staticmethod

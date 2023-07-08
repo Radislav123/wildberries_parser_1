@@ -53,8 +53,8 @@ class Settings:
         self.GEOPARSER_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/geoparser"
         self.GEOPARSER_CREDENTIALS_PATH = f"{self.GEOPARSER_SECRETS_FOLDER}/credentials.json"
 
-        self.TELEGRAM_BOT_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/telegram_bot"
-        self.TELEGRAM_BOT_CREDENTIALS_PATH = f"{self.TELEGRAM_BOT_SECRETS_FOLDER}/credentials.json"
+        self.BOT_TELEGRAM_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/bot_telegram"
+        self.BOT_TELEGRAM_CREDENTIALS_PATH = f"{self.BOT_TELEGRAM_SECRETS_FOLDER}/credentials.json"
 
         # Настройки логгера
         self.LOG_FORMAT = "[%(asctime)s] - [%(levelname)s] - %(name)s -" \

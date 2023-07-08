@@ -12,7 +12,7 @@ class Bot(telebot.TeleBot):
 
     def __init__(self, token: str = None):
         if token is None:
-            token = self.settings.secrets.telegram_bot.token
+            token = self.settings.secrets.bot_telegram.token
 
         super().__init__(token)
         self.logger = logger.Logger(self.settings.APP_NAME)
