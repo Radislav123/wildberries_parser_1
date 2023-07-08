@@ -15,4 +15,4 @@ set BACKUP_FILE="%cd%\%DATABASE%_%DATETIME%.schema.backup"
 echo backup file name is %BACKUP_FILE%
 
 echo on
-%POSTGRES_FOLDER%\bin\pg_dump -h %HOSTNAME% -p %PORT% -U %USERNAME% -F c -f %BACKUP_FILE% %DATABASE% --schema-only
+%POSTGRES_FOLDER%\bin\pg_dump -h %HOSTNAME% -p %PORT% -U %USERNAME% -F c --schema-only -f %BACKUP_FILE% %DATABASE%
