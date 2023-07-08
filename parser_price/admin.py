@@ -172,7 +172,9 @@ class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
     def wrapper(self, json_field_name: str, field_name: str, day_delta: int) -> Callable:
         def dynamic_field(obj: PreparedPriceAdmin.model) -> int | float:
             date = datetime.date.today() - datetime.timedelta(day_delta)
-            return getattr(obj, json_field_name)[date]
+            field = getattr(obj, json_field_name)
+            data = field.get(date, None)
+            return data
 
         dynamic_field.__name__ = self.model.get_dynamic_field_name(field_name, day_delta)
         return dynamic_field

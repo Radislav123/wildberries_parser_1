@@ -209,7 +209,8 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
     def wrapper(self, json_field_name: str, field_name: str, day_delta: int) -> Callable:
         def dynamic_field(obj: PreparedPositionAdmin.model) -> int | float | SafeString:
             date = datetime.date.today() - datetime.timedelta(day_delta)
-            data = getattr(obj, json_field_name)[date]
+            field = getattr(obj, json_field_name)
+            data = field.get(date, None)
             if field_name == "movement":
                 data = colorize_movement(data)
             return data
