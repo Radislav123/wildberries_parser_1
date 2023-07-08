@@ -111,7 +111,7 @@ class PreparedPositionItemNameListFilter(PreparedPositionFilter):
     parameter_name = "keyword__item_name"
 
     def lookups(self, request: HttpRequest, model_admin: "PreparedPositionAdmin") -> list[tuple[str, str]]:
-        actual_keywords = parser.ParserPosition.get_position_parser_keywords(self.user)
+        actual_keywords = parser.Parser.get_position_parser_keywords(self.user)
         item_names = [(x, x) for x in sorted(set(y.item_name for y in actual_keywords))]
         return item_names
 
@@ -142,7 +142,7 @@ class PreparedPositionActualListFilter(PreparedPositionFilter):
 
     def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
         if self.value() is None:
-            actual_keywords = parser.ParserPosition.get_position_parser_keywords(self.user)
+            actual_keywords = parser.Parser.get_position_parser_keywords(self.user)
             queryset = queryset.filter(
                 position__keyword__in = actual_keywords, position__keyword__item__user = self.user
             )

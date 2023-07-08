@@ -6,12 +6,14 @@ from selenium.webdriver import Chrome, ChromeOptions, Remote
 
 from core import models as core_models, parser as parser_core
 from pages import ItemPage
+from bot_telegram import bot
 from . import models, settings
 
 
-class ParserPrice(parser_core.ParserCore):
+class Parser(parser_core.Parser):
     settings = settings.Settings()
     log_in_driver: Chrome
+    bot_telegram = bot.Bot()
 
     def setup_method(self):
         super().setup_method()
@@ -89,6 +91,7 @@ class ParserPrice(parser_core.ParserCore):
 
     def run(self, vendor_codes: list[int]) -> None:
         items = models.Item.objects.filter(vendor_code__in = vendor_codes, user = self.user)
+        prices = []
         for item in items:
             reviews_amount, price, final_price, personal_sale = self.parse_price(item)
             price = models.Price(
@@ -100,5 +103,9 @@ class ParserPrice(parser_core.ParserCore):
                 personal_sale = personal_sale
             )
             price.save()
+            prices.append(price)
+
+        changed_prices = models.Price.get_changed_prices(prices)
+        self.bot_telegram.notify_price_changed(changed_prices)
 
         models.PreparedPrice.prepare(self.user, items)

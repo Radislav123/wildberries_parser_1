@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = [
+    "bot_telegram",
     "parser_price",
     "parser_position",
     "core",

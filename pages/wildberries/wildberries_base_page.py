@@ -6,7 +6,7 @@ from selenium.webdriver.remote.webdriver import BaseWebDriver
 
 
 if TYPE_CHECKING:
-    from core.parser import ParserCore
+    from core.parser import Parser
 
 
 # page_url = https://www.wildberries.ru/
@@ -16,7 +16,7 @@ class WildberriesPage(BasePage):
     path = ""
 
     # todo: перевести страницы из web_helper на использование parser и BaseWebDriver
-    def __init__(self, parser: "ParserCore"):
+    def __init__(self, parser: "Parser"):
         if not isinstance(parser, BaseWebDriver):
             # todo: use parsing_helper.base_page.BasePage.parser
             self.parser = parser

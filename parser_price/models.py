@@ -55,6 +55,20 @@ class Price(ParserPriceModel):
         ).order_by("parsing__time").last()
         return obj
 
+    @classmethod
+    def get_changed_prices(cls, new_prices: list["Price"]) -> dict[Self, Self]:
+        # {new_price: old_price}
+        changed = {}
+        for new_price in new_prices:
+            old_prices = cls.objects.filter(item = new_price.item).order_by("-parsing__time")[:2][::-1]
+            if len(old_prices) > 1:
+                old_price = old_prices[-2]
+                if old_price.final_price != new_price.final_price or \
+                        old_price.personal_sale != new_price.personal_sale:
+                    changed[new_price] = old_price
+
+        return changed
+
 
 class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
     """Таблица для отображения необходимой пользователю информации."""

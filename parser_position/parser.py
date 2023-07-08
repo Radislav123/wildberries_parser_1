@@ -12,7 +12,7 @@ from . import models, settings
 City = dict[str, str]
 
 
-class ParserPosition(parser_core.ParserCore):
+class Parser(parser_core.Parser):
     settings = settings.Settings()
 
     # не используется, но оставлен

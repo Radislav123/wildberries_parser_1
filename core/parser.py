@@ -4,11 +4,11 @@ from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from logger import Logger
+import logger
 from . import models, settings
 
 
-class ParserCore:
+class Parser:
     settings = settings.Settings()
     logger: logging.Logger
     driver: Chrome
@@ -17,7 +17,7 @@ class ParserCore:
 
     @classmethod
     def setup_class(cls):
-        cls.logger = Logger("parser")
+        cls.logger = logger.Logger(cls.settings.APP_NAME)
 
     def setup_method(self):
         # todo: добавить логику выбора пользователя

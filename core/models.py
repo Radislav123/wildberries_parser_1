@@ -46,6 +46,9 @@ class CoreModel(models.Model):
 
 
 class ParserUser(CoreModel, auth_models.AbstractUser):
+    telegram_id = models.PositiveIntegerField(null = True)
+    telegram_chat_id = models.PositiveIntegerField(null = True)
+
     @classmethod
     def get_admin(cls) -> Self:
         return cls.objects.get(username = cls.settings.secrets.admin_user.username)

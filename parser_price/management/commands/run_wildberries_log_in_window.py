@@ -7,7 +7,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from pages import LogInPage
 from parser_price.management.commands import parser_price_command
-from parser_price.settings import Settings
 
 
 class Command(parser_price_command.ParserPriceCommand):
@@ -25,17 +24,15 @@ class Command(parser_price_command.ParserPriceCommand):
         driver.maximize_window()
         return driver
 
-    @staticmethod
-    def write_driver_info(driver: Chrome, settings: Settings) -> None:
-        with open(settings.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH, 'w') as file:
+    def write_driver_info(self, driver: Chrome) -> None:
+        with open(self.settings.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH, 'w') as file:
             # noinspection PyProtectedMember
             json.dump({"url": driver.command_executor._url, "session_id": driver.session_id}, file, indent = 2)
 
     def handle(self, *args, **options):
-        settings = Settings()
         driver = self.get_authorization_driver()
         login_page = LogInPage.create_without_parser(driver)
         login_page.open()
-        self.write_driver_info(driver, settings)
+        self.write_driver_info(driver)
         while True:
             time.sleep(100)
