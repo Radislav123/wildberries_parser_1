@@ -81,7 +81,7 @@ class Position(ParserPositionModel):
         if other is None or other.value is None or self.value is None:
             movement = None
         else:
-            movement = self.value - other.value
+            movement = self.real_position - other.real_position
         return movement
 
 
@@ -132,10 +132,7 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
                 if last_positions[number] is not None:
                     obj.positions[date] = last_positions[number].value
                     obj.position_reprs[date] = last_positions[number].position_repr
-                    if last_positions[number + 1] is not None:
-                        obj.movements[date] = last_positions[number].movement_from(last_positions[number + 1])
-                    else:
-                        obj.movements[date] = None
+                    obj.movements[date] = last_positions[number].movement_from(last_positions[number + 1])
                 else:
                     obj.positions[date] = None
                     obj.position_reprs[date] = None
