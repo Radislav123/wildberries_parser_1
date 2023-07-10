@@ -78,7 +78,11 @@ class Position(ParserPositionModel):
         return obj
 
     def movement_from(self, other: "Position") -> int:
-        return self.value - other.value
+        if other is None or other.value is None or self.value is None:
+            movement = None
+        else:
+            movement = self.value - other.value
+        return movement
 
 
 class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
