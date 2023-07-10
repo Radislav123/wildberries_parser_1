@@ -88,7 +88,7 @@ class Bot(telebot.TeleBot):
             if personal_sale_changing > 0:
                 text.extend(
                     [
-                        "🟥",
+                        "🟩",
                         f"{personal_sale_emoji} {personal_sale_name}: {new_personal_sale_string}"
                         f" <=== {old_personal_sale_string} +{personal_sale_changing} %",
                     ]
@@ -96,7 +96,7 @@ class Bot(telebot.TeleBot):
             elif personal_sale_changing < 0:
                 text.extend(
                     [
-                        "🟩",
+                        "🟥",
                         f"{personal_sale_emoji} {personal_sale_name}: {new_personal_sale_string}"
                         f" <=== {old_personal_sale_string} {personal_sale_changing} %",
                     ]
