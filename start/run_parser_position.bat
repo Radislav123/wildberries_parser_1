@@ -1,2 +1,4 @@
-run_parser_position_for_scheduler.bat
+cd ..
+CALL venv\Scripts\activate.bat
+python parse.py positions
 pause
