@@ -56,16 +56,18 @@ class Price(ParserPriceModel):
         return obj
 
     @classmethod
-    def get_changed_prices(cls, new_prices: list["Price"]) -> dict[Self, Self]:
-        # {new_price: old_price}
-        changed = {}
+    def get_changed_prices(cls, new_prices: list["Price"]) -> list[tuple[Self, Self, float, int]]:
+        # [(new_price, old_price, price_changing, personal_sale_changing)]
+        changed = []
+
         for new_price in new_prices:
             old_prices = cls.objects.filter(item = new_price.item).order_by("-parsing__time")[:2][::-1]
             if len(old_prices) > 1:
                 old_price = old_prices[-2]
-                if old_price.final_price != new_price.final_price or \
-                        old_price.personal_sale != new_price.personal_sale:
-                    changed[new_price] = old_price
+                price_changing = new_price.final_price - old_price.final_price
+                personal_sale_changing = new_price.personal_sale - old_price.personal_sale
+                if price_changing != 0 or personal_sale_changing != 0:
+                    changed.append((new_price, old_price, price_changing, personal_sale_changing))
 
         return changed
 

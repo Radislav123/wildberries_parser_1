@@ -106,6 +106,6 @@ class Parser(parser_core.Parser):
             prices.append(price)
 
         changed_prices = models.Price.get_changed_prices(prices)
-        self.bot_telegram.notify_price_changed(changed_prices)
+        self.bot_telegram.notify_prices_changed(changed_prices)
 
         models.PreparedPrice.prepare(self.user, items)
