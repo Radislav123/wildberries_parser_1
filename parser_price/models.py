@@ -64,8 +64,17 @@ class Price(ParserPriceModel):
             old_prices = cls.objects.filter(item = new_price.item).order_by("-parsing__time")[:2][::-1]
             if len(old_prices) > 1:
                 old_price = old_prices[-2]
-                price_changing = new_price.final_price - old_price.final_price
-                personal_sale_changing = new_price.personal_sale - old_price.personal_sale
+
+                if new_price.final_price is not None and old_price.final_price is not None:
+                    price_changing = new_price.final_price - old_price.final_price
+                else:
+                    price_changing = None
+
+                if new_price.personal_sale is not None and old_price.final_price is not None:
+                    personal_sale_changing = new_price.personal_sale - old_price.personal_sale
+                else:
+                    personal_sale_changing = None
+
                 if price_changing != 0 or personal_sale_changing != 0:
                     changed.append((new_price, old_price, price_changing, personal_sale_changing))
 
