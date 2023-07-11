@@ -49,9 +49,13 @@ class Bot(telebot.TeleBot):
                 text.append(f"🟦 Изменилась СПП")
             text.append("")
 
+            if new_price.item.category is not None:
+                text.append(
+                    f"{new_price.item.category.get_field_verbose_name('name')}: {new_price.item.category.name}",
+                )
             text.extend(
                 [
-                    f"{new_price.item.get_field_verbose_name('category')}: {new_price.item.category}",
+
                     f"{new_price.item.get_field_verbose_name('vendor_code')}: {new_price.item.vendor_code}",
                     f"{new_price.item.get_field_verbose_name('name')}: {new_price.item.name}",
                     ""
