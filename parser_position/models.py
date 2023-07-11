@@ -130,7 +130,7 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
             last_positions = [Position.get_last_by_keyword_date(obj.position.keyword, date) for date in date_range]
             for number, date in enumerate(date_range[:-1]):
                 if last_positions[number] is not None:
-                    obj.positions[date] = last_positions[number].value
+                    obj.positions[date] = last_positions[number].real_position
                     obj.position_reprs[date] = last_positions[number].position_repr
                     obj.movements[date] = last_positions[number].movement_from(last_positions[number + 1])
                 else:
