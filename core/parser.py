@@ -39,6 +39,7 @@ class Parser:
 
         self.driver = Chrome(options = options, service = service)
         self.driver.maximize_window()
+        self.driver.execute_cdp_cmd("Network.setCacheDisabled", {"cacheDisabled": True})
 
     def teardown_method(self):
         self.driver.quit()
