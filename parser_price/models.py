@@ -68,12 +68,12 @@ class Price(ParserPriceModel):
                 if new_price.final_price is not None and old_price.final_price is not None:
                     price_changing = new_price.final_price - old_price.final_price
                 else:
-                    price_changing = None
+                    price_changing = 0
 
                 if new_price.personal_sale is not None and old_price.final_price is not None:
                     personal_sale_changing = new_price.personal_sale - old_price.personal_sale
                 else:
-                    personal_sale_changing = None
+                    personal_sale_changing = 0
 
                 if price_changing != 0 or personal_sale_changing != 0:
                     changed.append((new_price, old_price, price_changing, personal_sale_changing))
