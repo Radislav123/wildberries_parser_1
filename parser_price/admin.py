@@ -63,9 +63,10 @@ def download_prepared_prices_excel(
             final_price_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 0
             price_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 1
             personal_sale_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 2
-            sheet.write(row_number, final_price_column_number, data.final_prices[date])
-            sheet.write(row_number, price_column_number, data.prices[date])
-            sheet.write(row_number, personal_sale_column_number, data.personal_sales[date])
+            if date in data.final_prices:
+                sheet.write(row_number, final_price_column_number, data.final_prices[date])
+                sheet.write(row_number, price_column_number, data.prices[date])
+                sheet.write(row_number, personal_sale_column_number, data.personal_sales[date])
     sheet.autofit()
     book.close()
 

@@ -75,8 +75,9 @@ def download_prepared_position_excel(
         for column_multiplier, date in enumerate(date_range):
             position_repr_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 0
             movement_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 1
-            sheet.write(row_number, position_repr_column_number, data.position_reprs[date])
-            sheet.write(row_number, movement_column_number, data.movements[date])
+            if date in data.position_reprs:
+                sheet.write(row_number, position_repr_column_number, data.position_reprs[date])
+                sheet.write(row_number, movement_column_number, data.movements[date])
     sheet.autofit()
 
     # запись комментариев
