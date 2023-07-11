@@ -70,7 +70,7 @@ class Price(ParserPriceModel):
                 else:
                     price_changing = 0
 
-                if new_price.personal_sale is not None and old_price.final_price is not None:
+                if new_price.personal_sale is not None and old_price.personal_sale is not None:
                     personal_sale_changing = new_price.personal_sale - old_price.personal_sale
                 else:
                     personal_sale_changing = 0
