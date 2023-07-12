@@ -4,9 +4,9 @@ import openpyxl
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import Chrome, ChromeOptions, Remote
 
+from bot_telegram import bot
 from core import models as core_models, parser as parser_core
 from pages import ItemPage
-from bot_telegram import bot
 from . import models, settings
 
 
