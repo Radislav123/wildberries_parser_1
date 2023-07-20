@@ -65,7 +65,8 @@ class Price(ParserPriceModel):
             old_price = cls.objects.filter(item = new_price.item).exclude(id = new_price.id) \
                 .order_by("parsing__time").last()
 
-            if old_price is not None:
+            if old_price is not None and \
+                    not (new_price.price is None and new_price.final_price is None and new_price.personal_sale is None):
                 if new_price.price is not None and old_price.price is not None:
                     price_changing = new_price.price - old_price.price
                 else:
