@@ -9,9 +9,62 @@ from parser_price import models as parser_price_models
 from . import settings
 
 
+class NotEnoughEscapeWallsException(Exception):
+    pass
+
+
 class Bot(telebot.TeleBot):
-    class ParseModes:
+    class ParseMode:
         MARKDOWN = "MarkdownV2"
+
+    class Emoji:
+        UP = '⬆'
+        DOWN = '⬇'
+        NO_CHANGES = '⏺'
+        CHANGES = '🟦'
+
+    class Formatter:
+        ESCAPE_WALL = "|||"
+
+        @classmethod
+        def wall(cls, data: Any) -> str:
+            return f"{cls.ESCAPE_WALL}{data}{cls.ESCAPE_WALL}"
+
+        @classmethod
+        def strikethrough(cls, data: Any) -> str:
+            return cls.wall(telebot.formatting.mstrikethrough(str(data)))
+
+        @classmethod
+        def italic(cls, data: Any) -> str:
+            return cls.wall(telebot.formatting.mitalic(str(data)))
+
+        @classmethod
+        def link(cls, data: Any, link: str) -> str:
+            return cls.wall(f"[{data}]({link})")
+
+        @classmethod
+        def escape(cls, string: str) -> str:
+            # текст между "|||" не будет экранирован (cls.ESCAPE_WALL)
+            # "escaped text ||| not escaped text ||| more escaped text ||| more not escaped text ||| more escaped text"
+            chars_to_escape = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+
+            chunks = string.split(cls.ESCAPE_WALL)
+            if len(chunks) % 2 == 0:
+                raise NotEnoughEscapeWallsException()
+            for number in range(len(chunks)):
+                if number % 2 == 0:
+                    for char in chars_to_escape:
+                        chunks[number] = chunks[number].replace(char, '\\' + char)
+            return "".join(chunks)
+
+        @staticmethod
+        def changes_repr(new: int | float, old: int | float) -> str:
+            changing = new - old
+            if changing > 0:
+                sign = '+'
+            else:
+                sign = ''
+            return f"{sign}{changing}"
 
     settings = settings.Settings()
 
@@ -34,17 +87,98 @@ class Bot(telebot.TeleBot):
         text = "Вы подписаны на изменения цен."
         self.send_message(message.from_user.id, text)
 
-    @staticmethod
-    def cross_out(data: Any) -> str:
-        return "".join(['\u0336'.join(str(data)), '\u0336', ' '])
+    def construct_start_block(self, item: parser_price_models.Item) -> list[str]:
+        if item.category is not None:
+            block = [f"{item.category.get_field_verbose_name('name')}: {item.category.name}"]
+        else:
+            block = []
 
-    @staticmethod
-    def escape(string: str) -> str:
-        chars_to_escape = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+        link_string = self.Formatter.link(
+            item.vendor_code,
+            f'https://www.wildberries.ru/catalog/{item.vendor_code}/detail.aspx'
+        )
+        block.extend(
+            [
+                f"{item.get_field_verbose_name('vendor_code')}: {link_string}",
+                f"{item.get_field_verbose_name('name')}: {item.name}"
+            ]
+        )
 
-        for char in chars_to_escape:
-            string = string.replace(char, '\\' + char)
-        return string
+        return block
+
+    def construct_price_block(
+            self,
+            new_price: parser_price_models.Price,
+            old_price: parser_price_models.Price
+    ) -> list[str]:
+        block_name = new_price.get_field_verbose_name("price")
+
+        if new_price.price != old_price.price:
+            if new_price.price > old_price.price:
+                emoji = self.Emoji.UP
+            else:
+                emoji = self.Emoji.DOWN
+
+            block = [
+                f"{self.Emoji.CHANGES} {block_name} изменилась",
+                # todo: добавить хранение и парсинг валюты
+                f"{emoji} {block_name}: {new_price.price} <=== {self.Formatter.strikethrough(old_price.price)}"
+                f" {self.Formatter.changes_repr(new_price.price, old_price.price)} ₽"
+            ]
+        else:
+            block = [f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.price}"]
+
+        return block
+
+    def construct_personal_sale_block(
+            self,
+            new_price: parser_price_models.Price,
+            old_price: parser_price_models.Price
+    ) -> list[str]:
+        block_name = new_price.get_field_verbose_name("personal_sale")
+
+        if new_price.personal_sale != old_price.personal_sale:
+            if new_price.personal_sale > old_price.personal_sale:
+                emoji = self.Emoji.UP
+            else:
+                emoji = self.Emoji.DOWN
+
+            block = [
+                f"{self.Emoji.CHANGES} {block_name}",
+                f"{emoji} {block_name}: {new_price.personal_sale} <==="
+                f" {self.Formatter.strikethrough(old_price.personal_sale)}"
+                f" {self.Formatter.changes_repr(new_price.personal_sale, old_price.personal_sale)} %"
+            ]
+        else:
+            block = [f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.personal_sale}"]
+
+        return block
+
+    def construct_final_price_block(
+            self,
+            new_price: parser_price_models.Price,
+            old_price: parser_price_models.Price
+    ) -> list[str]:
+        block_name = new_price.get_field_verbose_name("final_price")
+
+        if new_price.final_price != old_price.final_price:
+            if new_price.final_price > old_price.final_price:
+                emoji = self.Emoji.UP
+            else:
+                emoji = self.Emoji.DOWN
+
+            block = [
+                f"{emoji} {block_name}: {new_price.final_price} <==="
+                f" {self.Formatter.strikethrough(old_price.final_price)}"
+                f" {self.Formatter.changes_repr(new_price.final_price, old_price.final_price)} ₽"
+            ]
+        else:
+            block = [f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.final_price}"]
+        return block
+
+    def construct_final_block(self) -> list[str]:
+        block = [fr"* {self.Formatter.italic('Указана максимальная скидка для клиента')}"]
+        return block
 
     def notify_prices_changed(
             self,
@@ -52,100 +186,22 @@ class Bot(telebot.TeleBot):
             changed_prices: list[tuple[parser_price_models.Price, parser_price_models.Price, float, int]]
     ) -> None:
         for new_price, old_price, price_changing, personal_sale_changing in changed_prices:
-            # [(escape_bool, string)]
-            text = []
 
-            if price_changing != 0:
-                text.append((True, f"🟪 Изменилась цена"))
-            if personal_sale_changing != 0:
-                text.append((True, f"🟦 Изменилась СПП"))
-            text.append((True, ""))
-
-            if new_price.item.category is not None:
-                text.append(
-                    (True, f"{new_price.item.category.get_field_verbose_name('name')}: {new_price.item.category.name}"),
-                )
-            text.extend(
-                [
-                    (
-                        False,
-                        f"{new_price.item.get_field_verbose_name('vendor_code')}: [{new_price.item.vendor_code}]"
-                        f"(https://www.wildberries.ru/catalog/{new_price.item.vendor_code}/detail.aspx)"
-                    ),
-                    (True, f"{new_price.item.get_field_verbose_name('name')}: {new_price.item.name}"),
-                    (True, "")
-                ]
-            )
-
-            price_emoji = '💰'
-            price_name = new_price.get_field_verbose_name('final_price')
-            new_price_string = new_price.final_price
-            old_price_string = self.cross_out(old_price.final_price)
-            if price_changing > 0:
-                text.extend(
-                    [
-                        (True, "🟥"),
-                        # todo: добавить хранение и парсинг валюты
-                        (
-                            True,
-                            f"{price_emoji} {price_name}: {new_price_string} <==="
-                            f" {old_price_string} +{price_changing} ₽"
-                        ),
-                    ]
-                )
-            elif price_changing < 0:
-                text.extend(
-                    [
-                        (True, "🟩"),
-                        (
-                            True,
-                            f"{price_emoji} {price_name}: {new_price_string} <=== {old_price_string} {price_changing} ₽"
-                        ),
-                    ]
-                )
-            else:
-                text.append((True, f"{price_emoji} {price_name}: {new_price_string} ₽"))
-            text.append((True, ""))
-
-            personal_sale_emoji = '🧮'
-            personal_sale_name = new_price.get_field_verbose_name('personal_sale')
-            new_personal_sale_string = new_price.personal_sale
-            old_personal_sale_string = self.cross_out(old_price.personal_sale)
-            if personal_sale_changing > 0:
-                text.extend(
-                    [
-                        (True, "🟩"),
-                        (
-                            True,
-                            f"{personal_sale_emoji} {personal_sale_name}: {new_personal_sale_string}"
-                            f" <=== {old_personal_sale_string} +{personal_sale_changing} %"
-                        ),
-                    ]
-                )
-            elif personal_sale_changing < 0:
-                text.extend(
-                    [
-                        (True, "🟥"),
-                        (
-                            True,
-                            f"{personal_sale_emoji} {personal_sale_name}: {new_personal_sale_string}"
-                            f" <=== {old_personal_sale_string} {personal_sale_changing} %"
-                        ),
-                    ]
-                )
-            else:
-                text.append((True, f"{personal_sale_emoji} {personal_sale_name}: {new_personal_sale_string} %"))
-
-            escaped_text = []
-            for string in text:
-                if string[0]:
-                    escaped_text.append(self.escape(string[1]))
-                else:
-                    escaped_text.append(string[1])
+            text: list[str] = [
+                *self.construct_start_block(new_price.item),
+                "",
+                *self.construct_price_block(new_price, old_price),
+                "",
+                *self.construct_personal_sale_block(new_price, old_price),
+                "",
+                *self.construct_final_price_block(new_price, old_price),
+                "",
+                *self.construct_final_block()
+            ]
 
             self.send_message(
                 new_price.item.user.telegram_chat_id,
-                "\n".join(escaped_text),
-                parse_mode = self.ParseModes.MARKDOWN,
+                "\n".join([self.Formatter.escape(string) for string in text]),
+                parse_mode = self.ParseMode.MARKDOWN,
                 disable_web_page_preview = True
             )
