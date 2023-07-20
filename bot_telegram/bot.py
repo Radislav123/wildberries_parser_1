@@ -99,6 +99,7 @@ class Bot(telebot.TeleBot):
         )
         block.extend(
             [
+                f"{item.get_field_verbose_name('name_site')}: {item.name_site}",
                 f"{item.get_field_verbose_name('vendor_code')}: {link_string}",
                 f"{item.get_field_verbose_name('name')}: {item.name}"
             ]
@@ -106,6 +107,7 @@ class Bot(telebot.TeleBot):
 
         return block
 
+    # todo: добавить хранение и парсинг валюты
     def construct_price_block(
             self,
             new_price: parser_price_models.Price,
@@ -114,17 +116,23 @@ class Bot(telebot.TeleBot):
         block_name = new_price.get_field_verbose_name("price")
 
         if new_price.price != old_price.price:
-            if new_price.price > old_price.price:
-                emoji = self.Emoji.UP
-            else:
-                emoji = self.Emoji.DOWN
+            if new_price.price is not None and old_price.price is not None:
+                if new_price.price > old_price.price:
+                    emoji = self.Emoji.UP
+                else:
+                    emoji = self.Emoji.DOWN
 
-            block = [
-                f"{self.Emoji.CHANGES} {block_name} изменилась",
-                # todo: добавить хранение и парсинг валюты
-                f"{emoji} {block_name}: {new_price.price} <=== {self.Formatter.strikethrough(old_price.price)}"
-                f" {self.Formatter.changes_repr(new_price.price, old_price.price)} ₽"
-            ]
+                block = [
+                    f"{self.Emoji.CHANGES} {block_name} изменилась",
+                    f"{emoji} {block_name}: {new_price.price} <=== {self.Formatter.strikethrough(old_price.price)}"
+                    f" {self.Formatter.changes_repr(new_price.price, old_price.price)} ₽"
+                ]
+            else:
+                block = [
+                    f"{self.Emoji.CHANGES} {block_name} изменилась",
+                    f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.price} <==="
+                    f" {self.Formatter.strikethrough(old_price.price)} ₽"
+                ]
         else:
             block = [f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.price}"]
 
@@ -138,17 +146,24 @@ class Bot(telebot.TeleBot):
         block_name = new_price.get_field_verbose_name("personal_sale")
 
         if new_price.personal_sale != old_price.personal_sale:
-            if new_price.personal_sale > old_price.personal_sale:
-                emoji = self.Emoji.UP
-            else:
-                emoji = self.Emoji.DOWN
+            if new_price.personal_sale is not None and old_price.personal_sale is not None:
+                if new_price.personal_sale > old_price.personal_sale:
+                    emoji = self.Emoji.UP
+                else:
+                    emoji = self.Emoji.DOWN
 
-            block = [
-                f"{self.Emoji.CHANGES} {block_name}",
-                f"{emoji} {block_name}: {new_price.personal_sale} <==="
-                f" {self.Formatter.strikethrough(old_price.personal_sale)}"
-                f" {self.Formatter.changes_repr(new_price.personal_sale, old_price.personal_sale)} %"
-            ]
+                block = [
+                    f"{self.Emoji.CHANGES} {block_name} изменилась",
+                    f"{emoji} {block_name}: {new_price.personal_sale} <==="
+                    f" {self.Formatter.strikethrough(old_price.personal_sale)}"
+                    f" {self.Formatter.changes_repr(new_price.personal_sale, old_price.personal_sale)} %"
+                ]
+            else:
+                block = [
+                    f"{self.Emoji.CHANGES} {block_name} изменилась",
+                    f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.personal_sale} <==="
+                    f" {self.Formatter.strikethrough(old_price.personal_sale)} %"
+                ]
         else:
             block = [f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.personal_sale}"]
 
@@ -162,16 +177,22 @@ class Bot(telebot.TeleBot):
         block_name = new_price.get_field_verbose_name("final_price")
 
         if new_price.final_price != old_price.final_price:
-            if new_price.final_price > old_price.final_price:
-                emoji = self.Emoji.UP
-            else:
-                emoji = self.Emoji.DOWN
+            if new_price.final_price is not None and old_price.final_price is not None:
+                if new_price.final_price > old_price.final_price:
+                    emoji = self.Emoji.UP
+                else:
+                    emoji = self.Emoji.DOWN
 
-            block = [
-                f"{emoji} {block_name}: {new_price.final_price} <==="
-                f" {self.Formatter.strikethrough(old_price.final_price)}"
-                f" {self.Formatter.changes_repr(new_price.final_price, old_price.final_price)} ₽"
-            ]
+                block = [
+                    f"{emoji} {block_name}: {new_price.final_price} <==="
+                    f" {self.Formatter.strikethrough(old_price.final_price)}"
+                    f" {self.Formatter.changes_repr(new_price.final_price, old_price.final_price)} ₽"
+                ]
+            else:
+                block = [
+                    f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.final_price} <==="
+                    f" {self.Formatter.strikethrough(old_price.final_price)} ₽"
+                ]
         else:
             block = [f"{self.Emoji.NO_CHANGES} {block_name}: {new_price.final_price}"]
         return block
@@ -180,12 +201,10 @@ class Bot(telebot.TeleBot):
         block = [fr"* {self.Formatter.italic('Указана максимальная скидка для клиента')}"]
         return block
 
-    def notify_prices_changed(
-            self,
-            # [(new_price, old_price, price_changing, personal_sale_changing)]
-            changed_prices: list[tuple[parser_price_models.Price, parser_price_models.Price, float, int]]
-    ) -> None:
-        for new_price, old_price, price_changing, personal_sale_changing in changed_prices:
+    # changed_prices = {new_price: old_price}
+    def notify_prices_changed(self, changed_prices: dict[parser_price_models.Price, parser_price_models.Price]) -> None:
+        for new_price in changed_prices:
+            old_price = changed_prices[new_price]
 
             text: list[str] = [
                 *self.construct_start_block(new_price.item),

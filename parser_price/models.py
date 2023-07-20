@@ -57,26 +57,26 @@ class Price(ParserPriceModel):
         return obj
 
     @classmethod
-    def get_changed_prices(cls, new_prices: list["Price"]) -> list[tuple[Self, Self, float, int]]:
-        # [(new_price, old_price, price_changing, personal_sale_changing)]
-        changed = []
+    def get_changed_prices(cls, new_prices: list["Price"]) -> dict[Self, Self]:
+        # {new_price: old_price}
+        changed = {}
 
         for new_price in new_prices:
-            if new_price.final_price is not None and new_price.personal_sale is not None:
-                old_prices = cls.objects.filter(
-                    item = new_price.item,
-                    final_price__isnull = False,
-                    personal_sale__isnull = False
-                ).order_by("-parsing__time")[:2][::-1]
+            old_price = cls.objects.filter(item = new_price.item).exclude(id = new_price.id) \
+                .order_by("parsing__time").last()
 
-                if len(old_prices) > 1:
-                    old_price = old_prices[-2]
-
-                    price_changing = new_price.final_price - old_price.final_price
+            if old_price is not None:
+                if new_price.price is not None and old_price.price is not None:
+                    price_changing = new_price.price - old_price.price
+                else:
+                    price_changing = None
+                if new_price.personal_sale is not None and old_price.personal_sale is not None:
                     personal_sale_changing = new_price.personal_sale - old_price.personal_sale
+                else:
+                    personal_sale_changing = None
 
-                    if price_changing != 0 or personal_sale_changing != 0:
-                        changed.append((new_price, old_price, price_changing, personal_sale_changing))
+                if price_changing != 0 or personal_sale_changing != 0:
+                    changed[new_price] = old_price
 
         return changed
 
