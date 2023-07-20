@@ -148,7 +148,7 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
         today = datetime.date.today()
         one_day_delta = datetime.timedelta(1)
         current_date = datetime.date.today()
-        previous_date = today - datetime.timedelta(settings.LONG_MOVEMENT_DELTA)
+        previous_date = today - datetime.timedelta(settings.LONG_MOVEMENT_DELTA - 1)
 
         while self.positions[current_date] is None and current_date != previous_date:
             current_date -= one_day_delta
