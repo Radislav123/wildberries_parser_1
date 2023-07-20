@@ -28,7 +28,15 @@ class ItemPage(WildberriesPage):
         super().__init__(parser)
         self.vendor_code = vendor_code
         self.path = f"catalog/{self.vendor_code}/detail.aspx"
-        self.vendor_code = ExtendedWebElement(self, '//span[@id = "productNmId"]')
         self.price_block = self.PriceBlock(self, '//del')
         self.sold_out = ExtendedWebElement(self, '//span[@class = "sold-out-product__text"]')
         self.review_amount = ExtendedWebElement(self, '//span[@class = "product-review__count-review"]')
+
+        self.vendor_code = ExtendedWebElement(self, '//span[@id = "productNmId"]')
+        self.item_header = ExtendedWebElement(self, '//div[@class = "product-page__header"]')
+        self.item_brand = ExtendedWebElement(self, f"{self.item_header.xpath}/span")
+        self.item_name = ExtendedWebElement(self, f"{self.item_header.xpath}/h1")
+
+    @property
+    def item_full_name(self) -> str:
+        return f"{self.item_brand.text} / {self.item_name.text}"

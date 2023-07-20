@@ -27,6 +27,11 @@ class Parser(parser_core.Parser):
         driver.session_id = self.settings.secrets.wildberries_log_in_driver.session_id
         return driver
 
+    @staticmethod
+    def update_item_name_site(item: models.Item, page: ItemPage) -> None:
+        item.name_site = page.item_full_name
+        item.save()
+
     def parse_price(self, item: models.Item) -> tuple[int, float, float, int | None]:
         page = ItemPage(self, item.vendor_code)
         page.open()
@@ -49,6 +54,7 @@ class Parser(parser_core.Parser):
             personal_sale = None
 
         reviews_amount = int("".join([x for x in page.review_amount.text.split()[:-1]]))
+        self.update_item_name_site(item, page)
 
         return reviews_amount, price, final_price, personal_sale
 
