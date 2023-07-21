@@ -111,7 +111,7 @@ class Parser(parser_core.Parser):
             price.save()
             prices.append(price)
 
-        changed_prices = models.Price.get_changed_prices(prices)
-        self.bot_telegram.notify_prices_changed(changed_prices)
+        notifications = models.Price.get_notifications(prices)
+        self.bot_telegram.notify(notifications)
 
         models.PreparedPrice.prepare(self.user, items)

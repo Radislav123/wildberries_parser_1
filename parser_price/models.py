@@ -64,37 +64,51 @@ class Price(ParserPriceModel):
         ).order_by("parsing__time").last()
         return obj
 
-    def check_for_notification(self) -> tuple[bool, bool]:
-        sold_out = False
-        no_personal_sale = False
+    def check_for_notification(self, queryset: models.query.QuerySet["Price"]) -> tuple[bool, bool]:
+        sold_out = True
+        no_personal_sale = True
+
+        previous_prices = queryset[len(queryset) - self.settings.NOTIFICATION_CHECK_DEPTH:]
+
+        for previous_price in previous_prices:
+            if previous_price.personal_sale is not None:
+                no_personal_sale = False
+            if previous_price.price is not None:
+                sold_out = False
 
         return sold_out, no_personal_sale
 
     @classmethod
-    def get_changed_prices(cls, new_prices: list["Price"]) -> list[Notification]:
-        changed: list[cls.Notification] = []
+    def get_notifications(cls, new_prices: list["Price"]) -> list[Notification]:
+        notifications: list[cls.Notification] = []
 
         for new_price in new_prices:
-            old_price = cls.objects.filter(item = new_price.item).exclude(id = new_price.id) \
-                .order_by("parsing__time").last()
+            queryset = cls.objects.filter(item = new_price.item).order_by("parsing__time")
+
+            old_price = queryset.exclude(id = new_price.id).last()
+            sold_oud, no_personal_sale = new_price.check_for_notification(queryset)
 
             if old_price is not None and \
                     not (new_price.price is None and new_price.final_price is None and new_price.personal_sale is None):
                 if new_price.price is not None and old_price.price is not None:
                     price_changing = new_price.price - old_price.price
                 else:
-                    price_changing = None
+                    if new_price.price is None and old_price.price is None:
+                        price_changing = 0
+                    else:
+                        price_changing = None
                 if new_price.personal_sale is not None and old_price.personal_sale is not None:
                     personal_sale_changing = new_price.personal_sale - old_price.personal_sale
                 else:
-                    personal_sale_changing = None
+                    if new_price.personal_sale is None and old_price.personal_sale is None:
+                        personal_sale_changing = 0
+                    else:
+                        personal_sale_changing = None
 
-                if price_changing != 0 or personal_sale_changing != 0:
-                    # todo: write logic for bools
-                    notification = cls.Notification(new_price, old_price, *new_price.check_for_notification())
-                    changed.append(notification)
+                if price_changing != 0 or personal_sale_changing != 0 or sold_oud or no_personal_sale:
+                    notifications.append(cls.Notification(new_price, old_price, sold_oud, no_personal_sale))
 
-        return changed
+        return notifications
 
 
 class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
