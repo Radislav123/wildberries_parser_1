@@ -104,7 +104,7 @@ class Price(ParserPriceModel):
             sold_oud, no_personal_sale = new_price.check_for_notification()
 
             if old_price is not None and \
-                    not (new_price.price is None and new_price.final_price is None and new_price.personal_sale is None):
+                    not (new_price.price is None or new_price.final_price is None or new_price.personal_sale is None):
                 if new_price.price is not None and old_price.price is not None:
                     price_changing = new_price.price - old_price.price
                 else:
