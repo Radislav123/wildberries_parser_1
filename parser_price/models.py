@@ -68,13 +68,25 @@ class Price(ParserPriceModel):
         sold_out = True
         no_personal_sale = True
 
-        previous_prices = queryset[len(queryset) - self.settings.NOTIFICATION_CHECK_DEPTH:]
+        previous_prices = queryset[len(queryset) - self.settings.NOTIFICATION_CHECK_DEPTH - 1:]
+
+        if len(previous_prices) >= self.settings.NOTIFICATION_CHECK_DEPTH:
+            one_before = previous_prices[0]
+            previous_prices = previous_prices[1:]
+        else:
+            one_before = None
 
         for previous_price in previous_prices:
             if previous_price.personal_sale is not None:
                 no_personal_sale = False
             if previous_price.price is not None:
                 sold_out = False
+
+        # не уведомлять повторно
+        if sold_out and one_before and one_before.price is None:
+            sold_out = False
+        if no_personal_sale and one_before and one_before.personal_sale is None:
+            no_personal_sale = False
 
         return sold_out, no_personal_sale
 
