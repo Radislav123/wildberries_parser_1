@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 from typing import Self
 
@@ -41,6 +42,13 @@ class Item(ParserPriceModel, core_models.Item):
 
 
 class Price(ParserPriceModel):
+    @dataclasses.dataclass
+    class Notification:
+        new: "Price"
+        old: "Price"
+        sold_out: bool
+        no_personal_sale: bool
+
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"))
     parsing = models.ForeignKey(core_models.Parsing, models.PROTECT)
     reviews_amount = models.PositiveIntegerField("Количество отзывов")
@@ -56,10 +64,15 @@ class Price(ParserPriceModel):
         ).order_by("parsing__time").last()
         return obj
 
+    def check_for_notification(self) -> tuple[bool, bool]:
+        sold_out = False
+        no_personal_sale = False
+
+        return sold_out, no_personal_sale
+
     @classmethod
-    def get_changed_prices(cls, new_prices: list["Price"]) -> dict[Self, Self]:
-        # {new_price: old_price}
-        changed = {}
+    def get_changed_prices(cls, new_prices: list["Price"]) -> list[Notification]:
+        changed: list[cls.Notification] = []
 
         for new_price in new_prices:
             old_price = cls.objects.filter(item = new_price.item).exclude(id = new_price.id) \
@@ -77,7 +90,9 @@ class Price(ParserPriceModel):
                     personal_sale_changing = None
 
                 if price_changing != 0 or personal_sale_changing != 0:
-                    changed[new_price] = old_price
+                    # todo: write logic for bools
+                    notification = cls.Notification(new_price, old_price, *new_price.check_for_notification())
+                    changed.append(notification)
 
         return changed
 

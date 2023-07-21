@@ -87,7 +87,9 @@ class Bot(telebot.TeleBot):
         text = "Вы подписаны на изменения цен."
         self.send_message(message.from_user.id, text)
 
-    def construct_start_block(self, item: parser_price_models.Item) -> list[str]:
+    def construct_start_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
+        item = notification.new.item
+
         if item.category is not None:
             block = [f"{item.category.get_field_verbose_name('name')}: {item.category.name}"]
         else:
@@ -108,11 +110,10 @@ class Bot(telebot.TeleBot):
         return block
 
     # todo: добавить хранение и парсинг валюты
-    def construct_price_block(
-            self,
-            new_price: parser_price_models.Price,
-            old_price: parser_price_models.Price
-    ) -> list[str]:
+    def construct_price_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
+        new_price = notification.new
+        old_price = notification.old
+
         block_name = new_price.get_field_verbose_name("price")
 
         if new_price.price != old_price.price:
@@ -138,11 +139,10 @@ class Bot(telebot.TeleBot):
 
         return block
 
-    def construct_personal_sale_block(
-            self,
-            new_price: parser_price_models.Price,
-            old_price: parser_price_models.Price
-    ) -> list[str]:
+    def construct_personal_sale_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
+        new_price = notification.new
+        old_price = notification.old
+
         block_name = new_price.get_field_verbose_name("personal_sale")
 
         if new_price.personal_sale != old_price.personal_sale:
@@ -169,11 +169,10 @@ class Bot(telebot.TeleBot):
 
         return block
 
-    def construct_final_price_block(
-            self,
-            new_price: parser_price_models.Price,
-            old_price: parser_price_models.Price
-    ) -> list[str]:
+    def construct_final_price_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
+        new_price = notification.new
+        old_price = notification.old
+
         block_name = new_price.get_field_verbose_name("final_price")
 
         if new_price.final_price != old_price.final_price:
@@ -201,25 +200,22 @@ class Bot(telebot.TeleBot):
         block = [fr"* {self.Formatter.italic('Указана максимальная скидка для клиента')}"]
         return block
 
-    # changed_prices = {new_price: old_price}
-    def notify_prices_changed(self, changed_prices: dict[parser_price_models.Price, parser_price_models.Price]) -> None:
-        for new_price in changed_prices:
-            old_price = changed_prices[new_price]
-
+    def notify_prices_changed(self, notifications: list[parser_price_models.Price.Notification]) -> None:
+        for notification in notifications:
             text: list[str] = [
-                *self.construct_start_block(new_price.item),
+                *self.construct_start_block(notification),
                 "",
-                *self.construct_price_block(new_price, old_price),
+                *self.construct_price_block(notification),
                 "",
-                *self.construct_personal_sale_block(new_price, old_price),
+                *self.construct_personal_sale_block(notification),
                 "",
-                *self.construct_final_price_block(new_price, old_price),
+                *self.construct_final_price_block(notification),
                 "",
                 *self.construct_final_block()
             ]
 
             self.send_message(
-                new_price.item.user.telegram_chat_id,
+                notification.new.item.user.telegram_chat_id,
                 "\n".join([self.Formatter.escape(string) for string in text]),
                 parse_mode = self.ParseMode.MARKDOWN,
                 disable_web_page_preview = True
