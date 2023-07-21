@@ -14,4 +14,4 @@ class Settings(settings.Settings):
         self.DYNAMIC_FIELDS_ORDER = ["final_price", "price", "personal_sale"]
 
         # количество цен просматриваемых для проверок оповещений
-        self.NOTIFICATION_CHECK_DEPTH = 3
+        self.NOTIFICATION_CHECK_DEPTH = 5
