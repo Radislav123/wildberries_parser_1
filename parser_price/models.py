@@ -2,6 +2,7 @@ import dataclasses
 import datetime
 from typing import Self
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 
 from core import models as core_models
@@ -151,34 +152,36 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
     }
 
     @classmethod
-    def prepare(cls, user: core_models.ParserUser, items: list[Item]) -> None:
-        old_object_ids = list(
-            cls.objects.filter(price__item__in = items, price__item__user = user).values_list("id", flat = True)
-        )
+    def prepare(cls, items: list[Item]) -> None:
+        old_object_ids = list(cls.objects.filter(price__item__in = items).values_list("id", flat = True))
 
-        new_objects = [
-            cls(
-                price = Price.objects.filter(item = item).order_by("parsing__time").last()
-            ) for item in Item.objects.filter(vendor_code__in = items, user = user)
-        ]
+        new_objects: dict[Item, Self] = {
+            item: cls(price = Price.objects.filter(item = item).order_by("parsing__time").last()) for item in items
+        }
 
         today = datetime.date.today()
         date_range = [today - datetime.timedelta(x) for x in range(cls.settings.MAX_HISTORY_DEPTH)]
 
-        for obj in new_objects:
+        for item in new_objects:
+            obj = new_objects[item]
+
             obj.prices = {}
             obj.final_prices = {}
             obj.personal_sales = {}
             for date in date_range:
-                last_price = Price.get_last_by_item_date(obj.price.item, date)
-                if last_price is not None:
-                    obj.prices[date] = last_price.price
-                    obj.final_prices[date] = last_price.final_price
-                    obj.personal_sales[date] = last_price.personal_sale
-                else:
-                    obj.prices[date] = None
-                    obj.final_prices[date] = None
-                    obj.personal_sales[date] = None
-            obj.save()
+                try:
+                    last_price = Price.get_last_by_item_date(obj.price.item, date)
+                    if last_price is not None:
+                        obj.prices[date] = last_price.price
+                        obj.final_prices[date] = last_price.final_price
+                        obj.personal_sales[date] = last_price.personal_sale
+                    else:
+                        obj.prices[date] = None
+                        obj.final_prices[date] = None
+                        obj.personal_sales[date] = None
+                    obj.save()
+                except ObjectDoesNotExist:
+                    if item.vendor_code in old_object_ids:
+                        old_object_ids.remove(item.vendor_code)
 
         cls.objects.filter(id__in = old_object_ids).delete()

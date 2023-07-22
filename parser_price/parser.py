@@ -97,21 +97,27 @@ class Parser(parser_core.Parser):
 
     def run(self, vendor_codes: list[int]) -> None:
         items = models.Item.objects.filter(vendor_code__in = vendor_codes, user = self.user)
+        not_parsed_items = []
         prices = []
         for item in items:
-            reviews_amount, price, final_price, personal_sale = self.parse_price(item)
-            price = models.Price(
-                item = item,
-                parsing = self.parsing,
-                reviews_amount = reviews_amount,
-                price = price,
-                final_price = final_price,
-                personal_sale = personal_sale
-            )
-            price.save()
-            prices.append(price)
+            try:
+                reviews_amount, price, final_price, personal_sale = self.parse_price(item)
+                price = models.Price(
+                    item = item,
+                    parsing = self.parsing,
+                    reviews_amount = reviews_amount,
+                    price = price,
+                    final_price = final_price,
+                    personal_sale = personal_sale
+                )
+                price.save()
+                prices.append(price)
+            except TimeoutException:
+                not_parsed_items.append(item)
 
         notifications = models.Price.get_notifications(prices)
         self.bot_telegram.notify(notifications)
 
-        models.PreparedPrice.prepare(self.user, items)
+        models.PreparedPrice.prepare(items)
+        if len(not_parsed_items) > 0:
+            self.logger.info(f"Not parsed items: {not_parsed_items}")

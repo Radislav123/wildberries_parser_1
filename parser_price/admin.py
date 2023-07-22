@@ -139,6 +139,8 @@ class ItemAdmin(ParserPriceAdmin):
 class PriceAdmin(ParserPriceAdmin):
     model = parser_price_models.Price
 
+    list_filter = ("item",)
+
 
 class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
     model = parser_price_models.PreparedPrice
