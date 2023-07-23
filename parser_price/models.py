@@ -70,7 +70,10 @@ class Price(ParserPriceModel):
         no_personal_sale = True
 
         previous_prices = self.__class__.objects.filter(item = self.item).order_by("parsing__time")
-        previous_prices = previous_prices[len(previous_prices) - self.settings.NOTIFICATION_CHECK_DEPTH - 1:]
+        check_depth = len(previous_prices) - self.settings.NOTIFICATION_CHECK_DEPTH - 1
+        if check_depth < 0:
+            check_depth = 0
+        previous_prices = previous_prices[check_depth:]
 
         if len(previous_prices) >= self.settings.NOTIFICATION_CHECK_DEPTH:
             one_before = previous_prices[0]
