@@ -17,7 +17,8 @@ class Command(parser_price_command.ParserPriceCommand):
         options = ChromeOptions()
 
         options.add_argument("--no-sandbox")
-        driver_manager = ChromeDriverManager(path = "").install()
+        # todo: реализовать выбор версии
+        driver_manager = ChromeDriverManager(path = "", version = "114.0.5735.16").install()
         service = Service(executable_path = driver_manager)
 
         driver = Chrome(options = options, service = service)

@@ -4,6 +4,7 @@ from parsing_helper.pages import BasePage
 from selenium.webdriver import Chrome
 from selenium.webdriver.remote.webdriver import BaseWebDriver
 
+import logging
 
 if TYPE_CHECKING:
     from core.parser import Parser
@@ -31,7 +32,7 @@ class WildberriesPage(BasePage):
             # todo: use parsing_helper.base_page.BasePage.settings
             self.settings = None
             # todo: use parsing_helper.base_page.BasePage.logger
-            self.logger = None
+            self.logger: logging.Logger = None
             # parser == driver
             super().__init__(parser)
 

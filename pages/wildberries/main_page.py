@@ -1,5 +1,6 @@
 import json
 import time
+from typing import TYPE_CHECKING
 
 import requests
 from parsing_helper.web_elements import ExtendedWebElement, ExtendedWebElementCollection
@@ -9,6 +10,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.expected_conditions import presence_of_all_elements_located
 
 from .wildberries_base_page import WildberriesPage
+
+
+if TYPE_CHECKING:
+    from parser_position.parser import City
 
 
 class NotFoundGeoError(Exception):
@@ -33,7 +38,7 @@ class MainPage(WildberriesPage):
 
         self.map = self.Map(self, '//div[contains(@class, "geocity-pop")]')
 
-    def get_ll(self, address: str) -> tuple[str | None, str | None]:
+    def get_ll(self, address: str, city_dict: "City") -> tuple[str | None, str | None]:
         # noinspection HttpUrlsUsage
         url = "http://api.positionstack.com/v1/forward"
         with open(self.settings.GEOPARSER_CREDENTIALS_PATH, 'r') as file:
@@ -45,6 +50,7 @@ class MainPage(WildberriesPage):
             "limit": 1
         }
         response = requests.get(url, params)
+
         try:
             data = response.json()["data"]
             if len(data) > 0:
@@ -57,6 +63,12 @@ class MainPage(WildberriesPage):
         except (JSONDecodeError, TypeError):
             latitude = None
             longitude = None
+        except KeyError as error:
+            if "data" in error.args:
+                latitude = city_dict["latitude"]
+                longitude = city_dict["longitude"]
+            else:
+                raise error
         return latitude, longitude
 
     @staticmethod
@@ -75,11 +87,11 @@ class MainPage(WildberriesPage):
         regions = data[3].split("=")[-1]
         return dest, regions
 
-    def set_city(self, city: str) -> tuple[str, str]:
+    def set_city(self, city_dict: "City") -> tuple[str, str]:
         # по рекламе определяется, когда страница загружена
         self.main_banner_container.init()
         self.geo_link.click()
-        self.map.address_input.send_keys(city)
+        self.map.address_input.send_keys(city_dict["name"])
         self.map.address_input.send_keys(Keys.ENTER)
 
         # если есть выпадающий список с уточнением места
@@ -94,7 +106,7 @@ class MainPage(WildberriesPage):
 
         addresses_accepted = ExtendedWebElementCollection(
             self,
-            f'//div[contains(@class, "address-item")]/div/span/span[contains(text(), "{city}")]'
+            f'//div[contains(@class, "address-item")]/div/span/span[contains(text(), "{city_dict["name"]}")]'
         )
         # при выборе пункта выдаче в некоторых городах (Краснодар) элементы списка пункта выдачи
         # вызывают ошибку StaleElementReferenceException без ожидания
@@ -103,7 +115,7 @@ class MainPage(WildberriesPage):
             presence_of_all_elements_located((By.XPATH, addresses_accepted.xpath))
         )
         for address in addresses_accepted:
-            latitude, longitude = self.get_ll(address.text)
+            latitude, longitude = self.get_ll(address.text, city_dict)
             if latitude is not None and longitude is not None:
                 address_accepted = address
                 dest, regions = self.get_geo(latitude, longitude, address)

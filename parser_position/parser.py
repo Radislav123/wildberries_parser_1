@@ -125,7 +125,7 @@ class Parser(parser_core.Parser):
     def run(self, city_dict: City) -> None:
         main_page = MainPage(self)
         main_page.open()
-        dest, regions = main_page.set_city(city_dict["name"])
+        dest, regions = main_page.set_city(city_dict)
         city_dict["dest"] = dest
         city_dict["regions"] = regions
         for keyword in self.get_position_parser_keywords(self.user):
