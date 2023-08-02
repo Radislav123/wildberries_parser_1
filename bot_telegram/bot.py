@@ -25,12 +25,13 @@ class Bot(telebot.TeleBot):
     class ParseMode:
         MARKDOWN = "MarkdownV2"
 
-    class Emoji:
+    class Token:
         UP = '⬆'
         DOWN = '⬇'
         NO_CHANGES = '⏺'
-        CHANGES = '🟦'
+        CHANGES = '🟪'
         NO_PERSONAL_SALE = '🟥'
+        OWNERSHIP = "❗❗❗"
 
     class Formatter:
         ESCAPE_WALL = "|||"
@@ -96,21 +97,37 @@ class Bot(telebot.TeleBot):
         text = "Вы подписаны на изменения цен."
         self.send_message(message.from_user.id, text)
 
+    @staticmethod
+    def check_ownership(price: parser_price_models.Price) -> bool:
+        own_labels = ["мои", "мое", "моё", "мой"]
+        name = price.item.name.lower()
+        ownership = False
+        for label in own_labels:
+            if label in name:
+                ownership = True
+                break
+        return ownership
+
     def construct_start_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
-        if notification.new.item.category is not None:
-            block = [f"{notification.new.item.category.get_field_verbose_name('name')}:"
-                     f" {notification.new.item.category.name}"]
+        if self.check_ownership(notification.new):
+            block = [self.Token.OWNERSHIP]
         else:
             block = []
 
+        if notification.new.item.category is not None:
+            block.append(
+                f"{notification.new.item.category.get_field_verbose_name('name')}:"
+                f" {notification.new.item.category.name}"
+            )
+
         link_string = self.Formatter.link(
-            notification.new.item.vendor_code,
+            notification.new.item.name_site,
             f'https://www.wildberries.ru/catalog/{notification.new.item.vendor_code}/detail.aspx'
         )
         block.extend(
             [
-                f"{notification.new.item.get_field_verbose_name('name_site')}: {notification.new.item.name_site}",
-                f"{notification.new.item.get_field_verbose_name('vendor_code')}: {link_string}",
+                f"{notification.new.item.get_field_verbose_name('name_site')}: {link_string}",
+                f"{notification.new.item.get_field_verbose_name('vendor_code')}: {notification.new.item.vendor_code}",
                 f"{notification.new.item.get_field_verbose_name('name')}: {notification.new.item.name}"
             ]
         )
@@ -128,24 +145,24 @@ class Bot(telebot.TeleBot):
         if notification.new.price != notification.old.price:
             if notification.new.price is not None and notification.old.price is not None:
                 if notification.new.price > notification.old.price:
-                    emoji = self.Emoji.UP
+                    emoji = self.Token.UP
                 else:
-                    emoji = self.Emoji.DOWN
+                    emoji = self.Token.DOWN
 
                 block = [
-                    f"{self.Emoji.CHANGES} {block_name} изменилась",
+                    f"{self.Token.CHANGES} {block_name} изменилась",
                     f"{emoji} {block_name}: {notification.new.price} <==="
                     f" {self.Formatter.strikethrough(notification.old.price)}"
                     f" {self.Formatter.changes_repr(notification.new.price, notification.old.price)} ₽"
                 ]
             else:
                 block = [
-                    f"{self.Emoji.CHANGES} {block_name} изменилась",
-                    f"{self.Emoji.NO_CHANGES} {block_name}: {notification.new.price} <==="
+                    f"{self.Token.CHANGES} {block_name} изменилась",
+                    f"{self.Token.NO_CHANGES} {block_name}: {notification.new.price} <==="
                     f" {self.Formatter.strikethrough(notification.old.price)} ₽"
                 ]
         else:
-            block = [f"{self.Emoji.NO_CHANGES} {block_name}: {notification.new.price}"]
+            block = [f"{self.Token.NO_CHANGES} {block_name}: {notification.new.price}"]
 
         return block
 
@@ -155,24 +172,24 @@ class Bot(telebot.TeleBot):
         if notification.new.personal_sale != notification.old.personal_sale:
             if notification.new.personal_sale is not None and notification.old.personal_sale is not None:
                 if notification.new.personal_sale > notification.old.personal_sale:
-                    emoji = self.Emoji.UP
+                    emoji = self.Token.UP
                 else:
-                    emoji = self.Emoji.DOWN
+                    emoji = self.Token.DOWN
 
                 block = [
-                    f"{self.Emoji.CHANGES} {block_name} изменилась",
+                    f"{self.Token.CHANGES} {block_name} изменилась",
                     f"{emoji} {block_name}: {notification.new.personal_sale} <==="
                     f" {self.Formatter.strikethrough(notification.old.personal_sale)}"
                     f" {self.Formatter.changes_repr(notification.new.personal_sale, notification.old.personal_sale)} %"
                 ]
             else:
                 block = [
-                    f"{self.Emoji.CHANGES} {block_name} изменилась",
-                    f"{self.Emoji.NO_CHANGES} {block_name}: {notification.new.personal_sale} <==="
+                    f"{self.Token.CHANGES} {block_name} изменилась",
+                    f"{self.Token.NO_CHANGES} {block_name}: {notification.new.personal_sale} <==="
                     f" {self.Formatter.strikethrough(notification.old.personal_sale)} %"
                 ]
         else:
-            block = [f"{self.Emoji.NO_CHANGES} {block_name}: {notification.new.personal_sale}"]
+            block = [f"{self.Token.NO_CHANGES} {block_name}: {notification.new.personal_sale}"]
 
         return block
 
@@ -182,9 +199,9 @@ class Bot(telebot.TeleBot):
         if notification.new.final_price != notification.old.final_price:
             if notification.new.final_price is not None and notification.old.final_price is not None:
                 if notification.new.final_price > notification.old.final_price:
-                    emoji = self.Emoji.UP
+                    emoji = self.Token.UP
                 else:
-                    emoji = self.Emoji.DOWN
+                    emoji = self.Token.DOWN
 
                 block = [
                     f"{emoji} {block_name}: {notification.new.final_price} <==="
@@ -193,11 +210,11 @@ class Bot(telebot.TeleBot):
                 ]
             else:
                 block = [
-                    f"{self.Emoji.NO_CHANGES} {block_name}: {notification.new.final_price} <==="
+                    f"{self.Token.NO_CHANGES} {block_name}: {notification.new.final_price} <==="
                     f" {self.Formatter.strikethrough(notification.old.final_price)} ₽"
                 ]
         else:
-            block = [f"{self.Emoji.NO_CHANGES} {block_name}: {notification.new.final_price}"]
+            block = [f"{self.Token.NO_CHANGES} {block_name}: {notification.new.final_price}"]
         return block
 
     @staticmethod
@@ -205,7 +222,7 @@ class Bot(telebot.TeleBot):
         return ["Товар распродан"]
 
     def construct_no_personal_sale_block(self) -> list[str]:
-        return [f"{self.Emoji.NO_PERSONAL_SALE} Скидка постоянного покупателя отсутствует"]
+        return [f"{self.Token.NO_PERSONAL_SALE} Скидка постоянного покупателя отсутствует"]
 
     def notify(self, notifications: list[parser_price_models.Price.Notification]) -> None:
         for notification in notifications:
