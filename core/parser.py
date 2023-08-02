@@ -8,6 +8,10 @@ import logger
 from . import models, settings
 
 
+class UnsuccessfulParsing(Exception):
+    pass
+
+
 class Parser:
     settings = settings.Settings()
     logger: logging.Logger

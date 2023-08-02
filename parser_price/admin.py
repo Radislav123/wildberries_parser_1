@@ -135,6 +135,8 @@ class CategoryAdmin(ParserPriceAdmin):
 class ItemAdmin(ParserPriceAdmin):
     model = parser_price_models.Item
 
+    list_filter = ("vendor_code",)
+
 
 class PriceAdmin(ParserPriceAdmin):
     model = parser_price_models.Price

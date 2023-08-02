@@ -18,10 +18,10 @@ class ItemPage(WildberriesPage):
 
         def open(self) -> None:
             self.init_if_necessary()
-            js_script = f"xPathResult = document.evaluate('{self.xpath}', document);" \
-                        "element = xPathResult.iterateNext();" \
-                        "const mouseoverEvent = new Event('mouseover');" \
-                        "element.dispatchEvent(mouseoverEvent);"
+            js_script = f"""xPathResult = document.evaluate('{self.xpath}', document);
+                        element = xPathResult.iterateNext();
+                        const mouseoverEvent = new Event('mouseover');
+                        element.dispatchEvent(mouseoverEvent);"""
             self.driver.execute_script(js_script)
 
     def __init__(self, parser, vendor_code: int) -> None:
@@ -36,6 +36,10 @@ class ItemPage(WildberriesPage):
         self.item_header = ExtendedWebElement(self, '//div[@class = "product-page__header"]')
         self.item_brand = ExtendedWebElement(self, f"{self.item_header.xpath}/span")
         self.item_name = ExtendedWebElement(self, f"{self.item_header.xpath}/h1")
+        self.category = ExtendedWebElement(
+            self,
+            '//span[contains(@data-link, "subjectName")]'
+        )
 
     @property
     def item_full_name(self) -> str:

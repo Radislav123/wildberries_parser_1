@@ -2,6 +2,7 @@ import abc
 import datetime
 import functools
 import json
+import traceback
 from typing import Any, Self
 
 from django.contrib.auth import models as auth_models
@@ -32,6 +33,33 @@ class DateKeyJsonFieldDecoder(json.JSONDecoder):
         return new_object
 
 
+class NotParsedItemsJsonFieldEncoder(DjangoJSONEncoder):
+    def dump_value(self, value) -> dict:
+        if isinstance(value, BaseException):
+            tb = []
+            for i in traceback.format_exception(value):
+                tb.extend(i.split('\n'))
+
+            # noinspection PyUnresolvedReferences
+            obj = {
+                "class": str(type(value)),
+                "message": value.msg,
+                "args": value.args,
+                "cause": value.__cause__,
+                "traceback": tb
+            }
+        elif isinstance(value, dict):
+            obj = value
+        else:
+            obj = {super().default(value): ""}
+        return obj
+
+    def encode(self, o: Any) -> str:
+        new_object = {str(key): self.dump_value(o[key]) for key in o}
+        string = json.dumps(new_object, indent = 2)
+        return string
+
+
 class CoreModel(models.Model):
     class Meta:
         abstract = True
@@ -58,6 +86,15 @@ class Parsing(CoreModel):
     date = models.DateField("Дата парсинга", auto_now_add = True)
     time = models.DateTimeField("Время парсинга", auto_now_add = True)
     user = models.ForeignKey(ParserUser, models.PROTECT)
+    # None - парсинг не закончен
+    # True - без ошибок
+    # False - с ошибками
+    success = models.BooleanField(null = True)
+    # {item: error}
+    not_parsed_items = models.JSONField(
+        encoder = NotParsedItemsJsonFieldEncoder,
+        null = True
+    )
 
     def __str__(self) -> str:
         return f"{super().__str__()} at {self.time}"

@@ -32,7 +32,7 @@ class Parser(parser_core.Parser):
         item.name_site = page.item_full_name
         item.save()
 
-    def parse_price(self, item: models.Item) -> tuple[int, float, float, int | None]:
+    def parse_price(self, item: models.Item) -> models.Price:
         page = ItemPage(self, item.vendor_code)
         page.open()
         page.transfer_cookies(self.log_in_driver)
@@ -56,7 +56,19 @@ class Parser(parser_core.Parser):
         reviews_amount = int("".join([x for x in page.review_amount.text.split()[:-1]]))
         self.update_item_name_site(item, page)
 
-        return reviews_amount, price, final_price, personal_sale
+        price = models.Price(
+            item = item,
+            parsing = self.parsing,
+            reviews_amount = reviews_amount,
+            price = price,
+            final_price = final_price,
+            personal_sale = personal_sale
+        )
+
+        item.category = models.Category.objects.get_or_create(name = page.category.text)[0]
+        item.save()
+
+        return price
 
     @classmethod
     def get_price_parser_item_dicts(cls) -> list[dict[str, Any]]:
@@ -68,8 +80,7 @@ class Parser(parser_core.Parser):
             item_dicts.append(
                 {
                     "vendor_code": sheet.cell(row, 1).value,
-                    "name": sheet.cell(row, 2).value,
-                    "category_name": sheet.cell(row, 3).value
+                    "name": sheet.cell(row, 2).value
                 }
             )
             row += 1
@@ -81,43 +92,43 @@ class Parser(parser_core.Parser):
         items = []
 
         for item_dict in item_dicts:
-            if item_dict["category_name"] is not None:
-                category = models.Category.objects.get_or_create(name = item_dict["category_name"])[0]
-            else:
-                category = None
-
             items.append(
                 models.Item.objects.update_or_create(
                     vendor_code = item_dict["vendor_code"],
                     user = user,
-                    defaults = {"name": item_dict["name"], "category": category}
+                    defaults = {"name": item_dict["name"]}
                 )[0]
             )
         return items
 
     def run(self, vendor_codes: list[int]) -> None:
+        # todo: убрать эту строку
+        # нужно для обновления товаров в БД перед парсингом
+        self.get_price_parser_items(self.user)
+
         items = models.Item.objects.filter(vendor_code__in = vendor_codes, user = self.user)
-        not_parsed_items = []
+        self.parsing.not_parsed_items = {}
         prices = []
         for item in items:
             try:
-                reviews_amount, price, final_price, personal_sale = self.parse_price(item)
-                price = models.Price(
-                    item = item,
-                    parsing = self.parsing,
-                    reviews_amount = reviews_amount,
-                    price = price,
-                    final_price = final_price,
-                    personal_sale = personal_sale
-                )
+                price = self.parse_price(item)
                 price.save()
                 prices.append(price)
-            except TimeoutException:
-                not_parsed_items.append(item)
+            except TimeoutException as error:
+                self.parsing.not_parsed_items[item] = error
 
         notifications = models.Price.get_notifications(prices)
         self.bot_telegram.notify(notifications)
 
         models.PreparedPrice.prepare(items)
-        if len(not_parsed_items) > 0:
-            self.logger.info(f"Not parsed items: {not_parsed_items}")
+        if len(self.parsing.not_parsed_items) > 0:
+            self.logger.info(f"Not parsed items: {self.parsing.not_parsed_items}")
+            self.parsing.success = False
+            self.parsing.save()
+
+            exception = parser_core.UnsuccessfulParsing(*list(self.parsing.not_parsed_items.values()))
+            raise exception from exception.args[-1]
+        else:
+            self.parsing.not_parsed_items = None
+            self.parsing.success = True
+            self.parsing.save()
