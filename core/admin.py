@@ -35,10 +35,17 @@ class CoreFilter(admin.SimpleListFilter, abc.ABC):
 class CoreAdmin(admin.ModelAdmin):
     model = core_models.CoreModel
     settings = settings
+    hidden_fields = ()
+    _fieldsets = ()
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
-        self.list_display = self._list_display
+
+        self.list_display = tuple(field for field in self._list_display if field not in self.hidden_fields)
+        if self.fieldsets is not None:
+            self.fieldsets += self._fieldsets
+        else:
+            self.fieldsets = self._fieldsets
 
     @property
     def _list_display(self) -> tuple:
@@ -82,13 +89,10 @@ class ParsingAdmin(CoreAdmin):
     model = core_models.Parsing
 
 
-class ParserUserAdmin(UserAdmin, CoreAdmin):
+class ParserUserAdmin(CoreAdmin, UserAdmin):
     model = core_models.ParserUser
-
-    def __init__(self, model, admin_site):
-        super().__init__(model, admin_site)
-        hidden_fields = ["password"]
-        self.list_display = tuple(field for field in self.list_display if field not in hidden_fields)
+    hidden_fields = ("password", )
+    _fieldsets = (("Telegram", {"fields": ("telegram_user_id", "telegram_chat_id")}), )
 
 
 model_admins_to_register = [ParsingAdmin, ParserUserAdmin]

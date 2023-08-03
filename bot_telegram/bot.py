@@ -286,14 +286,14 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 telegram_user_id = message.from_user.id,
                 telegram_chat_id = message.chat.id
             )
-            text = "Вы зарегистрированы."
+            text = "Вы уже были зарегистрированы. Повторная регистрация невозможна"
         except core_models.ParserUser.DoesNotExist:
             user = core_models.ParserUser(
                 telegram_user_id = message.from_user.id,
                 telegram_chat_id = message.chat.id
             )
             user.save()
-            text = "Вы уже были зарегистрированы. Повторная регистрация невозможна"
+            text = "Вы зарегистрированы."
 
         self.send_message(user.telegram_chat_id, text)
 
