@@ -11,7 +11,7 @@ class Command(parser_price_command.ParserPriceCommand):
 
     @staticmethod
     def construct_price() -> models.Price:
-        item = models.Item.objects.filter(user = core_models.ParserUser.get_admin())
+        item = models.Item.objects.filter(user = core_models.ParserUser.get_admin()).first()
         parsing = core_models.Parsing.objects.first()
         price = models.Price(
             item = item,
