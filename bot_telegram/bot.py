@@ -270,9 +270,20 @@ class Bot(telebot.TeleBot):
             else:
                 raise WrongNotificationTypeException()
 
+            text = "\n".join([self.Formatter.escape(string) for string in text])
             self.send_message(
                 notification.new.item.user.telegram_chat_id,
-                "\n".join([self.Formatter.escape(string) for string in text]),
+                text,
                 parse_mode = self.ParseMode.MARKDOWN,
                 disable_web_page_preview = True
             )
+
+            # chat_id заказчика
+            if notification.new.item.user.telegram_chat_id == 898581629:
+                self.send_message(
+                    # todo: заменить на id, полученный из temp_chat_id.txt
+                    294443789,
+                    text,
+                    parse_mode = self.ParseMode.MARKDOWN,
+                    disable_web_page_preview = True
+                )
