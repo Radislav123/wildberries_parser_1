@@ -213,6 +213,8 @@ class NotifierMixin(BotService):
 
     def notify(self, notifications: list[parser_price_models.Price.Notification]) -> None:
         for notification in notifications:
+            # todo: remove log
+            self.logger.debug(notification.new)
             if not notification.sold_out and not notification.no_personal_sale:
                 text = [
                     *self.construct_start_block(notification),
