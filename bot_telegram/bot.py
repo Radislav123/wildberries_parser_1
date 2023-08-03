@@ -281,8 +281,7 @@ class Bot(telebot.TeleBot):
             # chat_id заказчика
             if notification.new.item.user.telegram_chat_id == 898581629:
                 self.send_message(
-                    # todo: заменить на id, полученный из temp_chat_id.txt
-                    294443789,
+                    5250931949,
                     text,
                     parse_mode = self.ParseMode.MARKDOWN,
                     disable_web_page_preview = True
