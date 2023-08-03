@@ -9,3 +9,7 @@ class Settings(settings.Settings):
 
     def __init__(self):
         super().__init__()
+
+        # список с id чатов/каналов на которые пользователь должен быть подписан, чтобы использовать бота
+        self.NEEDED_SUBSCRIPTIONS = [-1001922384556, -1001638911900]
+        self.CHANNEL_SUBSCRIPTION_STATUSES = ["creator", "administrator", "member"]

@@ -213,8 +213,6 @@ class NotifierMixin(BotService):
 
     def notify(self, notifications: list[parser_price_models.Price.Notification]) -> None:
         for notification in notifications:
-            # todo: remove log
-            self.logger.debug(notification.new)
             if not notification.sold_out and not notification.no_personal_sale:
                 text = [
                     *self.construct_start_block(notification),
@@ -257,8 +255,8 @@ class NotifierMixin(BotService):
             )
 
             # дублируется сообщение для другого пользователя по просьбе заказчика
-            # chat_id заказчика
-            if notification.new.item.user.telegram_chat_id == 898581629:
+            # user_id заказчика
+            if notification.new.item.user.telegram_user_id == 245207096:
                 self.send_message(
                     5250931949,
                     text,
@@ -278,9 +276,13 @@ class Bot(NotifierMixin, telebot.TeleBot):
         super().__init__(token)
         self.register_handlers()
 
-    def register_handlers(self):
+    def register_handlers(self) -> None:
         self.message_handler(commands = ["start"])(self.start)
         self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
+
+    @staticmethod
+    def get_parser_user(message: types.Message) -> core_models.ParserUser:
+        return core_models.ParserUser.objects.get(telegram_user_id = message.from_user.id)
 
     def start(self, message: types.Message) -> None:
         try:
@@ -305,3 +307,19 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
         text = "Идентификатор чата сохранен."
         self.send_message(message.chat.id, text)
+
+    def check_user_subscriptions(self, user: core_models.ParserUser) -> list[int]:
+        not_subscribed = []
+        self.logger.debug("-----------------------------------")
+        for chat_id in self.settings.NEEDED_SUBSCRIPTIONS:
+            subscribed = False
+            try:
+                telegram_user = self.get_chat_member(chat_id, user.telegram_user_id)
+                if telegram_user.status in self.settings.CHANNEL_SUBSCRIPTION_STATUSES:
+                    subscribed = True
+            except telebot.apihelper.ApiTelegramException:
+                pass
+
+            if not subscribed:
+                not_subscribed.append(chat_id)
+        return not_subscribed
