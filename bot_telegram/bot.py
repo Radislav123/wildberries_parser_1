@@ -21,6 +21,7 @@ class WrongNotificationTypeException(BotTelegramException):
     pass
 
 
+# todo: перейти с поллинга на вебхук
 class Bot(telebot.TeleBot):
     class ParseMode:
         MARKDOWN = "MarkdownV2"
@@ -84,8 +85,11 @@ class Bot(telebot.TeleBot):
 
         super().__init__(token)
         self.logger = logger.Logger(self.settings.APP_NAME)
+        self.register_handlers()
 
+    def register_handlers(self):
         self.message_handler(commands = ["start"])(self.start)
+        self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
 
     def start(self, message: types.Message) -> None:
         # todo: добавить логику создания аккаунта
@@ -95,7 +99,14 @@ class Bot(telebot.TeleBot):
         admin.save()
 
         text = "Вы подписаны на изменения цен."
-        self.send_message(message.from_user.id, text)
+        self.send_message(message.chat.id, text)
+
+    def save_chat_id(self, message: types.Message) -> None:
+        with open("temp_chat_id.txt", 'w') as file:
+            file.write(f"{message.chat.id}\n")
+
+        text = "Идентификатор чата сохранен."
+        self.send_message(message.chat.id, text)
 
     @staticmethod
     def check_ownership(price: parser_price_models.Price) -> bool:
