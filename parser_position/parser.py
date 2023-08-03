@@ -122,6 +122,8 @@ class Parser(parser_core.Parser):
         )[0] for x in item_dicts]
         return keywords
 
+    # todo: переделать распараллеливание по образу парсера цен?
+    # todo: добавить сохранение ошибок и продолжение парсинга при ошибке по образу парсера цен
     def run(self, city_dict: City) -> None:
         main_page = MainPage(self)
         main_page.open()
