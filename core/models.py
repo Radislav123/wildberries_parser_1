@@ -74,7 +74,7 @@ class CoreModel(models.Model):
 
 
 class ParserUser(CoreModel, auth_models.AbstractUser):
-    telegram_id = models.PositiveIntegerField(null = True)
+    telegram_user_id = models.PositiveIntegerField(null = True)
     telegram_chat_id = models.PositiveIntegerField(null = True)
 
     @classmethod

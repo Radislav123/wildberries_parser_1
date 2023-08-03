@@ -21,8 +21,7 @@ class WrongNotificationTypeException(BotTelegramException):
     pass
 
 
-# todo: перейти с поллинга на вебхук
-class Bot(telebot.TeleBot):
+class BotService:
     class ParseMode:
         MARKDOWN = "MarkdownV2"
 
@@ -79,35 +78,12 @@ class Bot(telebot.TeleBot):
 
     settings = settings.Settings()
 
-    def __init__(self, token: str = None):
-        if token is None:
-            token = self.settings.secrets.bot_telegram.token
-
-        super().__init__(token)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.logger = logger.Logger(self.settings.APP_NAME)
-        self.register_handlers()
 
-    def register_handlers(self):
-        self.message_handler(commands = ["start"])(self.start)
-        self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
 
-    def start(self, message: types.Message) -> None:
-        # todo: добавить логику создания аккаунта
-        admin = core_models.ParserUser.get_admin()
-        admin.telegram_id = message.from_user.id
-        admin.telegram_chat_id = message.chat.id
-        admin.save()
-
-        text = "Вы подписаны на изменения цен."
-        self.send_message(message.chat.id, text)
-
-    def save_chat_id(self, message: types.Message) -> None:
-        with open("temp_chat_id.txt", 'w') as file:
-            file.write(f"{message.chat.id}\n")
-
-        text = "Идентификатор чата сохранен."
-        self.send_message(message.chat.id, text)
-
+class NotifierMixin(BotService):
     @staticmethod
     def check_ownership(price: parser_price_models.Price) -> bool:
         own_labels = ["мои", "мое", "моё", "мой"]
@@ -278,6 +254,7 @@ class Bot(telebot.TeleBot):
                 disable_web_page_preview = True
             )
 
+            # дублируется сообщение для другого пользователя по просьбе заказчика
             # chat_id заказчика
             if notification.new.item.user.telegram_chat_id == 898581629:
                 self.send_message(
@@ -286,3 +263,43 @@ class Bot(telebot.TeleBot):
                     parse_mode = self.ParseMode.MARKDOWN,
                     disable_web_page_preview = True
                 )
+
+    send_message = telebot.TeleBot.send_message
+
+
+# todo: перейти с поллинга на вебхук
+class Bot(NotifierMixin, telebot.TeleBot):
+    def __init__(self, token: str = None):
+        if token is None:
+            token = self.settings.secrets.bot_telegram.token
+
+        super().__init__(token)
+        self.register_handlers()
+
+    def register_handlers(self):
+        self.message_handler(commands = ["start"])(self.start)
+        self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
+
+    def start(self, message: types.Message) -> None:
+        try:
+            user = core_models.ParserUser.objects.get(
+                telegram_user_id = message.from_user.id,
+                telegram_chat_id = message.chat.id
+            )
+            text = "Вы зарегистрированы."
+        except core_models.ParserUser.DoesNotExist:
+            user = core_models.ParserUser(
+                telegram_user_id = message.from_user.id,
+                telegram_chat_id = message.chat.id
+            )
+            user.save()
+            text = "Вы уже были зарегистрированы. Повторная регистрация невозможна"
+
+        self.send_message(user.telegram_chat_id, text)
+
+    def save_chat_id(self, message: types.Message) -> None:
+        with open("temp_chat_id.txt", 'w') as file:
+            file.write(f"{message.chat.id}\n")
+
+        text = "Идентификатор чата сохранен."
+        self.send_message(message.chat.id, text)
