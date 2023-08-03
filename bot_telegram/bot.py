@@ -29,7 +29,8 @@ class BotService:
         UP = '⬆'
         DOWN = '⬇'
         NO_CHANGES = '⏺'
-        CHANGES = '🟪'
+        CHANGES_PRICE = '🟪'
+        CHANGES_PERSONAL_SALE = '🟦'
         NO_PERSONAL_SALE = '🟥'
         OWNERSHIP = "❗❗❗"
 
@@ -137,14 +138,14 @@ class NotifierMixin(BotService):
                     emoji = self.Token.DOWN
 
                 block = [
-                    f"{self.Token.CHANGES} {block_name} изменилась",
+                    f"{self.Token.CHANGES_PRICE} {block_name} изменилась",
                     f"{emoji} {block_name}: {notification.new.price} <==="
                     f" {self.Formatter.strikethrough(notification.old.price)}"
                     f" {self.Formatter.changes_repr(notification.new.price, notification.old.price)} ₽"
                 ]
             else:
                 block = [
-                    f"{self.Token.CHANGES} {block_name} изменилась",
+                    f"{self.Token.CHANGES_PRICE} {block_name} изменилась",
                     f"{self.Token.NO_CHANGES} {block_name}: {notification.new.price} <==="
                     f" {self.Formatter.strikethrough(notification.old.price)} ₽"
                 ]
@@ -164,14 +165,14 @@ class NotifierMixin(BotService):
                     emoji = self.Token.DOWN
 
                 block = [
-                    f"{self.Token.CHANGES} {block_name} изменилась",
+                    f"{self.Token.CHANGES_PERSONAL_SALE} {block_name} изменилась",
                     f"{emoji} {block_name}: {notification.new.personal_sale} <==="
                     f" {self.Formatter.strikethrough(notification.old.personal_sale)}"
                     f" {self.Formatter.changes_repr(notification.new.personal_sale, notification.old.personal_sale)} %"
                 ]
             else:
                 block = [
-                    f"{self.Token.CHANGES} {block_name} изменилась",
+                    f"{self.Token.CHANGES_PERSONAL_SALE} {block_name} изменилась",
                     f"{self.Token.NO_CHANGES} {block_name}: {notification.new.personal_sale} <==="
                     f" {self.Formatter.strikethrough(notification.old.personal_sale)} %"
                 ]
@@ -308,6 +309,9 @@ class Bot(NotifierMixin, telebot.TeleBot):
         text = "Идентификатор чата сохранен."
         self.send_message(message.chat.id, text)
 
+    # чтобы бот корректно мог проверять подписки, он должен быть администратором канала
+    # https://core.telegram.org/bots/api#getchatmember
+    # todo: добавить возможность выгрузки пользователей
     def check_user_subscriptions(self, user: core_models.ParserUser) -> list[int]:
         not_subscribed = []
         self.logger.debug("-----------------------------------")
