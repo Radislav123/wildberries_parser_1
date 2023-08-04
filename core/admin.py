@@ -1,9 +1,13 @@
 import abc
 import sys
+from io import BytesIO
 from typing import Callable, Type
 
+import xlsxwriter
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.db import models as django_models
+from django.http import HttpRequest, HttpResponse
 
 from . import models as core_models
 from .settings import Settings
@@ -19,6 +23,40 @@ def is_migration() -> bool:
 def register_models(model_admins: list[Type["CoreAdmin"]]) -> None:
     for model_admin in model_admins:
         admin.site.register(model_admin.model, model_admin)
+
+
+# noinspection PyUnusedLocal
+def download_parser_users_excel(
+        admin_model: "ParserUserAdmin",
+        request: HttpRequest,
+        queryset: django_models.QuerySet
+) -> HttpResponse:
+    model_name = f"{admin_model.model.__name__}"
+    stream = BytesIO()
+    book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
+    sheet = book.add_worksheet(model_name)
+
+    # запись шапки
+    header = [
+        core_models.ParserUser.get_field_verbose_name("id"),
+        core_models.ParserUser.get_field_verbose_name("telegram_user_id"),
+    ]
+    for row_number, column_name in enumerate(header):
+        sheet.write(0, row_number, column_name)
+
+    # запись таблицы
+    dynamic_fields_number = len(admin_model.settings.DYNAMIC_FIELDS_ORDER)
+    for row_number, data in enumerate(queryset, 1):
+        data: admin_model.model
+        sheet.write(row_number, 0, data.id)
+        sheet.write(row_number, 1, data.telegram_user_id)
+    sheet.autofit()
+    book.close()
+
+    stream.seek(0)
+    response = HttpResponse(stream.read(), content_type = settings.DOWNLOAD_EXCEL_CONTENT_TYPE)
+    response["Content-Disposition"] = f"attachment;filename={model_name}.xlsx"
+    return response
 
 
 class CoreFilter(admin.SimpleListFilter, abc.ABC):
@@ -91,8 +129,9 @@ class ParsingAdmin(CoreAdmin):
 
 class ParserUserAdmin(CoreAdmin, UserAdmin):
     model = core_models.ParserUser
-    hidden_fields = ("password", )
-    _fieldsets = (("Telegram", {"fields": ("telegram_user_id", "telegram_chat_id")}), )
+    hidden_fields = ("password",)
+    _fieldsets = (("Telegram", {"fields": ("telegram_user_id", "telegram_chat_id")}),)
+    actions = (download_parser_users_excel,)
 
 
 model_admins_to_register = [ParsingAdmin, ParserUserAdmin]
