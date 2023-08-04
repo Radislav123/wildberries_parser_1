@@ -119,7 +119,10 @@ class Item(CoreModel):
 
 # todo: remove this model
 # todo: завершить эту миграцию
-class TempItem(Item):
+class ItemTemp(CoreModel):
+    class Meta:
+        abstract = True
+
     vendor_code = models.PositiveIntegerField("Артикул")
 
 

@@ -41,6 +41,18 @@ class Item(ParserPriceModel, core_models.Item):
     )
 
 
+class ItemTemp(ParserPriceModel, core_models.ItemTemp):
+    user = models.ForeignKey(core_models.ParserUser, models.PROTECT, related_name = f"{settings.APP_NAME}_user_temp")
+    name = models.CharField("Название")
+    name_site = models.CharField("Название на сайте", null = True)
+    category = models.ForeignKey(
+        Category,
+        models.PROTECT,
+        verbose_name = Category.get_field_verbose_name("name"),
+        null = True
+    )
+
+
 class Price(ParserPriceModel):
     @dataclasses.dataclass
     class Notification:
@@ -50,6 +62,7 @@ class Price(ParserPriceModel):
         no_personal_sale: bool
 
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"))
+    item_temp = models.ForeignKey(ItemTemp, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"), related_name = f"{settings.APP_NAME}_item_temp", null = True)
     parsing = models.ForeignKey(core_models.Parsing, models.PROTECT)
     reviews_amount = models.PositiveIntegerField("Количество отзывов")
     price = models.FloatField("Цена до СПП", null = True)
