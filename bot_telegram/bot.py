@@ -77,6 +77,10 @@ class BotService:
                 sign = ''
             return f"{sign}{changing}"
 
+        @classmethod
+        def join(cls, text: list[str]) -> str:
+            return "\n".join([cls.escape(string) for string in text])
+
     settings = settings.Settings()
 
     def __init__(self, *args, **kwargs):
@@ -247,11 +251,11 @@ class NotifierMixin(BotService):
             else:
                 raise WrongNotificationTypeException()
 
-            text = "\n".join([self.Formatter.escape(string) for string in text])
+            text = self.Formatter.join(text)
             self.send_message(
                 notification.new.item.user.telegram_chat_id,
                 text,
-                parse_mode = self.ParseMode.MARKDOWN,
+                self.ParseMode.MARKDOWN,
                 disable_web_page_preview = True
             )
 
@@ -261,7 +265,7 @@ class NotifierMixin(BotService):
                 self.send_message(
                     5250931949,
                     text,
-                    parse_mode = self.ParseMode.MARKDOWN,
+                    self.ParseMode.MARKDOWN,
                     disable_web_page_preview = True
                 )
 
@@ -281,9 +285,19 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.message_handler(commands = ["start"])(self.start)
         self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
 
+        self.chat_member_handler()(self.notify_unsubscriber)
+
+    def start_polling(self) -> None:
+        self.logger.info("Telegram bot is running")
+        self.polling(allowed_updates = telebot.util.update_types)
+
     @staticmethod
-    def get_parser_user(message: types.Message) -> core_models.ParserUser:
-        return core_models.ParserUser.objects.get(telegram_user_id = message.from_user.id)
+    def get_parser_user(telegram_user: types.User) -> core_models.ParserUser | None:
+        try:
+            user = core_models.ParserUser.objects.get(telegram_user_id = telegram_user.id)
+        except core_models.ParserUser.DoesNotExist:
+            user = None
+        return user
 
     def start(self, message: types.Message) -> None:
         try:
@@ -327,3 +341,25 @@ class Bot(NotifierMixin, telebot.TeleBot):
             if not subscribed:
                 not_subscribed.append(chat_id)
         return not_subscribed
+
+    def notify_unsubscriber(self, update: telebot.types.ChatMemberUpdated) -> None:
+        if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES \
+                and (user := self.get_parser_user(update.from_user)) is not None:
+            not_subscribed = self.check_user_subscriptions(user)
+            if len(not_subscribed) == 1:
+                link = self.Formatter.link('канал', self.settings.NEEDED_SUBSCRIPTIONS[not_subscribed[0]])
+                text = [f"Подпишитесь на {link}, чтобы пользоваться ботом."]
+            else:
+                text = [
+                    f"Подпишитесь на каналы, чтобы пользоваться ботом:",
+                    *[self.Formatter.link(
+                        f"канал {index}",
+                        self.settings.NEEDED_SUBSCRIPTIONS[x]
+                    )
+                      for index, x in enumerate(not_subscribed, 1)]
+                ]
+            self.send_message(
+                user.telegram_chat_id,
+                self.Formatter.join(text),
+                self.ParseMode.MARKDOWN
+            )

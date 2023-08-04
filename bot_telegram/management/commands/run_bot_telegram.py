@@ -7,5 +7,4 @@ class Command(parser_price_command.ParserPriceCommand):
 
     def handle(self, *args, **options):
         bot = Bot()
-        self.logger.info("Telegram bot is running")
-        bot.polling()
+        bot.start_polling()

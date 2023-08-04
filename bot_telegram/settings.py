@@ -10,6 +10,10 @@ class Settings(settings.Settings):
     def __init__(self):
         super().__init__()
 
-        # список с id чатов/каналов на которые пользователь должен быть подписан, чтобы использовать бота
-        self.NEEDED_SUBSCRIPTIONS = [-1001922384556, -1001638911900]
+        # каналы на которые пользователь должен быть подписан, чтобы использовать бота
+        self.NEEDED_SUBSCRIPTIONS = {
+            -1001922384556: "https://t.me/mpwbfair",
+            -1001638911900: "https://t.me/ivan_shkitin"
+        }
         self.CHANNEL_SUBSCRIPTION_STATUSES = ["creator", "administrator", "member"]
+        self.CHANNEL_NON_SUBSCRIPTION_STATUSES = ["left"]
