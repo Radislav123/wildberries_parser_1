@@ -160,7 +160,7 @@ class DateCommentAdmin(ParserPositionAdmin):
 
 
 class ItemAdmin(ParserPositionAdmin):
-    model = parser_position_models.ItemTemp
+    model = parser_position_models.Item
 
 
 class KeywordAdmin(ParserPositionAdmin):
@@ -185,7 +185,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
     def vendor_code(self, obj: model) -> int:
         return obj.position.keyword.item_temp.vendor_code
 
-    vendor_code.short_description = parser_position_models.ItemTemp.get_field_verbose_name("vendor_code")
+    vendor_code.short_description = parser_position_models.Item.get_field_verbose_name("vendor_code")
 
     def item_name(self, obj: model) -> str:
         return obj.position.keyword.item_name

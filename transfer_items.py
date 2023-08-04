@@ -6,7 +6,7 @@ from parser_price import models as parser_price_models
 
 def transfer_positions():
     for item in parser_position_models.Item.objects.all():
-        temp_item = parser_position_models.ItemTemp(
+        temp_item = parser_position_models.Item(
             vendor_code = item.vendor_code,
             user = item.user
         )
@@ -19,7 +19,7 @@ def transfer_positions():
 
 def transfer_prices():
     for item in parser_price_models.Item.objects.all():
-        temp_item = parser_price_models.ItemTemp(
+        temp_item = parser_price_models.Item(
             vendor_code = item.vendor_code,
             user = item.user,
             name = item.name,

@@ -30,8 +30,8 @@ def download_prepared_prices_excel(
 
     # запись шапки
     header = [
-        parser_price_models.ItemTemp.get_field_verbose_name("vendor_code"),
-        parser_price_models.ItemTemp.get_field_verbose_name("name"),
+        parser_price_models.Item.get_field_verbose_name("vendor_code"),
+        parser_price_models.Item.get_field_verbose_name("name"),
         parser_price_models.Category.get_field_verbose_name("name"),
         parser_price_models.Price.get_field_verbose_name("reviews_amount"),
     ]
@@ -86,7 +86,7 @@ class PreparedPriceItemNameListFilter(ParserPriceFilter):
     (parser_price.xlsx).
     """
 
-    title = parser_price_models.ItemTemp.get_field_verbose_name("name")
+    title = parser_price_models.Item.get_field_verbose_name("name")
     parameter_name = "price__item__name"
 
     def lookups(self, request: HttpRequest, model_admin: "PreparedPriceAdmin") -> list[tuple[str, str]]:
@@ -133,7 +133,7 @@ class CategoryAdmin(ParserPriceAdmin):
 
 
 class ItemAdmin(ParserPriceAdmin):
-    model = parser_price_models.ItemTemp
+    model = parser_price_models.Item
 
     list_filter = ("user", "vendor_code")
 
@@ -153,12 +153,12 @@ class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
     def vendor_code(self, obj: model) -> int:
         return obj.price.item_temp.vendor_code
 
-    vendor_code.short_description = parser_price_models.ItemTemp.get_field_verbose_name("vendor_code")
+    vendor_code.short_description = parser_price_models.Item.get_field_verbose_name("vendor_code")
 
     def item_name(self, obj: model) -> str:
         return obj.price.item_temp.name
 
-    item_name.short_description = parser_price_models.ItemTemp.get_field_verbose_name("name")
+    item_name.short_description = parser_price_models.Item.get_field_verbose_name("name")
 
     def category_name(self, obj: model) -> str:
         if obj.price.item_temp.category is not None:

@@ -28,11 +28,11 @@ class Parser(parser_core.Parser):
         return driver
 
     @staticmethod
-    def update_item_name_site(item: models.ItemTemp, page: ItemPage) -> None:
+    def update_item_name_site(item: models.Item, page: ItemPage) -> None:
         item.name_site = page.item_full_name
         item.save()
 
-    def parse_price(self, item: models.ItemTemp) -> models.Price:
+    def parse_price(self, item: models.Item) -> models.Price:
         page = ItemPage(self, item.vendor_code)
         page.open()
         page.transfer_cookies(self.log_in_driver)
@@ -87,13 +87,13 @@ class Parser(parser_core.Parser):
         return item_dicts
 
     @classmethod
-    def get_price_parser_items(cls) -> list[models.ItemTemp]:
+    def get_price_parser_items(cls) -> list[models.Item]:
         item_dicts = cls.get_price_parser_item_dicts()
         items = []
 
         for item_dict in item_dicts:
             items.append(
-                models.ItemTemp.objects.update_or_create(
+                models.Item.objects.update_or_create(
                     vendor_code = item_dict["vendor_code"],
                     user = core_models.ParserUser.get_customer(),
                     defaults = {"name": item_dict["name"]}
@@ -109,13 +109,13 @@ class Parser(parser_core.Parser):
         self.run(items, True)
 
     def run_other(self, division_remainder: int) -> None:
-        items = [x for x in models.ItemTemp.objects.exclude(user = core_models.ParserUser.get_customer())
+        items = [x for x in models.Item.objects.exclude(user = core_models.ParserUser.get_customer())
                  # todo: return line
                  # if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
                  if x.vendor_code % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
         self.run(items, False)
 
-    def run(self, items: list[models.ItemTemp], prepare_table: bool):
+    def run(self, items: list[models.Item], prepare_table: bool):
         self.parsing.not_parsed_items = {}
         prices = []
         for item in items:

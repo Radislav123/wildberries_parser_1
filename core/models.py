@@ -102,7 +102,7 @@ class Parsing(CoreModel):
         return f"{super().__str__()} at {self.time}"
 
 
-class ItemTemp(CoreModel):
+class Item(CoreModel):
     class Meta:
         abstract = True
 
