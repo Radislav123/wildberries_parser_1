@@ -49,9 +49,7 @@ class Price(ParserPriceModel):
         sold_out: bool
         no_personal_sale: bool
 
-    # item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"))
-    item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"), null = True)
-    item_temp = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"), related_name = f"{settings.APP_NAME}_item_temp", null = True)
+    item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"))
     parsing = models.ForeignKey(core_models.Parsing, models.PROTECT)
     reviews_amount = models.PositiveIntegerField("Количество отзывов")
     price = models.FloatField("Цена до СПП", null = True)

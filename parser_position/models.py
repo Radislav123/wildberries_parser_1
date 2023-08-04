@@ -31,9 +31,7 @@ class Item(ParserPositionModel, core_models.Item):
 class Keyword(ParserPositionModel):
     """Ключевая фраза, привязанная к конкретному товару."""
 
-    # item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
-    item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар", null = True)
-    item_temp = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар", related_name = f"{settings.APP_NAME}_item_temp", null = True)
+    item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
     item_name = models.CharField("Название")
     value = models.CharField("Ключевая фраза")
 
