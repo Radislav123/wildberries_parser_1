@@ -67,7 +67,7 @@ class CoreFilter(admin.SimpleListFilter, abc.ABC):
     @property
     def user(self) -> core_models.ParserUser:
         # todo: добавить логику выбора пользователя
-        return core_models.ParserUser.get_admin()
+        return core_models.ParserUser.get_customer()
 
 
 class CoreAdmin(admin.ModelAdmin):
@@ -93,7 +93,7 @@ class CoreAdmin(admin.ModelAdmin):
     def get_user(self) -> core_models.ParserUser:
         if not is_migration():
             # todo: добавить логику выбора пользователя
-            user = core_models.ParserUser.get_admin()
+            user = core_models.ParserUser.get_customer()
         else:
             user = None
         return user

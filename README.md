@@ -17,8 +17,8 @@
            python manage.py migrate
            ```
         4) запустить парсер вручную первый раз (первые полученные данные могут быть неверными)
-            1) [*start/position_parser.bat*](start/run_parser_position.bat)
-            2) [*start/price_parser.bat*](start/run_parser_price.bat)
+            1) [*start/position_parser_customer.bat*](start/run_parser_position_customer.bat)
+            2) [*start/price_parser_customer.bat*](start/run_parser_price_customer.bat)
         5) [*настроить периодический запуск парсера*](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10)
             1) программа - `python` (19 пункт)
             2) аргументы - `run.py positions` (20 пункт)
@@ -56,19 +56,19 @@
 
 1) запуск сервера [*start/runserver.bat*](start/runserver.bat)
 2) запуск парсера
-    1) запуск парсера позиций - [*start/run_parser_position.bat*](start/run_parser_position.bat)
-        1) `python parse.py positions`
-    2) запуск парсера цен - [*start/run_parser_price.bat*](start/run_parser_price.bat)
-        1) `python parse.py prices`
-    3) чтобы только проверить, что выбираются нужные тесты - `python parse.py prices --collect-only`
+    1) запуск парсера позиций - [*start/run_parser_position_customer.bat*](start/run_parser_position_customer.bat)
+        1) `python parse.py positions true|false`
+    2) запуск парсера цен - [*start/run_parser_price_customer.bat*](start/run_parser_price_customer.bat)
+        1) `python parse.py prices true|false`
+    3) чтобы только проверить, что выбираются нужные тесты - `python parse.py prices true --collect-only`
     4) в конце команды можно добавлять любые аргументы `pytest`
         1) они перезапишут те, что определены в `PYTEST_ARGS`
            [*parser_price/settings.py*](parser_price/settings.py) или [*parser_position/settings.py*](parser_position/settings.py)
-        2) пример - `python parse.py prices --collect-only`
+        2) пример - `python parse.py prices true --collect-only`
 3) для создания в административной панели пользователя с правами администратора необходимо выполнить
    [*core/management/commands/create_admin_user.py*](core/management/commands/create_admin_user.py)
     1) `python manage.py create_admin_user`
-    2) администраторские логин и пароль по умолчанию находятся в [*secrets/admin_panel/admin_user.json*](secrets/admin_panel/admin_user.json)
+    2) администраторские логин и пароль по умолчанию находятся в [*secrets/admin_panel/admin_user.json*](secrets/admin_panel/customer_user.json)
 4) скачать excel-файл - открыть таблицу в панели администратора => отметить галочкой необходимые объекты => в поле `Action` выбрать `Download ... excel` =>
    нажать `Go`
 5) [панель администратора](http://127.0.0.1:8000/admin/) (локально)
@@ -76,5 +76,5 @@
    [*parser_price/management/commands/run_wildberries_log_in_window.py*](parser_price/management/commands/run_wildberries_log_in_window.py)
     1) `python manage.py run_wildberries_log_in_window`
     2) без открытого окна с авторизованным аккаунтом `wildberries` парсинг цен будет ломаться
-7) для работы скриптов в [*db_dumps/*](db_dumps) без запрашивания пароля, необходимо установить переменную окружения
+7) для работы скриптов в [*db_backups/*](db_backups) без запрашивания пароля, необходимо установить переменную окружения
    `PGPASSWORD` с паролем от пользователя `Postgres`, указанного в переменной `USERNAME` в скрипте

@@ -20,15 +20,22 @@ class Runner:
         """Разбирает поступающую из командной строки команду и выполняет заданные операции."""
 
         command = sys.argv[1]
+        customer = sys.argv[2]
         if command == self.settings.COMMAND_POSITION:
             self.settings = parser_position_settings.Settings()
         elif command == self.settings.COMMAND_PRICE:
             self.settings = parser_price_settings.Settings()
         else:
-            raise UnknownParserOption()
+            raise UnknownParserOption(command)
+        if customer.lower() == "true":
+            self.settings.PYTEST_ARGS.extend(["-o", "python_functions=run_customer"])
+        elif customer.lower() == "false":
+            self.settings.PYTEST_ARGS.extend(["-o", "python_functions=run_other"])
+        else:
+            raise UnknownParserOption(customer)
 
         # опции командной строки, которые будут переданы в pytest
-        pytest_options = sys.argv[2:]
+        pytest_options = sys.argv[3:]
         self.before_pytest()
         self.pytest(pytest_options)
         self.after_pytest(command)

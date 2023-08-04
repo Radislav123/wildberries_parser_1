@@ -110,14 +110,19 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
     }
 
     @classmethod
-    def prepare(cls, user: core_models.ParserUser, city: str) -> None:
+    def prepare(cls, city: str) -> None:
         # todo: подготавливать только те позиции, которые только что парсились
-        old_object_ids = list(cls.objects.filter(position__city = city, position__keyword__item__user = user).values_list("id", flat = True))
+        old_object_ids = list(
+            cls.objects.filter(
+                position__city = city,
+                position__keyword__item__user = core_models.ParserUser.get_customer()
+            ).values_list("id", flat = True)
+        )
 
         new_objects = [
             cls(
                 position = Position.objects.filter(keyword = keyword, city = city).order_by("parsing__time").last()
-            ) for keyword in Keyword.objects.filter(item__user = user)
+            ) for keyword in Keyword.objects.filter(item__user = core_models.ParserUser.get_customer())
         ]
 
         today = datetime.date.today()

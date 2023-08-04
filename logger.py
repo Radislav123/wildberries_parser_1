@@ -41,12 +41,12 @@ class Logger:
         Path(cls.settings.LOG_FOLDER).mkdir(parents = True, exist_ok = True)
         logger = logging.getLogger(logger_name)
         logger.setLevel(logging.DEBUG)
-        # в файл
-        # noinspection PyTypeChecker
-        logger.addHandler(cls.construct_handler(cls.settings.FILE_LOG_LEVEL))
-        # в консоль
-        # noinspection PyTypeChecker
-        logger.addHandler(cls.construct_handler(cls.settings.CONSOLE_LOG_LEVEL, True))
+        logger.handlers = [
+            # в файл
+            cls.construct_handler(cls.settings.FILE_LOG_LEVEL),
+            # в консоль
+            cls.construct_handler(cls.settings.CONSOLE_LOG_LEVEL, True)
+        ]
         return logger
 
 

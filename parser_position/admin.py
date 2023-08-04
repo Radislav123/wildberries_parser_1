@@ -83,7 +83,7 @@ def download_prepared_position_excel(
     # запись комментариев
     # todo: добавить логику выбора пользователя
     # comments = parser_position_models.DateComment.objects.filter(user = user)
-    comments = parser_position_models.DateComment.objects.filter(user = core_models.ParserUser.get_admin())
+    comments = parser_position_models.DateComment.objects.filter(user = core_models.ParserUser.get_customer())
     for comment_number, date in enumerate(date_range):
         comment = comments.filter(date = date).last()
         if comment is not None:
@@ -112,7 +112,7 @@ class PreparedPositionItemNameListFilter(PreparedPositionFilter):
     parameter_name = "keyword__item_name"
 
     def lookups(self, request: HttpRequest, model_admin: "PreparedPositionAdmin") -> list[tuple[str, str]]:
-        actual_keywords = parser.Parser.get_position_parser_keywords(self.user)
+        actual_keywords = parser.Parser.get_position_parser_keywords()
         item_names = [(x, x) for x in sorted(set(y.item_name for y in actual_keywords))]
         return item_names
 
@@ -143,7 +143,7 @@ class PreparedPositionActualListFilter(PreparedPositionFilter):
 
     def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
         if self.value() is None:
-            actual_keywords = parser.Parser.get_position_parser_keywords(self.user)
+            actual_keywords = parser.Parser.get_position_parser_keywords()
             queryset = queryset.filter(
                 position__keyword__in = actual_keywords, position__keyword__item__user = self.user
             )

@@ -109,14 +109,20 @@ class Parser(parser_core.Parser):
         return items
 
     @classmethod
-    def get_position_parser_keywords(cls, user: core_models.ParserUser) -> list[models.Keyword]:
+    def get_position_parser_keywords(cls) -> list[models.Keyword]:
         item_dicts = cls.get_position_parser_item_dicts()
         # создание отсутствующих товаров в БД
         # noinspection PyStatementEffect
-        [models.Item.objects.get_or_create(vendor_code = x["vendor_code"], user = user)[0] for x in item_dicts]
+        [
+            models.Item.objects.get_or_create(
+                vendor_code = x["vendor_code"],
+                user = core_models.ParserUser.get_customer()
+            )[0] for x in item_dicts
+        ]
 
         keywords = [models.Keyword.objects.update_or_create(
-            item_id = x["vendor_code"],
+            item__vendor_code = x["vendor_code"],
+            item__user = core_models.ParserUser.get_customer(),
             value = x["keyword"],
             defaults = {"item_name": x["name"]}
         )[0] for x in item_dicts]
@@ -124,14 +130,17 @@ class Parser(parser_core.Parser):
 
     # todo: переделать распараллеливание по образу парсера цен?
     # todo: добавить сохранение ошибок и продолжение парсинга при ошибке по образу парсера цен
-    def run(self, city_dict: City) -> None:
+    def run_customer(self, city_dict: City) -> None:
         main_page = MainPage(self)
         main_page.open()
         dest, regions = main_page.set_city(city_dict)
         city_dict["dest"] = dest
         city_dict["regions"] = regions
-        for keyword in self.get_position_parser_keywords(self.user):
+        for keyword in self.get_position_parser_keywords():
             position = self.find_position(city_dict, keyword)
             position.save()
 
-        models.PreparedPosition.prepare(self.user, city_dict["name"])
+        models.PreparedPosition.prepare(city_dict["name"])
+
+    def run_other(self, city_dict: City) -> None:
+        raise NotImplementedError()

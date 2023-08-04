@@ -17,16 +17,13 @@ class Parser:
     logger: logging.Logger
     driver: Chrome
     parsing: models.Parsing
-    user: models.ParserUser
 
     @classmethod
     def setup_class(cls):
         cls.logger = logger.Logger(cls.settings.APP_NAME)
 
     def setup_method(self):
-        # todo: добавить логику выбора пользователя
-        self.user = models.ParserUser.get_admin()
-        self.parsing = models.Parsing(user = self.user)
+        self.parsing = models.Parsing()
         self.parsing.save()
         self.logger.info("Start")
 

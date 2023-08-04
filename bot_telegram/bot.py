@@ -51,7 +51,7 @@ class BotService:
 
         @classmethod
         def link(cls, data: Any, link: str) -> str:
-            return cls.wall(f"[{data}]({link})")
+            return cls.wall(f"[{cls.wall(data)}]({link})")
 
         @classmethod
         def escape(cls, string: str) -> str:
@@ -114,7 +114,7 @@ class NotifierMixin(BotService):
 
         link_string = self.Formatter.link(
             notification.new.item.name_site,
-            f'https://www.wildberries.ru/catalog/{notification.new.item.vendor_code}/detail.aspx'
+            notification.new.item.link
         )
         block.extend(
             [
@@ -285,11 +285,16 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.message_handler(commands = ["start"])(self.start)
         self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
 
+        self.message_handler(commands = ["add_item"])(self.add_item)
+        self.message_handler(commands = ["remove_item"])(self.remove_item)
+        self.message_handler(commands = ["get_all_items"])(self.get_all_items)
+
         self.chat_member_handler()(self.notify_unsubscriber)
 
     def start_polling(self) -> None:
         self.logger.info("Telegram bot is running")
-        self.polling(allowed_updates = telebot.util.update_types)
+        # todo: перейти на polling, чтобы обрабатывать все исключения самостоятельно
+        self.infinity_polling(allowed_updates = telebot.util.update_types, restart_on_change = True)
 
     @staticmethod
     def get_parser_user(telegram_user: types.User) -> core_models.ParserUser | None:
@@ -325,10 +330,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
     # чтобы бот корректно мог проверять подписки, он должен быть администратором канала
     # https://core.telegram.org/bots/api#getchatmember
-    # todo: добавить возможность выгрузки пользователей
     def check_user_subscriptions(self, user: core_models.ParserUser) -> list[int]:
         not_subscribed = []
-        self.logger.debug("-----------------------------------")
         for chat_id in self.settings.NEEDED_SUBSCRIPTIONS:
             subscribed = False
             try:
@@ -352,14 +355,94 @@ class Bot(NotifierMixin, telebot.TeleBot):
             else:
                 text = [
                     f"Подпишитесь на каналы, чтобы пользоваться ботом:",
-                    *[self.Formatter.link(
-                        f"канал {index}",
-                        self.settings.NEEDED_SUBSCRIPTIONS[x]
-                    )
+                    *[self.Formatter.link(f"канал {index}", self.settings.NEEDED_SUBSCRIPTIONS[x])
                       for index, x in enumerate(not_subscribed, 1)]
                 ]
             self.send_message(
                 user.telegram_chat_id,
                 self.Formatter.join(text),
                 self.ParseMode.MARKDOWN
+            )
+
+    def add_item(self, message: types.Message) -> None:
+        # todo: запускать парсинги для обычных пользователей и для заказчика раздельно
+        # todo: добавить ограничение на 10 одновременно отслеживаемых товаров
+        # todo: добавить скрипт, удаляющий записи старше недели всех пользователей, кроме заказчика
+        user = self.get_parser_user(message.from_user)
+
+        item = parser_price_models.Item(user = user)
+        self.register_next_step_handler(message, self.add_item_step_name, user, item)
+        self.send_message(
+            user.telegram_chat_id,
+            "Введите свое название для товара."
+        )
+
+    def add_item_step_name(
+            self,
+            message: types.Message,
+            user: core_models.ParserUser,
+            item: parser_price_models.Item
+    ) -> None:
+        item.name = message.text
+        self.register_next_step_handler(message, self.add_item_step_vendor_code, user, item)
+        self.send_message(
+            user.telegram_chat_id,
+            "Введите артикул товара."
+        )
+
+    def add_item_step_vendor_code(
+            self,
+            message: types.Message,
+            user: core_models.ParserUser,
+            item: parser_price_models.Item
+    ) -> None:
+        item.vendor_code = int(message.text)
+        item.save()
+        text = [
+            f"{self.Formatter.link(item.vendor_code, item.link)} добавлен для отслеживания."
+        ]
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(text),
+            self.ParseMode.MARKDOWN
+        )
+
+    def remove_item(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.send_message(
+            user.telegram_chat_id,
+            "Введите артикул товара."
+        )
+        self.register_next_step_handler(message, self.remove_item_step_vendor_code, user)
+
+    def remove_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
+        vendor_code = int(message.text)
+        item = parser_price_models.Item.objects.get(user = user, vendor_code = vendor_code)
+        text = [
+            f"{self.Formatter.link(item.vendor_code, item.link)} убран из отслеживаемых."
+        ]
+        prices = parser_price_models.Price.objects.filter(item__vendor_code = vendor_code, item__user = user)
+        prices.delete()
+        item.delete()
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(text),
+            self.ParseMode.MARKDOWN
+        )
+
+    def get_all_items(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        items = parser_price_models.Item.objects.filter(user = user)
+        if len(items) == 0:
+            text = ["У Вас еще нет отслеживаемых товаров."]
+        else:
+            text = [f"{self.Formatter.link(item.name, item.link)}: {item.vendor_code}" for item in items]
+
+        text_chunks = telebot.util.smart_split(self.Formatter.join(text))
+        for text_chunk in text_chunks:
+            self.send_message(
+                user.telegram_chat_id,
+                text_chunk,
+                self.ParseMode.MARKDOWN,
+                disable_web_page_preview = True
             )

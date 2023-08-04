@@ -87,7 +87,7 @@ class Parser(parser_core.Parser):
         return item_dicts
 
     @classmethod
-    def get_price_parser_items(cls, user: core_models.ParserUser) -> list[models.Item]:
+    def get_price_parser_items(cls) -> list[models.Item]:
         item_dicts = cls.get_price_parser_item_dicts()
         items = []
 
@@ -95,18 +95,27 @@ class Parser(parser_core.Parser):
             items.append(
                 models.Item.objects.update_or_create(
                     vendor_code = item_dict["vendor_code"],
-                    user = user,
+                    user = core_models.ParserUser.get_customer(),
                     defaults = {"name": item_dict["name"]}
                 )[0]
             )
         return items
 
-    def run(self, vendor_codes: list[int]) -> None:
-        # todo: убрать эту строку
-        # нужно для обновления товаров в БД перед парсингом
-        self.get_price_parser_items(self.user)
+    def run_customer(self, division_remainder: int) -> None:
+        items = [x for x in self.get_price_parser_items()
+                 # todo: return line
+                 # if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+                 if x.vendor_code % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+        self.run(items, True)
 
-        items = models.Item.objects.filter(vendor_code__in = vendor_codes, user = self.user)
+    def run_other(self, division_remainder: int) -> None:
+        items = [x for x in models.Item.objects.exclude(user = core_models.ParserUser.get_customer())
+                 # todo: return line
+                 # if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+                 if x.vendor_code % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+        self.run(items, False)
+
+    def run(self, items: list[models.Item], prepare_table: bool):
         self.parsing.not_parsed_items = {}
         prices = []
         for item in items:
@@ -120,7 +129,8 @@ class Parser(parser_core.Parser):
         notifications = models.Price.get_notifications(prices)
         self.bot_telegram.notify(notifications)
 
-        models.PreparedPrice.prepare(items)
+        if prepare_table:
+            models.PreparedPrice.prepare(items)
         if len(self.parsing.not_parsed_items) > 0:
             self.logger.info(f"Not parsed items: {self.parsing.not_parsed_items}")
             self.parsing.success = False

@@ -76,16 +76,18 @@ class CoreModel(models.Model):
 class ParserUser(CoreModel, auth_models.AbstractUser):
     telegram_user_id = models.PositiveIntegerField("Telegram user_id", null = True)
     telegram_chat_id = models.PositiveIntegerField("Telegram chat_id", null = True)
+    _customer: "ParserUser" = None
 
     @classmethod
-    def get_admin(cls) -> Self:
-        return cls.objects.get(username = cls.settings.secrets.admin_user.username)
+    def get_customer(cls) -> Self:
+        if cls._customer is None:
+            cls._customer = cls.objects.get(username = cls.settings.secrets.customer_user.username)
+        return cls._customer
 
 
 class Parsing(CoreModel):
     date = models.DateField("Дата парсинга", auto_now_add = True)
     time = models.DateTimeField("Время парсинга", auto_now_add = True)
-    user = models.ForeignKey(ParserUser, models.PROTECT)
     # None - парсинг не закончен
     # True - без ошибок
     # False - с ошибками
@@ -109,6 +111,16 @@ class Item(CoreModel):
 
     def __str__(self) -> str:
         return str(self.vendor_code)
+
+    @property
+    def link(self) -> str:
+        return f'https://www.wildberries.ru/catalog/{self.vendor_code}/detail.aspx'
+
+
+# todo: remove this model
+# todo: завершить эту миграцию
+class TempItem(Item):
+    vendor_code = models.PositiveIntegerField("Артикул")
 
 
 class DynamicFieldModel(CoreModel):

@@ -30,7 +30,6 @@ class Category(ParserPriceModel):
 
 
 class Item(ParserPriceModel, core_models.Item):
-
     user = models.ForeignKey(core_models.ParserUser, models.PROTECT, related_name = f"{settings.APP_NAME}_user")
     name = models.CharField("Название")
     name_site = models.CharField("Название на сайте", null = True)

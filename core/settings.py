@@ -47,8 +47,8 @@ class Settings:
         self.DATABASE_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/database"
         self.DATABASE_CREDENTIALS_PATH = f"{self.DATABASE_SECRETS_FOLDER}/credentials.json"
 
-        self.ADMIN_FOLDER = f"{self.SECRETS_FOLDER}/admin_panel"
-        self.ADMIN_USER_CREDENTIALS_PATH = f"{self.ADMIN_FOLDER}/admin_user.json"
+        self.ADMIN_PANEL_FOLDER = f"{self.SECRETS_FOLDER}/admin_panel"
+        self.CUSTOMER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_FOLDER}/customer_user.json"
 
         self.GEOPARSER_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/geoparser"
         self.GEOPARSER_CREDENTIALS_PATH = f"{self.GEOPARSER_SECRETS_FOLDER}/credentials.json"
@@ -64,6 +64,11 @@ class Settings:
         self.FILE_LOG_LEVEL = logging.DEBUG
 
         # Настройки pytest
+        if "PYTEST_XDIST_WORKER_COUNT" in os.environ:
+            self.PYTEST_XDIST_WORKER_COUNT = int(os.environ["PYTEST_XDIST_WORKER_COUNT"])
+        else:
+            self.PYTEST_XDIST_WORKER_COUNT = None
+
         self.PYTEST_ARGS = [
             # путь до тестов
             "-o", f"testpaths={self.APP_NAME}",
@@ -74,7 +79,8 @@ class Settings:
             # соглашение об именовании тестов
             "-o", "python_files=parser.py",
             "-o", "python_classes=Parser*",
-            "-o", "python_functions=run",
+            # задается в parse.py
+            # "-o", "python_functions=run",
 
             # вывод логов в командную строку
             "-o", "log_cli=true",

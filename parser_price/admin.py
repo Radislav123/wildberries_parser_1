@@ -90,7 +90,7 @@ class PreparedPriceItemNameListFilter(ParserPriceFilter):
     parameter_name = "price__item__name"
 
     def lookups(self, request: HttpRequest, model_admin: "PreparedPriceAdmin") -> list[tuple[str, str]]:
-        actual_keywords = parser.Parser.get_price_parser_items(self.user)
+        actual_keywords = parser.Parser.get_price_parser_items()
         item_names = [(x, x) for x in sorted(set(y.name for y in actual_keywords))]
         return item_names
 
@@ -118,7 +118,7 @@ class PreparedPriceActualListFilter(ParserPriceFilter):
 
     def queryset(self, request: HttpRequest, queryset: django_models.QuerySet) -> django_models.QuerySet:
         if self.value() is None:
-            actual_items = parser.Parser.get_price_parser_items(self.user)
+            actual_items = parser.Parser.get_price_parser_items()
             queryset = queryset.filter(price__item__in = actual_items, price__item__user = self.user)
         return queryset
 
@@ -135,13 +135,13 @@ class CategoryAdmin(ParserPriceAdmin):
 class ItemAdmin(ParserPriceAdmin):
     model = parser_price_models.Item
 
-    list_filter = ("vendor_code",)
+    list_filter = ("user", "vendor_code")
 
 
 class PriceAdmin(ParserPriceAdmin):
     model = parser_price_models.Price
 
-    list_filter = ("item",)
+    list_filter = ("item__user", "item")
 
 
 class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
