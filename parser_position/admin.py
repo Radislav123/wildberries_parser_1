@@ -183,7 +183,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
     }
 
     def vendor_code(self, obj: model) -> int:
-        return obj.position.keyword.item_temp.vendor_code
+        return obj.position.keyword.item.vendor_code
 
     vendor_code.short_description = parser_position_models.Item.get_field_verbose_name("vendor_code")
 
