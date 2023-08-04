@@ -25,7 +25,7 @@ class DateComment(ParserPositionModel):
 
 
 class ItemTemp(ParserPositionModel, core_models.ItemTemp):
-    user = models.ForeignKey(core_models.ParserUser, models.PROTECT, related_name = f"{settings.APP_NAME}_user_temp")
+    user = models.ForeignKey(core_models.ParserUser, models.PROTECT, related_name = f"{settings.APP_NAME}_user")
 
 
 class Keyword(ParserPositionModel):
