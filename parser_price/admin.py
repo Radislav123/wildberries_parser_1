@@ -30,8 +30,8 @@ def download_prepared_prices_excel(
 
     # запись шапки
     header = [
-        parser_price_models.Item.get_field_verbose_name("vendor_code"),
-        parser_price_models.Item.get_field_verbose_name("name"),
+        parser_price_models.ItemTemp.get_field_verbose_name("vendor_code"),
+        parser_price_models.ItemTemp.get_field_verbose_name("name"),
         parser_price_models.Category.get_field_verbose_name("name"),
         parser_price_models.Price.get_field_verbose_name("reviews_amount"),
     ]
@@ -51,11 +51,11 @@ def download_prepared_prices_excel(
     dynamic_fields_number = len(admin_model.settings.DYNAMIC_FIELDS_ORDER)
     for row_number, data in enumerate(queryset, 1):
         data: admin_model.model
-        sheet.write(row_number, 0, data.price.item.vendor_code)
-        sheet.write(row_number, 1, data.price.item.name)
+        sheet.write(row_number, 0, data.price.item_temp.vendor_code)
+        sheet.write(row_number, 1, data.price.item_temp.name)
         sheet.write(row_number, 2, data.price.reviews_amount)
-        if data.price.item.category is not None:
-            category_name = data.price.item.category.name
+        if data.price.item_temp.category is not None:
+            category_name = data.price.item_temp.category.name
         else:
             category_name = None
         sheet.write(row_number, 3, category_name)
@@ -86,7 +86,7 @@ class PreparedPriceItemNameListFilter(ParserPriceFilter):
     (parser_price.xlsx).
     """
 
-    title = parser_price_models.Item.get_field_verbose_name("name")
+    title = parser_price_models.ItemTemp.get_field_verbose_name("name")
     parameter_name = "price__item__name"
 
     def lookups(self, request: HttpRequest, model_admin: "PreparedPriceAdmin") -> list[tuple[str, str]]:
@@ -133,7 +133,7 @@ class CategoryAdmin(ParserPriceAdmin):
 
 
 class ItemAdmin(ParserPriceAdmin):
-    model = parser_price_models.Item
+    model = parser_price_models.ItemTemp
 
     list_filter = ("user", "vendor_code")
 
@@ -141,7 +141,7 @@ class ItemAdmin(ParserPriceAdmin):
 class PriceAdmin(ParserPriceAdmin):
     model = parser_price_models.Price
 
-    list_filter = ("item__user", "item")
+    list_filter = ("item_temp__user", "item_temp")
 
 
 class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
@@ -151,18 +151,18 @@ class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
     actions = (download_prepared_prices_excel,)
 
     def vendor_code(self, obj: model) -> int:
-        return obj.price.item.vendor_code
+        return obj.price.item_temp.vendor_code
 
-    vendor_code.short_description = parser_price_models.Item.get_field_verbose_name("vendor_code")
+    vendor_code.short_description = parser_price_models.ItemTemp.get_field_verbose_name("vendor_code")
 
     def item_name(self, obj: model) -> str:
-        return obj.price.item.name
+        return obj.price.item_temp.name
 
-    item_name.short_description = parser_price_models.Item.get_field_verbose_name("name")
+    item_name.short_description = parser_price_models.ItemTemp.get_field_verbose_name("name")
 
     def category_name(self, obj: model) -> str:
-        if obj.price.item.category is not None:
-            category_name = obj.price.item.category.name
+        if obj.price.item_temp.category is not None:
+            category_name = obj.price.item_temp.category.name
         else:
             category_name = None
         return category_name

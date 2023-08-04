@@ -102,11 +102,11 @@ class Parsing(CoreModel):
         return f"{super().__str__()} at {self.time}"
 
 
-class Item(CoreModel):
+class ItemTemp(CoreModel):
     class Meta:
         abstract = True
 
-    vendor_code = models.PositiveIntegerField("Артикул", primary_key = True)
+    vendor_code = models.PositiveIntegerField("Артикул")
     user: models.ForeignKey
 
     def __str__(self) -> str:
@@ -115,15 +115,6 @@ class Item(CoreModel):
     @property
     def link(self) -> str:
         return f'https://www.wildberries.ru/catalog/{self.vendor_code}/detail.aspx'
-
-
-# todo: remove this model
-# todo: завершить эту миграцию
-class ItemTemp(CoreModel):
-    class Meta:
-        abstract = True
-
-    vendor_code = models.PositiveIntegerField("Артикул")
 
 
 class DynamicFieldModel(CoreModel):

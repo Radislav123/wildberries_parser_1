@@ -381,7 +381,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             self,
             message: types.Message,
             user: core_models.ParserUser,
-            item: parser_price_models.Item
+            item: parser_price_models.ItemTemp
     ) -> None:
         item.name = message.text
         self.register_next_step_handler(message, self.add_item_step_vendor_code, user, item)
@@ -394,7 +394,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             self,
             message: types.Message,
             user: core_models.ParserUser,
-            item: parser_price_models.Item
+            item: parser_price_models.ItemTemp
     ) -> None:
         item.vendor_code = int(message.text)
         item.save()

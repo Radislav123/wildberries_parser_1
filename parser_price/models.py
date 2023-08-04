@@ -29,18 +29,6 @@ class Category(ParserPriceModel):
         return str(self.name)
 
 
-class Item(ParserPriceModel, core_models.Item):
-    user = models.ForeignKey(core_models.ParserUser, models.PROTECT, related_name = f"{settings.APP_NAME}_user")
-    name = models.CharField("Название")
-    name_site = models.CharField("Название на сайте", null = True)
-    category = models.ForeignKey(
-        Category,
-        models.PROTECT,
-        verbose_name = Category.get_field_verbose_name("name"),
-        null = True
-    )
-
-
 class ItemTemp(ParserPriceModel, core_models.ItemTemp):
     user = models.ForeignKey(core_models.ParserUser, models.PROTECT, related_name = f"{settings.APP_NAME}_user_temp")
     name = models.CharField("Название")
@@ -61,8 +49,8 @@ class Price(ParserPriceModel):
         sold_out: bool
         no_personal_sale: bool
 
-    item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"))
-    item_temp = models.ForeignKey(ItemTemp, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"), related_name = f"{settings.APP_NAME}_item_temp", null = True)
+    # item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"))
+    item_temp = models.ForeignKey(ItemTemp, models.PROTECT, verbose_name = ItemTemp.get_field_verbose_name("vendor_code"), related_name = f"{settings.APP_NAME}_item_temp", null = True)
     parsing = models.ForeignKey(core_models.Parsing, models.PROTECT)
     reviews_amount = models.PositiveIntegerField("Количество отзывов")
     price = models.FloatField("Цена до СПП", null = True)
@@ -70,7 +58,7 @@ class Price(ParserPriceModel):
     personal_sale = models.PositiveIntegerField("СПП", null = True)
 
     @classmethod
-    def get_last_by_item_date(cls, item: Item, date: datetime.date) -> Self:
+    def get_last_by_item_date(cls, item: ItemTemp, date: datetime.date) -> Self:
         obj = cls.objects.filter(
             item = item,
             parsing__date = date
@@ -167,10 +155,10 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
     }
 
     @classmethod
-    def prepare(cls, items: list[Item]) -> None:
+    def prepare(cls, items: list[ItemTemp]) -> None:
         old_object_ids = list(cls.objects.filter(price__item__in = items).values_list("id", flat = True))
 
-        new_objects: dict[Item, Self] = {
+        new_objects: dict[ItemTemp, Self] = {
             item: cls(price = Price.objects.filter(item = item).order_by("parsing__time").last()) for item in items
         }
 
