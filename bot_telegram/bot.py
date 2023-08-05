@@ -6,7 +6,7 @@ from telebot import types
 import logger
 from core import models as core_models
 from parser_price import models as parser_price_models
-from . import settings
+from . import models as bot_telegram_models, settings
 
 
 class BotTelegramException(Exception):
@@ -280,8 +280,10 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
         super().__init__(token)
         self.register_handlers()
+        self.set_commands_list()
 
     def register_handlers(self) -> None:
+        # команды для пользователей
         self.message_handler(commands = ["start"])(self.start)
         self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
 
@@ -289,7 +291,35 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.message_handler(commands = ["remove_item"])(self.remove_item)
         self.message_handler(commands = ["get_all_items"])(self.get_all_items)
 
+        # команды для заказчика
+        self.message_handler(commands = ["send_to_users"])(self.send_to_users)
+        self.callback_query_handler(
+            lambda callback: callback.data.startswith("send_to_users")
+        )(self.send_to_users_callback_send)
+        self.callback_query_handler(
+            lambda callback: callback.data.startswith("cancel_send_to_users")
+        )(self.send_to_users_callback_cancel)
+
+        # проверка отписки от каналов
         self.chat_member_handler()(self.notify_unsubscriber)
+
+    def set_commands_list(self) -> None:
+        customer_commands = [
+            types.BotCommand("send_to_users", "Рассылка пользователям")
+        ]
+        user_commands = [
+            types.BotCommand("start", "Регистрация"),
+            # types.BotCommand("save_chat_id", "Специальная команда"),
+            types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
+            types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
+            types.BotCommand("get_all_items", "Список всех отслеживаемых товаров")
+        ]
+
+        customer_scope = types.BotCommandScopeChat(chat_id = core_models.ParserUser.get_customer().telegram_chat_id)
+        user_scope = types.BotCommandScopeAllPrivateChats()
+
+        self.set_my_commands(customer_commands, customer_scope)
+        self.set_my_commands(user_commands, user_scope)
 
     def start_polling(self) -> None:
         self.logger.info("Telegram bot is running")
@@ -345,7 +375,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 not_subscribed.append(chat_id)
         return not_subscribed
 
-    def notify_unsubscriber(self, update: telebot.types.ChatMemberUpdated) -> None:
+    def notify_unsubscriber(self, update: types.ChatMemberUpdated) -> None:
         if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES \
                 and (user := self.get_parser_user(update.from_user)) is not None:
             not_subscribed = self.check_user_subscriptions(user)
@@ -446,3 +476,63 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 self.ParseMode.MARKDOWN,
                 disable_web_page_preview = True
             )
+
+    def send_to_users(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.send_message(
+            user.telegram_chat_id,
+            "Введите сообщение, которое хотите отправить."
+        )
+        self.register_next_step_handler(message, self.send_to_users_step_message, user)
+
+    def send_to_users_step_message(self, message: types.Message, user: core_models.ParserUser) -> None:
+        message_to_send = bot_telegram_models.SendToUsers(user = user, telegram_message_id = message.id)
+        message_to_send.save()
+
+        self.copy_message(
+            user.telegram_chat_id,
+            user.telegram_chat_id,
+            message_to_send.telegram_message_id
+        )
+
+        send_button = types.InlineKeyboardButton("Разослать", callback_data = f"send_to_users:{message_to_send.id}")
+        cancel_button = types.InlineKeyboardButton(
+            "Отменить рассылку",
+            callback_data = f"cancel_send_to_users:{message_to_send.id}"
+        )
+        reply_markup = types.InlineKeyboardMarkup()
+        reply_markup.add(send_button, cancel_button)
+        self.send_message(
+            user.telegram_chat_id,
+            "Сообщение выше отображается также, как будет отображаться пользователям.",
+            reply_markup = reply_markup
+        )
+
+    def send_to_users_callback_send(self, callback: types.CallbackQuery) -> None:
+        message_to_send = bot_telegram_models.SendToUsers.objects.get(id = callback.data.split(':')[-1])
+
+        for user in core_models.ParserUser.objects.exclude(username = message_to_send.user):
+            self.copy_message(
+                user.telegram_chat_id,
+                message_to_send.user.telegram_chat_id,
+                message_to_send.telegram_message_id
+            )
+        message_to_send.sent = True
+        message_to_send.save()
+
+        self.edit_message_reply_markup(
+            message_to_send.user.telegram_chat_id,
+            callback.message.message_id
+        )
+        self.send_message(message_to_send.user.telegram_chat_id, "Сообщение разослано пользователям.")
+
+    def send_to_users_callback_cancel(self, callback: types.CallbackQuery) -> None:
+        message_to_send = bot_telegram_models.SendToUsers.objects.get(id = callback.data.split(':')[-1])
+        message_to_send.sent = False
+        message_to_send.save()
+
+        self.edit_message_reply_markup(
+            message_to_send.user.telegram_chat_id,
+            callback.message.message_id
+        )
+        self.send_message(message_to_send.user.telegram_chat_id, "Сообщение не будет разослано пользователям.")

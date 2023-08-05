@@ -103,16 +103,12 @@ class Parser(parser_core.Parser):
 
     def run_customer(self, division_remainder: int) -> None:
         items = [x for x in self.get_price_parser_items()
-                 # todo: return line
-                 # if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
-                 if x.vendor_code % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+                 if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
         self.run(items, True)
 
     def run_other(self, division_remainder: int) -> None:
         items = [x for x in models.Item.objects.exclude(user = core_models.ParserUser.get_customer())
-                 # todo: return line
-                 # if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
-                 if x.vendor_code % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+                 if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
         self.run(items, False)
 
     def run(self, items: list[models.Item], prepare_table: bool):
