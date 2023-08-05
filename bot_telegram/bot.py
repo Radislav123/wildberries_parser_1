@@ -274,18 +274,31 @@ class NotifierMixin(BotService):
 
 # todo: перейти с поллинга на вебхук
 class Bot(NotifierMixin, telebot.TeleBot):
+    user_commands = [
+        types.BotCommand("start", "Регистрация"),
+        types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
+        types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
+        types.BotCommand("get_all_items", "Список всех отслеживаемых товаров"),
+    ]
+    customer_commands = [
+        types.BotCommand("send_to_users", "Рассылка пользователям"),
+    ]
+    developer_commands = [
+        types.BotCommand("register_as_developer", "Сохраняет Вас как разработчика в БД"),
+        types.BotCommand("save_chat_id", "Сохраняет user_id в файл temp_chat_id.txt"),
+    ]
+    developer_commands.extend(customer_commands)
+    developer_commands.extend(user_commands)
+
     def __init__(self, token: str = None):
         if token is None:
             token = self.settings.secrets.bot_telegram.token
 
         super().__init__(token)
-        self.register_handlers()
-        self.set_commands_list()
 
     def register_handlers(self) -> None:
         # команды для пользователей
         self.message_handler(commands = ["start"])(self.start)
-        self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
 
         self.message_handler(commands = ["add_item"])(self.add_item)
         self.message_handler(commands = ["remove_item"])(self.remove_item)
@@ -300,30 +313,40 @@ class Bot(NotifierMixin, telebot.TeleBot):
             lambda callback: callback.data.startswith("cancel_send_to_users")
         )(self.send_to_users_callback_cancel)
 
+        # команды для разработчика
+        self.message_handler(commands = ["register_as_developer"])(self.register_as_developer)
+        self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
+
         # проверка отписки от каналов
         self.chat_member_handler()(self.notify_unsubscriber)
 
-    def set_commands_list(self) -> None:
-        customer_commands = [
-            types.BotCommand("send_to_users", "Рассылка пользователям")
-        ]
-        user_commands = [
-            types.BotCommand("start", "Регистрация"),
-            # types.BotCommand("save_chat_id", "Специальная команда"),
-            types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
-            types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
-            types.BotCommand("get_all_items", "Список всех отслеживаемых товаров")
-        ]
-
-        customer_scope = types.BotCommandScopeChat(chat_id = core_models.ParserUser.get_customer().telegram_chat_id)
+    def set_command_list_user(self) -> None:
         user_scope = types.BotCommandScopeAllPrivateChats()
+        self.set_my_commands(self.user_commands, user_scope)
 
-        self.set_my_commands(customer_commands, customer_scope)
-        self.set_my_commands(user_commands, user_scope)
+    def set_command_list_customer(self) -> None:
+        try:
+            customer_scope = types.BotCommandScopeChat(chat_id = core_models.ParserUser.get_customer().telegram_chat_id)
+            self.set_my_commands(self.customer_commands, customer_scope)
+        except AttributeError:
+            pass
+
+    def set_command_list_developer(self) -> None:
+        try:
+            developer_scope = types.BotCommandScopeChat(
+                chat_id = core_models.ParserUser.get_developer().telegram_chat_id
+            )
+            self.set_my_commands(self.developer_commands, developer_scope)
+        except (AttributeError, telebot.apihelper.ApiTelegramException):
+            pass
 
     def start_polling(self) -> None:
+        self.register_handlers()
+        self.set_command_list_user()
+        self.set_command_list_customer()
+        self.set_command_list_developer()
+
         self.logger.info("Telegram bot is running")
-        # todo: перейти на polling, чтобы обрабатывать все исключения самостоятельно
         self.infinity_polling(allowed_updates = telebot.util.update_types, restart_on_change = True)
 
     @staticmethod
@@ -350,6 +373,17 @@ class Bot(NotifierMixin, telebot.TeleBot):
             text = "Вы зарегистрированы."
 
         self.send_message(user.telegram_chat_id, text)
+
+    def register_as_developer(self, message: types.Message) -> None:
+        developer = core_models.ParserUser.get_developer()
+        developer.telegram_user_id = message.from_user.id
+        developer.telegram_chat_id = message.chat.id
+        developer.save()
+        self.set_command_list_developer()
+        self.send_message(
+            developer.telegram_chat_id,
+            "Вы зарегистрированы как разработчик"
+        )
 
     def save_chat_id(self, message: types.Message) -> None:
         with open("temp_chat_id.txt", 'w') as file:
@@ -395,17 +429,27 @@ class Bot(NotifierMixin, telebot.TeleBot):
             )
 
     def add_item(self, message: types.Message) -> None:
-        # todo: запускать парсинги для обычных пользователей и для заказчика раздельно
-        # todo: добавить ограничение на 10 одновременно отслеживаемых товаров
-        # todo: добавить скрипт, удаляющий записи старше недели всех пользователей, кроме заказчика
         user = self.get_parser_user(message.from_user)
 
-        item = parser_price_models.Item(user = user)
-        self.register_next_step_handler(message, self.add_item_step_name, user, item)
-        self.send_message(
-            user.telegram_chat_id,
-            "Введите свое название для товара."
-        )
+        current_items = parser_price_models.Item.objects.filter(user = user)
+        if len(current_items) > self.settings.MAX_ITEMS:
+            self.send_message(
+                user.telegram_chat_id,
+                self.Formatter.join(
+                    [
+                        f"У Вас уже отслеживается товаров: {len(current_items)}.",
+                        "Удалите лишние товары, чтобы добавить новый."
+                    ]
+                ),
+                self.ParseMode.MARKDOWN
+            )
+        else:
+            new_item = parser_price_models.Item(user = user)
+            self.register_next_step_handler(message, self.add_item_step_name, user, new_item)
+            self.send_message(
+                user.telegram_chat_id,
+                "Введите свое название для товара."
+            )
 
     def add_item_step_name(
             self,

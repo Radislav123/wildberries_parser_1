@@ -17,3 +17,8 @@ class Settings(settings.Settings):
         }
         self.CHANNEL_SUBSCRIPTION_STATUSES = ["creator", "administrator", "member"]
         self.CHANNEL_NON_SUBSCRIPTION_STATUSES = ["left"]
+
+        # количество последних разосланных сообщений пользователям, хранимых в БД
+        self.SEND_TO_USER_KEEP_AMOUNT = 50
+        # максимальное количество отслеживаемых товаров для пользователя
+        self.MAX_ITEMS = 1

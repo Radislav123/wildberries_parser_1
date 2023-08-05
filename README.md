@@ -66,7 +66,7 @@
            [*parser_price/settings.py*](parser_price/settings.py) или [*parser_position/settings.py*](parser_position/settings.py)
         2) пример - `python parse.py prices true --collect-only`
 3) для создания в административной панели пользователя с правами администратора необходимо выполнить
-   [*core/management/commands/create_admin_user.py*](core/management/commands/create_admin_user.py)
+   [*core/management/commands/create_special_users.py*](core/management/commands/create_special_users.py)
     1) `python manage.py create_admin_user`
     2) администраторские логин и пароль по умолчанию находятся в [*secrets/admin_panel/admin_user.json*](secrets/admin_panel/customer_user.json)
 4) скачать excel-файл - открыть таблицу в панели администратора => отметить галочкой необходимые объекты => в поле `Action` выбрать `Download ... excel` =>

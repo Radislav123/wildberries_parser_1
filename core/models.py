@@ -77,12 +77,19 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
     telegram_user_id = models.PositiveIntegerField("Telegram user_id", null = True)
     telegram_chat_id = models.PositiveIntegerField("Telegram chat_id", null = True)
     _customer: "ParserUser" = None
+    _developer: "ParserUser" = None
 
     @classmethod
     def get_customer(cls) -> Self:
         if cls._customer is None:
             cls._customer = cls.objects.get(username = cls.settings.secrets.customer_user.username)
         return cls._customer
+
+    @classmethod
+    def get_developer(cls) -> Self:
+        if cls._developer is None:
+            cls._developer = cls.objects.get(username = cls.settings.secrets.developer_user.username)
+        return cls._developer
 
 
 class Parsing(CoreModel):
