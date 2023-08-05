@@ -347,7 +347,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.set_command_list_developer()
 
         self.logger.info("Telegram bot is running")
-        self.infinity_polling(allowed_updates = telebot.util.update_types, restart_on_change = True)
+        self.infinity_polling(allowed_updates = telebot.util.update_types)
 
     @staticmethod
     def get_parser_user(telegram_user: types.User) -> core_models.ParserUser | None:
