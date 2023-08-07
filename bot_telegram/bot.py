@@ -9,6 +9,11 @@ from parser_price import models as parser_price_models
 from . import models as bot_telegram_models, settings
 
 
+Subscriptions = dict[int, tuple[str, str]]
+
+SUBSCRIPTION_TEXT = "Чтобы пользоваться ботом, подпишитесь на каналы."
+
+
 class BotTelegramException(Exception):
     pass
 
@@ -279,6 +284,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
         types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
         types.BotCommand("get_all_items", "Список всех отслеживаемых товаров"),
+        types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
     ]
     customer_commands = [
         types.BotCommand("send_to_users", "Рассылка пользователям"),
@@ -305,6 +311,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.message_handler(commands = ["add_item"])(self.add_item)
         self.message_handler(commands = ["remove_item"])(self.remove_item)
         self.message_handler(commands = ["get_all_items"])(self.get_all_items)
+        self.message_handler(commands = ["check_subscriptions"])(self.check_subscriptions)
 
         # команды для заказчика
         self.message_handler(commands = ["send_to_users"])(self.send_to_users)
@@ -368,41 +375,46 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 telegram_chat_id = message.chat.id
             )
             text = ["Вы уже были зарегистрированы. Повторная регистрация невозможна"]
+            reply_markup = []
         except core_models.ParserUser.DoesNotExist:
             user = core_models.ParserUser(
                 telegram_user_id = message.from_user.id,
                 telegram_chat_id = message.chat.id
             )
             user.save()
-            not_subscribed = self.get_needed_subscriptions(user)
             text = [
-                *self.construct_subscriptions_text(not_subscribed),
+                SUBSCRIPTION_TEXT,
                 "",
-                "После того, как Вы подпишитесь,",
-                "Вы сможете отслеживать изменения цен и СПП.",
+                "После того, как подпишитесь, сможете отслеживать изменения цен и СПП.",
                 "",
                 f"На данный момент вы можете отслеживать до {self.settings.MAX_USER_ITEMS} товаров."
             ]
+            not_subscribed = self.get_needed_subscriptions(user)
+            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
 
         self.send_message(
             user.telegram_chat_id,
             self.Formatter.join(text),
-            self.ParseMode.MARKDOWN
+            self.ParseMode.MARKDOWN,
+            reply_markup = reply_markup
         )
 
     @staticmethod
-    def check_subscriptions(function: Callable) -> Callable:
+    def subscription_filter(function: Callable) -> Callable:
         def wrapper(self: "Bot", message: types.Message, *args, **kwargs):
             user = self.get_parser_user(message.from_user)
             not_subscribed = self.get_needed_subscriptions(user)
+            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
+
             if len(not_subscribed) > 0:
                 self.send_message(
                     user.telegram_chat_id,
-                    self.Formatter.join(self.construct_subscriptions_text(not_subscribed)),
-                    self.ParseMode.MARKDOWN
+                    self.Formatter.join([SUBSCRIPTION_TEXT]),
+                    self.ParseMode.MARKDOWN,
+                    reply_markup = reply_markup
                 )
             else:
-                return function(*args, **kwargs)
+                return function(self, message, *args, **kwargs)
 
         return wrapper
 
@@ -442,11 +454,11 @@ class Bot(NotifierMixin, telebot.TeleBot):
         text = "Идентификатор чата сохранен."
         self.send_message(message.chat.id, text)
 
-    # чтобы бот корректно мог проверять подписки, он должен быть администратором канала
+    # чтобы бот мог корректно проверять подписки, он должен быть администратором канала
     # https://core.telegram.org/bots/api#getchatmember
-    def get_needed_subscriptions(self, user: core_models.ParserUser) -> list[int]:
-        not_subscribed = []
-        for chat_id in self.settings.NEEDED_SUBSCRIPTIONS:
+    def get_needed_subscriptions(self, user: core_models.ParserUser) -> Subscriptions:
+        not_subscribed = {}
+        for chat_id, data in self.settings.NEEDED_SUBSCRIPTIONS.items():
             subscribed = False
             try:
                 telegram_user = self.get_chat_member(chat_id, user.telegram_user_id)
@@ -456,33 +468,30 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 pass
 
             if not subscribed:
-                not_subscribed.append(chat_id)
+                not_subscribed[chat_id] = data
         return not_subscribed
 
     def notify_unsubscriber(self, update: types.ChatMemberUpdated) -> None:
         if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES \
                 and (user := self.get_parser_user(update.from_user)) is not None:
+            text = [SUBSCRIPTION_TEXT]
             not_subscribed = self.get_needed_subscriptions(user)
-            text = self.construct_subscriptions_text(not_subscribed)
+            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
             self.send_message(
                 user.telegram_chat_id,
                 self.Formatter.join(text),
-                self.ParseMode.MARKDOWN
+                self.ParseMode.MARKDOWN,
+                reply_markup = reply_markup
             )
 
-    def construct_subscriptions_text(self, not_subscribed: list[int]) -> list[str]:
-        if len(not_subscribed) == 1:
-            link = self.Formatter.link('канал', self.settings.NEEDED_SUBSCRIPTIONS[not_subscribed[0]])
-            text = [f"Подпишитесь на {link}, чтобы пользоваться ботом."]
-        else:
-            text = [
-                f"Подпишитесь на каналы, чтобы пользоваться ботом:",
-                *[self.Formatter.link(f"канал {index}", self.settings.NEEDED_SUBSCRIPTIONS[x])
-                  for index, x in enumerate(not_subscribed, 1)]
-            ]
-        return text
+    @staticmethod
+    def construct_subscription_buttons(not_subscribed: Subscriptions) -> list[types.InlineKeyboardButton]:
+        buttons = []
+        for _, data in not_subscribed.items():
+            buttons.append(types.InlineKeyboardButton(data[1], url = data[0]))
+        return buttons
 
-    @check_subscriptions
+    @subscription_filter
     def add_item(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
 
@@ -536,7 +545,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             self.ParseMode.MARKDOWN
         )
 
-    @check_subscriptions
+    @subscription_filter
     def remove_item(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         self.send_message(
@@ -560,7 +569,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             self.ParseMode.MARKDOWN
         )
 
-    @check_subscriptions
+    @subscription_filter
     def get_all_items(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         items = parser_price_models.Item.objects.filter(user = user)
@@ -602,8 +611,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             "Отменить рассылку",
             callback_data = f"cancel_send_to_users:{message_to_send.id}"
         )
-        reply_markup = types.InlineKeyboardMarkup()
-        reply_markup.add(send_button, cancel_button)
+        reply_markup = types.InlineKeyboardMarkup([[send_button, cancel_button]])
         self.send_message(
             user.telegram_chat_id,
             "Сообщение выше отображается также, как будет отображаться пользователям.",
@@ -638,3 +646,12 @@ class Bot(NotifierMixin, telebot.TeleBot):
             callback.message.message_id
         )
         self.send_message(message_to_send.user.telegram_chat_id, "Сообщение не будет разослано пользователям.")
+
+    @subscription_filter
+    def check_subscriptions(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(["Вы подписаны на все необходимые каналы."]),
+            self.ParseMode.MARKDOWN
+        )
