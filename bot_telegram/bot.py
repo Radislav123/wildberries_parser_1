@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Callable
 
 import telebot
 from telebot import types
@@ -286,6 +286,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
     developer_commands = [
         types.BotCommand("register_as_developer", "Сохраняет Вас как разработчика в БД"),
         types.BotCommand("save_chat_id", "Сохраняет user_id в файл temp_chat_id.txt"),
+        types.BotCommand("remove_user", "Удаляет Вас из БД бота"),
+        types.BotCommand("reset_command_list", "Сбрасывает список команд"),
     ]
     developer_commands.extend(customer_commands)
     developer_commands.extend(user_commands)
@@ -316,6 +318,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
         # команды для разработчика
         self.message_handler(commands = ["register_as_developer"])(self.register_as_developer)
         self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
+        self.message_handler(commands = ["remove_user"])(self.remove_user)
+        self.message_handler(commands = ["reset_command_list"])(self.reset_command_list)
 
         # проверка отписки от каналов
         self.chat_member_handler()(self.notify_unsubscriber)
@@ -337,7 +341,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 chat_id = core_models.ParserUser.get_developer().telegram_chat_id
             )
             self.set_my_commands(self.developer_commands, developer_scope)
-        except (AttributeError, telebot.apihelper.ApiTelegramException):
+        except (AttributeError, telebot.apihelper.ApiTelegramException, core_models.ParserUser.DoesNotExist):
             pass
 
     def start_polling(self) -> None:
@@ -363,17 +367,57 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 telegram_user_id = message.from_user.id,
                 telegram_chat_id = message.chat.id
             )
-            text = "Вы уже были зарегистрированы. Повторная регистрация невозможна"
+            text = ["Вы уже были зарегистрированы. Повторная регистрация невозможна"]
         except core_models.ParserUser.DoesNotExist:
             user = core_models.ParserUser(
                 telegram_user_id = message.from_user.id,
                 telegram_chat_id = message.chat.id
             )
             user.save()
-            text = "Вы зарегистрированы."
+            not_subscribed = self.get_needed_subscriptions(user)
+            text = [
+                *self.construct_subscriptions_text(not_subscribed),
+                "",
+                "После того, как Вы подпишитесь,",
+                "Вы сможете отслеживать изменения цен и СПП.",
+                "",
+                f"На данный момент вы можете отслеживать до {self.settings.MAX_USER_ITEMS} товаров."
+            ]
 
-        self.send_message(user.telegram_chat_id, text)
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(text),
+            self.ParseMode.MARKDOWN
+        )
 
+    @staticmethod
+    def check_subscriptions(function: Callable) -> Callable:
+        def wrapper(self: "Bot", message: types.Message, *args, **kwargs):
+            user = self.get_parser_user(message.from_user)
+            not_subscribed = self.get_needed_subscriptions(user)
+            if len(not_subscribed) > 0:
+                self.send_message(
+                    user.telegram_chat_id,
+                    self.Formatter.join(self.construct_subscriptions_text(not_subscribed)),
+                    self.ParseMode.MARKDOWN
+                )
+            else:
+                return function(*args, **kwargs)
+
+        return wrapper
+
+    def remove_user(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        items = parser_price_models.Item.objects.filter(user = user)
+        item_ids = list(items.values_list("id", flat = True))
+        prices = parser_price_models.Price.objects.filter(item_id__in = item_ids)
+        prices.delete()
+        items.delete()
+        user.delete()
+
+        self.send_message(message.chat.id, "Вы были удалены из БД бота.")
+
+    # todo: переписать, чтобы регистрировал после добавления в БД
     def register_as_developer(self, message: types.Message) -> None:
         developer = core_models.ParserUser.get_developer()
         developer.telegram_user_id = message.from_user.id
@@ -385,6 +429,12 @@ class Bot(NotifierMixin, telebot.TeleBot):
             "Вы зарегистрированы как разработчик"
         )
 
+    def reset_command_list(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        scope = types.BotCommandScopeChat(user.telegram_chat_id)
+        self.delete_my_commands(scope)
+        self.send_message(user.telegram_chat_id, "Ваш список команд сброшен.")
+
     def save_chat_id(self, message: types.Message) -> None:
         with open("temp_chat_id.txt", 'w') as file:
             file.write(f"{message.chat.id}\n")
@@ -394,7 +444,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
     # чтобы бот корректно мог проверять подписки, он должен быть администратором канала
     # https://core.telegram.org/bots/api#getchatmember
-    def check_user_subscriptions(self, user: core_models.ParserUser) -> list[int]:
+    def get_needed_subscriptions(self, user: core_models.ParserUser) -> list[int]:
         not_subscribed = []
         for chat_id in self.settings.NEEDED_SUBSCRIPTIONS:
             subscribed = False
@@ -412,27 +462,32 @@ class Bot(NotifierMixin, telebot.TeleBot):
     def notify_unsubscriber(self, update: types.ChatMemberUpdated) -> None:
         if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES \
                 and (user := self.get_parser_user(update.from_user)) is not None:
-            not_subscribed = self.check_user_subscriptions(user)
-            if len(not_subscribed) == 1:
-                link = self.Formatter.link('канал', self.settings.NEEDED_SUBSCRIPTIONS[not_subscribed[0]])
-                text = [f"Подпишитесь на {link}, чтобы пользоваться ботом."]
-            else:
-                text = [
-                    f"Подпишитесь на каналы, чтобы пользоваться ботом:",
-                    *[self.Formatter.link(f"канал {index}", self.settings.NEEDED_SUBSCRIPTIONS[x])
-                      for index, x in enumerate(not_subscribed, 1)]
-                ]
+            not_subscribed = self.get_needed_subscriptions(user)
+            text = self.construct_subscriptions_text(not_subscribed)
             self.send_message(
                 user.telegram_chat_id,
                 self.Formatter.join(text),
                 self.ParseMode.MARKDOWN
             )
 
+    def construct_subscriptions_text(self, not_subscribed: list[int]) -> list[str]:
+        if len(not_subscribed) == 1:
+            link = self.Formatter.link('канал', self.settings.NEEDED_SUBSCRIPTIONS[not_subscribed[0]])
+            text = [f"Подпишитесь на {link}, чтобы пользоваться ботом."]
+        else:
+            text = [
+                f"Подпишитесь на каналы, чтобы пользоваться ботом:",
+                *[self.Formatter.link(f"канал {index}", self.settings.NEEDED_SUBSCRIPTIONS[x])
+                  for index, x in enumerate(not_subscribed, 1)]
+            ]
+        return text
+
+    @check_subscriptions
     def add_item(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
 
         current_items = parser_price_models.Item.objects.filter(user = user)
-        if len(current_items) > self.settings.MAX_ITEMS:
+        if len(current_items) > self.settings.MAX_USER_ITEMS:
             self.send_message(
                 user.telegram_chat_id,
                 self.Formatter.join(
@@ -481,6 +536,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             self.ParseMode.MARKDOWN
         )
 
+    @check_subscriptions
     def remove_item(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         self.send_message(
@@ -504,6 +560,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             self.ParseMode.MARKDOWN
         )
 
+    @check_subscriptions
     def get_all_items(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         items = parser_price_models.Item.objects.filter(user = user)
@@ -521,6 +578,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 disable_web_page_preview = True
             )
 
+    # todo: сделать рассылку постепенной, чтобы не превышать ограничения Телеграмма
     def send_to_users(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         self.send_message(
