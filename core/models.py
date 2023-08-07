@@ -91,6 +91,14 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
             cls._developer = cls.objects.get(username = cls.settings.secrets.developer_user.username)
         return cls._developer
 
+    def get_default_username(self) -> str:
+        return f"user_{self.id}"
+
+    def save(self, *args, **kwargs) -> None:
+        if self.username == "" or self.username is None:
+            self.username = self.get_default_username()
+        super().save(*args, **kwargs)
+
 
 class Parsing(CoreModel):
     date = models.DateField("Дата парсинга", auto_now_add = True)
