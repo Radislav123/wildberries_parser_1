@@ -95,9 +95,11 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
         return f"user_{self.id}"
 
     def save(self, *args, **kwargs) -> None:
+        super().save(*args, **kwargs)
         if self.username == "" or self.username is None:
             self.username = self.get_default_username()
-        super().save(*args, **kwargs)
+        # для сохранения username с выданным id (не None)
+        super().save()
 
 
 class Parsing(CoreModel):
