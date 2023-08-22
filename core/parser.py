@@ -3,9 +3,11 @@ import logging
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.driver_cache import DriverCacheManager
 
 import logger
 from . import models, settings
+import pathlib
 
 
 class UnsuccessfulParsing(Exception):
@@ -35,9 +37,8 @@ class Parser:
         options.add_argument("--window-size=1920,1080")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
-        # todo: реализовать сохранение драйверов в папку проекта (раньше был параметр path)
-        # https://github.com/SergeyPirogov/webdriver_manager/issues/594
-        driver_manager = ChromeDriverManager().install()
+        cache_manager = DriverCacheManager(root_dir = pathlib.Path.cwd())
+        driver_manager = ChromeDriverManager(cache_manager = cache_manager).install()
         service = Service(executable_path = driver_manager)
 
         self.driver = Chrome(options = options, service = service)

@@ -4,9 +4,11 @@ import time
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.driver_cache import DriverCacheManager
 
 from pages import LogInPage
 from parser_price.management.commands import parser_price_command
+import pathlib
 
 
 class Command(parser_price_command.ParserPriceCommand):
@@ -17,9 +19,8 @@ class Command(parser_price_command.ParserPriceCommand):
         options = ChromeOptions()
 
         options.add_argument("--no-sandbox")
-        # todo: реализовать сохранение драйверов в папку проекта (раньше был параметр path)
-        # https://github.com/SergeyPirogov/webdriver_manager/issues/594
-        driver_manager = ChromeDriverManager().install()
+        cache_manager = DriverCacheManager(root_dir = pathlib.Path.cwd())
+        driver_manager = ChromeDriverManager(cache_manager = cache_manager).install()
         service = Service(executable_path = driver_manager)
 
         driver = Chrome(options = options, service = service)
