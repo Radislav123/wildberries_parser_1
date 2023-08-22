@@ -35,8 +35,9 @@ class Parser:
         options.add_argument("--window-size=1920,1080")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
-        # todo: реализовать выбор версии
-        driver_manager = ChromeDriverManager(path = "", version = "114.0.5735.90").install()
+        # todo: реализовать сохранение драйверов в папку проекта (раньше был параметр path)
+        # https://github.com/SergeyPirogov/webdriver_manager/issues/594
+        driver_manager = ChromeDriverManager().install()
         service = Service(executable_path = driver_manager)
 
         self.driver = Chrome(options = options, service = service)

@@ -17,8 +17,9 @@ class Command(parser_price_command.ParserPriceCommand):
         options = ChromeOptions()
 
         options.add_argument("--no-sandbox")
-        # todo: реализовать выбор версии
-        driver_manager = ChromeDriverManager(path = "", version = "114.0.5735.90").install()
+        # todo: реализовать сохранение драйверов в папку проекта (раньше был параметр path)
+        # https://github.com/SergeyPirogov/webdriver_manager/issues/594
+        driver_manager = ChromeDriverManager().install()
         service = Service(executable_path = driver_manager)
 
         driver = Chrome(options = options, service = service)
