@@ -36,7 +36,8 @@ class Parser:
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
         # todo: реализовать выбор версии
-        driver_manager = ChromeDriverManager(path = "", version = "114.0.5735.16").install()
+        # driver_manager = ChromeDriverManager(path = "", version = "114.0.5735.16").install()
+        driver_manager = ChromeDriverManager(path = "").install()
         service = Service(executable_path = driver_manager)
 
         self.driver = Chrome(options = options, service = service)
