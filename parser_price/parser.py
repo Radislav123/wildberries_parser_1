@@ -41,13 +41,29 @@ class Parser(parser_core.Parser):
         try:
             page.sold_out.init_if_necessary()
         except TimeoutException:
-            page.price_block.open()
-            price = float("".join(page.price_block.price.text.split()[:-1]))
-            try:
-                final_price = float("".join(page.price_block.final_price.text.split()[:-1]))
-                personal_sale = int(page.price_block.personal_sale.text.split()[-1][:-1])
-            except TimeoutException:
-                final_price = float("".join(page.price_block.price.text.split()[:-1]))
+            # todo: вернуть парсинг цен
+            if False:
+                page.price_block.open()
+                price = float("".join(page.price_block.price.text.split()[:-1]))
+                try:
+                    final_price = float("".join(page.price_block.final_price.text.split()[:-1]))
+                    personal_sale = int(page.price_block.personal_sale.text.split()[-1][:-1])
+                except TimeoutException:
+                    final_price = float("".join(page.price_block.price.text.split()[:-1]))
+                    personal_sale = None
+            else:
+                # todo: убрать эти строки
+                from parsing_helper.web_elements import ExtendedWebElement
+
+                final_price_element = ExtendedWebElement(page, '//ins[@class = "price-block__final-price"]')
+                # noinspection PyStatementEffect
+                final_price_element.text
+                js_script = f"""xPathResult = document.evaluate('{final_price_element.xpath}', document);
+                                element = xPathResult.iterateNext();
+                                return element.textContent"""
+                final_price_text = self.driver.execute_script(js_script)
+                price = None
+                final_price = int("".join(final_price_text.split('\xa0')[:-1]))
                 personal_sale = None
         else:
             price = None
@@ -57,7 +73,7 @@ class Parser(parser_core.Parser):
         reviews_amount = int("".join([x for x in page.review_amount.text.split()[:-1]]))
         self.update_item_name_site(item, page)
 
-        price = models.Price(
+        price_object = models.Price(
             item = item,
             parsing = self.parsing,
             reviews_amount = reviews_amount,
@@ -69,7 +85,7 @@ class Parser(parser_core.Parser):
         item.category = models.Category.objects.get_or_create(name = page.category.text)[0]
         item.save()
 
-        return price
+        return price_object
 
     @classmethod
     def get_price_parser_item_dicts(cls) -> list[dict[str, Any]]:

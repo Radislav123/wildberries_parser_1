@@ -36,10 +36,7 @@ class ItemPage(WildberriesPage):
         self.item_header = ExtendedWebElement(self, '//div[@class = "product-page__header"]')
         self.item_brand = ExtendedWebElement(self, f"{self.item_header.xpath}/span")
         self.item_name = ExtendedWebElement(self, f"{self.item_header.xpath}/h1")
-        self.category = ExtendedWebElement(
-            self,
-            '//span[contains(@data-link, "subjectName")]'
-        )
+        self.category = ExtendedWebElement(self, '//span[contains(@data-link, "subjectName")]')
 
     @property
     def item_full_name(self) -> str:
