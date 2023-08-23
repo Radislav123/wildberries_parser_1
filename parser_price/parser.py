@@ -14,6 +14,7 @@ class Parser(parser_core.Parser):
     settings = settings.Settings()
     log_in_driver: Chrome
     bot_telegram = bot.Bot()
+    parsing_type = "price"
 
     def setup_method(self):
         super().setup_method()

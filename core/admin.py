@@ -90,7 +90,8 @@ class CoreAdmin(admin.ModelAdmin):
         # noinspection PyProtectedMember
         return tuple(field.name for field in self.model._meta.fields)
 
-    def get_user(self) -> core_models.ParserUser:
+    @staticmethod
+    def get_user() -> core_models.ParserUser:
         if not is_migration():
             # todo: добавить логику выбора пользователя
             user = core_models.ParserUser.get_customer()
@@ -125,6 +126,7 @@ class DynamicFieldAdminMixin(admin.ModelAdmin):
 
 class ParsingAdmin(CoreAdmin):
     model = core_models.Parsing
+    list_filter = ("success", "type")
 
 
 class ParserUserAdmin(CoreAdmin, UserAdmin):

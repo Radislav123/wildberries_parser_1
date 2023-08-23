@@ -114,6 +114,7 @@ class Parsing(CoreModel):
         encoder = NotParsedItemsJsonFieldEncoder,
         null = True
     )
+    type = models.CharField(null = True)
 
     def __str__(self) -> str:
         return f"{super().__str__()} at {self.time}"

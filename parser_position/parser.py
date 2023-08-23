@@ -14,6 +14,7 @@ City = dict[str, str]
 
 class Parser(parser_core.Parser):
     settings = settings.Settings()
+    parsing_type = "position"
 
     # не используется, но оставлен
     def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:

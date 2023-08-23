@@ -19,13 +19,14 @@ class Parser:
     logger: logging.Logger
     driver: Chrome
     parsing: models.Parsing
+    parsing_type: str = None
 
     @classmethod
     def setup_class(cls):
         cls.logger = logger.Logger(cls.settings.APP_NAME)
 
     def setup_method(self):
-        self.parsing = models.Parsing()
+        self.parsing = models.Parsing(type = self.parsing_type)
         self.parsing.save()
         self.logger.info("Start")
 
