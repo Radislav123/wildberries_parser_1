@@ -227,10 +227,11 @@ class NotifierMixin(BotService):
                 text = [
                     *self.construct_start_block(notification),
                     "",
-                    *self.construct_price_block(notification),
-                    "",
-                    *self.construct_personal_sale_block(notification),
-                    "",
+                    # todo: return 4 lines
+                    # *self.construct_price_block(notification),
+                    # "",
+                    # *self.construct_personal_sale_block(notification),
+                    # "",
                     *self.construct_final_price_block(notification),
                     "",
                     *self.construct_final_block()
@@ -245,10 +246,11 @@ class NotifierMixin(BotService):
                 text = [
                     *self.construct_start_block(notification),
                     "",
-                    *self.construct_price_block(notification),
-                    "",
-                    *self.construct_no_personal_sale_block(),
-                    "",
+                    # todo: return 4 lines
+                    # *self.construct_price_block(notification),
+                    # "",
+                    # *self.construct_no_personal_sale_block(),
+                    # "",
                     *self.construct_final_price_block(notification),
                     "",
                     *self.construct_final_block()
@@ -264,15 +266,18 @@ class NotifierMixin(BotService):
                 disable_web_page_preview = True
             )
 
-            # дублируется сообщение для другого пользователя по просьбе заказчика
-            # user_id заказчика
-            if notification.new.item.user.telegram_user_id == 245207096:
-                self.send_message(
-                    5250931949,
-                    text,
-                    self.ParseMode.MARKDOWN,
-                    disable_web_page_preview = True
-                )
+            try:
+                # дублируется сообщение для другого пользователя по просьбе заказчика
+                # user_id заказчика
+                if notification.new.item.user.telegram_user_id == 245207096:
+                    self.send_message(
+                        5250931949,
+                        text,
+                        self.ParseMode.MARKDOWN,
+                        disable_web_page_preview = True
+                    )
+            except telebot.apihelper.ApiTelegramException as error:
+                self.logger.info(str(error))
 
     send_message = telebot.TeleBot.send_message
 

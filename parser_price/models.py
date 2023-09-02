@@ -106,24 +106,29 @@ class Price(ParserPriceModel):
             ).exclude(id = new_price.id).order_by("parsing__time").last()
             sold_oud, no_personal_sale = new_price.check_for_notification()
 
-            if old_price is not None and \
-                    not (new_price.price is None or new_price.final_price is None or new_price.personal_sale is None):
-                if new_price.price is not None and old_price.price is not None:
-                    price_changing = new_price.price - old_price.price
-                else:
-                    if new_price.price is None or old_price.price is None:
-                        price_changing = 0
+            old_algorithm = False
+            if old_algorithm:
+                if old_price is not None and not (new_price.price is None
+                                                  or new_price.final_price is None or new_price.personal_sale is None):
+                    if new_price.price is not None and old_price.price is not None:
+                        price_changing = new_price.price - old_price.price
                     else:
-                        price_changing = None
-                if new_price.personal_sale is not None and old_price.personal_sale is not None:
-                    personal_sale_changing = new_price.personal_sale - old_price.personal_sale
-                else:
-                    if new_price.personal_sale is None or old_price.personal_sale is None:
-                        personal_sale_changing = 0
+                        if new_price.price is None or old_price.price is None:
+                            price_changing = 0
+                        else:
+                            price_changing = None
+                    if new_price.personal_sale is not None and old_price.personal_sale is not None:
+                        personal_sale_changing = new_price.personal_sale - old_price.personal_sale
                     else:
-                        personal_sale_changing = None
+                        if new_price.personal_sale is None or old_price.personal_sale is None:
+                            personal_sale_changing = 0
+                        else:
+                            personal_sale_changing = None
 
-                if (price_changing != 0 or personal_sale_changing != 0) or (sold_oud or no_personal_sale):
+                    if (price_changing != 0 or personal_sale_changing != 0) or (sold_oud or no_personal_sale):
+                        notifications.append(cls.Notification(new_price, old_price, sold_oud, no_personal_sale))
+            else:
+                if new_price.final_price != old_price.final_price and new_price.final_price is not None and old_price.final_price is not None:
                     notifications.append(cls.Notification(new_price, old_price, sold_oud, no_personal_sale))
 
         return notifications
