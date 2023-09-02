@@ -97,16 +97,22 @@ class Price(ParserPriceModel):
     @classmethod
     def get_notifications(cls, new_prices: list["Price"]) -> list[Notification]:
         notifications: list[cls.Notification] = []
+        # todo: remove old_algorithm
+        old_algorithm = False
 
         for new_price in new_prices:
-            old_price = cls.objects.filter(
-                item = new_price.item,
-                price__isnull = False,
-                personal_sale__isnull = False
-            ).exclude(id = new_price.id).order_by("parsing__time").last()
+            if old_algorithm:
+                old_price = cls.objects.filter(
+                    item = new_price.item,
+                    price__isnull = False,
+                    personal_sale__isnull = False
+                ).exclude(id = new_price.id).order_by("parsing__time").last()
+            else:
+                old_price = cls.objects.filter(
+                    item = new_price.item
+                ).exclude(id = new_price.id).order_by("parsing__time").last()
             sold_oud, no_personal_sale = new_price.check_for_notification()
 
-            old_algorithm = False
             if old_algorithm:
                 if old_price is not None and not (new_price.price is None
                                                   or new_price.final_price is None or new_price.personal_sale is None):
