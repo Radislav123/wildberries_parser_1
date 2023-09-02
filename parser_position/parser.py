@@ -113,20 +113,21 @@ class Parser(parser_core.Parser):
     def get_position_parser_keywords(cls) -> list[models.Keyword]:
         item_dicts = cls.get_position_parser_item_dicts()
         # создание отсутствующих товаров в БД
-        # noinspection PyStatementEffect
-        [
-            models.Item.objects.get_or_create(
+        items = {
+            x["vendor_code"]: models.Item.objects.get_or_create(
                 vendor_code = x["vendor_code"],
                 user = core_models.ParserUser.get_customer()
             )[0] for x in item_dicts
-        ]
+        }
 
-        keywords = [models.Keyword.objects.update_or_create(
-            item__vendor_code = x["vendor_code"],
-            item__user = core_models.ParserUser.get_customer(),
-            value = x["keyword"],
-            defaults = {"item_name": x["name"]}
-        )[0] for x in item_dicts]
+        keywords = [
+            models.Keyword.objects.update_or_create(
+                item = items[x["vendor_code"]],
+                item__user = core_models.ParserUser.get_customer(),
+                value = x["keyword"],
+                defaults = {"item_name": x["name"]}
+            )[0] for x in item_dicts
+        ]
         return keywords
 
     # todo: переделать распараллеливание по образу парсера цен?
