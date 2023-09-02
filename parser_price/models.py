@@ -128,7 +128,8 @@ class Price(ParserPriceModel):
                     if (price_changing != 0 or personal_sale_changing != 0) or (sold_oud or no_personal_sale):
                         notifications.append(cls.Notification(new_price, old_price, sold_oud, no_personal_sale))
             else:
-                if new_price.final_price != old_price.final_price and new_price.final_price is not None and old_price.final_price is not None:
+                if new_price is not None and old_price is not None and new_price.final_price != old_price.final_price \
+                        and new_price.final_price is not None and old_price.final_price is not None:
                     notifications.append(cls.Notification(new_price, old_price, sold_oud, no_personal_sale))
 
         return notifications
