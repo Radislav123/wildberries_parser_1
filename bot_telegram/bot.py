@@ -4,6 +4,7 @@ from typing import Any, Callable
 
 import telebot
 from telebot import types
+from telebot.apihelper import ApiTelegramException
 
 import logger
 from core import models as core_models
@@ -276,7 +277,7 @@ class NotifierMixin(BotService):
                             self.ParseMode.MARKDOWN,
                             disable_web_page_preview = True
                         )
-                except telebot.apihelper.ApiTelegramException as error:
+                except ApiTelegramException as error:
                     self.logger.info(str(error))
                 self.send_message(
                     core_models.ParserUser.get_developer().telegram_chat_id,
@@ -359,7 +360,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 chat_id = core_models.ParserUser.get_developer().telegram_chat_id
             )
             self.set_my_commands(self.developer_commands, developer_scope)
-        except (AttributeError, telebot.apihelper.ApiTelegramException, core_models.ParserUser.DoesNotExist):
+        except (AttributeError, ApiTelegramException, core_models.ParserUser.DoesNotExist):
             pass
 
     def start_polling(self) -> None:
@@ -475,7 +476,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 telegram_user = self.get_chat_member(chat_id, user.telegram_user_id)
                 if telegram_user.status in self.settings.CHANNEL_SUBSCRIPTION_STATUSES:
                     subscribed = True
-            except telebot.apihelper.ApiTelegramException:
+            except ApiTelegramException:
                 pass
 
             if not subscribed:
@@ -635,11 +636,15 @@ class Bot(NotifierMixin, telebot.TeleBot):
         for user_batch in [users[x:x + self.settings.BROADCAST_MESSAGE_LIMIT]
                            for x in range(0, len(users), self.settings.BROADCAST_MESSAGE_LIMIT)]:
             for user in user_batch:
-                self.copy_message(
-                    user.telegram_chat_id,
-                    message_to_send.user.telegram_chat_id,
-                    message_to_send.telegram_message_id
-                )
+                try:
+                    self.copy_message(
+                        user.telegram_chat_id,
+                        message_to_send.user.telegram_chat_id,
+                        message_to_send.telegram_message_id
+                    )
+                except ApiTelegramException as error:
+                    if error.error_code == 403 and "bot was blocked by the user" in error.description:
+                        pass
             time.sleep(1)
         message_to_send.sent = True
         message_to_send.save()
