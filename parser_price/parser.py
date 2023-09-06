@@ -41,6 +41,7 @@ class Parser(parser_core.Parser):
 
     def parse_item(self, item: models.Item) -> models.Price:
         page = ItemPage(self, item.vendor_code)
+        page.reset_cookies()
         page.open()
         price = self.parce_price(page)
 

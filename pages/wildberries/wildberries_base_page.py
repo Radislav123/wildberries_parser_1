@@ -41,8 +41,12 @@ class WildberriesPage(BasePage):
         # noinspection PyTypeChecker
         return cls(driver)
 
-    def transfer_cookies(self, donor_driver: Chrome):
+    def transfer_cookies(self, donor_driver: Chrome) -> None:
         self.open()
         for cookie in donor_driver.get_cookies():
             self.driver.add_cookie(cookie)
+        self.open()
+
+    def reset_cookies(self) -> None:
+        self.driver.delete_all_cookies()
         self.open()
