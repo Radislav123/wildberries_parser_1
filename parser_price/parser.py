@@ -6,7 +6,7 @@ from selenium.webdriver import Chrome, ChromeOptions, Remote
 
 from bot_telegram import bot
 from core import models as core_models, parser as parser_core
-from pages import ItemPage
+from pages import ItemPage, MainPage
 from . import models, settings
 
 
@@ -44,6 +44,9 @@ class Parser(parser_core.Parser):
         page.reset_cookies()
         page.open()
         price = self.parce_price(page)
+
+        # открывается другая страница, чтобы selenium не взял данные с прошлого экземпляра ItemPage
+        MainPage(self).open()
 
         # страница создается второй раз, чтобы все элементы создались заново (StaleElementReferenceException)
         page = ItemPage(self, item.vendor_code)

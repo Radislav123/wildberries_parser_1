@@ -61,14 +61,18 @@ class Price(ParserPriceModel):
         obj = cls.objects.filter(
             item = item,
             parsing__date = date
-        ).order_by("parsing__time").last()
+            # parsing__time -> id потому что у разработчика время на машине отличается от того,
+            # на которой происходит парсинг
+        ).order_by("id").last()
         return obj
 
     def check_for_notification(self) -> tuple[bool, bool]:
         sold_out = True
         no_personal_sale = True
 
-        previous_prices = self.__class__.objects.filter(item = self.item).order_by("parsing__time")
+        # parsing__time -> id потому что у разработчика время на машине отличается от того,
+        # на которой происходит парсинг
+        previous_prices = self.__class__.objects.filter(item = self.item).order_by("id")
         check_depth = len(previous_prices) - self.settings.NOTIFICATION_CHECK_DEPTH - 1
         if check_depth < 0:
             check_depth = 0
@@ -103,7 +107,9 @@ class Price(ParserPriceModel):
                 item = new_price.item,
                 price__isnull = False,
                 personal_sale__isnull = False
-            ).exclude(id = new_price.id).order_by("parsing__time").last()
+                # parsing__time -> id потому что у разработчика время на машине отличается от того,
+                # на которой происходит парсинг
+            ).exclude(id = new_price.id).order_by("id").last()
             sold_oud, no_personal_sale = new_price.check_for_notification()
 
             if old_price is not None and not (new_price.price is None
@@ -158,7 +164,9 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
         old_object_ids = list(cls.objects.filter(price__item__in = items).values_list("id", flat = True))
 
         new_objects: dict[Item, Self] = {
-            item: cls(price = Price.objects.filter(item = item).order_by("parsing__time").last()) for item in items
+            # parsing__time -> id потому что у разработчика время на машине отличается от того,
+            # на которой происходит парсинг
+            item: cls(price = Price.objects.filter(item = item).order_by("id").last()) for item in items
         }
 
         today = datetime.date.today()

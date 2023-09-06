@@ -74,7 +74,9 @@ class Position(ParserPositionModel):
         obj = cls.objects.filter(
             keyword = keyword,
             parsing__date = date
-        ).order_by("parsing__time").last()
+            # parsing__time -> id потому что у разработчика время на машине отличается от того,
+            # на которой происходит парсинг
+        ).order_by("id").last()
         return obj
 
     def movement_from(self, other: "Position") -> int:
@@ -117,7 +119,9 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
 
         new_objects: dict[Keyword, Self] = {
             keyword: cls(
-                position = Position.objects.filter(keyword = keyword, city = city).order_by("parsing__time").last()
+                # parsing__time -> id потому что у разработчика время на машине отличается от того,
+                # на которой происходит парсинг
+                position = Position.objects.filter(keyword = keyword, city = city).order_by("id").last()
             ) for keyword in keywords
         }
 

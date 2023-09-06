@@ -225,66 +225,69 @@ class NotifierMixin(BotService):
         return [f"{self.Token.NO_PERSONAL_SALE} Скидка постоянного покупателя отсутствует"]
 
     def notify(self, notifications: list[parser_price_models.Price.Notification]) -> None:
-        for notification in notifications:
-            if not notification.sold_out and not notification.no_personal_sale:
-                text = [
-                    *self.construct_start_block(notification),
-                    "",
-                    *self.construct_price_block(notification),
-                    "",
-                    *self.construct_personal_sale_block(notification),
-                    "",
-                    *self.construct_final_price_block(notification),
-                    "",
-                    *self.construct_final_block()
-                ]
-            elif notification.sold_out:
-                text = [
-                    *self.construct_start_block(notification),
-                    "",
-                    *self.construct_sold_out_block()
-                ]
-            elif notification.no_personal_sale:
-                text = [
-                    *self.construct_start_block(notification),
-                    "",
-                    *self.construct_price_block(notification),
-                    "",
-                    *self.construct_no_personal_sale_block(),
-                    "",
-                    *self.construct_final_price_block(notification),
-                    "",
-                    *self.construct_final_block()
-                ]
-            else:
-                raise WrongNotificationTypeException()
+        limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
+        for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
+            for notification in notification_batch:
+                if not notification.sold_out and not notification.no_personal_sale:
+                    text = [
+                        *self.construct_start_block(notification),
+                        "",
+                        *self.construct_price_block(notification),
+                        "",
+                        *self.construct_personal_sale_block(notification),
+                        "",
+                        *self.construct_final_price_block(notification),
+                        "",
+                        *self.construct_final_block()
+                    ]
+                elif notification.sold_out:
+                    text = [
+                        *self.construct_start_block(notification),
+                        "",
+                        *self.construct_sold_out_block()
+                    ]
+                elif notification.no_personal_sale:
+                    text = [
+                        *self.construct_start_block(notification),
+                        "",
+                        *self.construct_price_block(notification),
+                        "",
+                        *self.construct_no_personal_sale_block(),
+                        "",
+                        *self.construct_final_price_block(notification),
+                        "",
+                        *self.construct_final_block()
+                    ]
+                else:
+                    raise WrongNotificationTypeException()
 
-            text = self.Formatter.join(text)
-            if platform.node() != self.settings.secrets.developer.pc_name:
-                self.send_message(
-                    notification.new.item.user.telegram_chat_id,
-                    text,
-                    self.ParseMode.MARKDOWN,
-                    disable_web_page_preview = True
-                )
-            else:
-                try:
-                    # дублируется сообщение для другого пользователя по просьбе заказчика
-                    if notification.new.item.user == core_models.ParserUser.get_customer():
-                        self.send_message(
-                            5250931949,
-                            text,
-                            self.ParseMode.MARKDOWN,
-                            disable_web_page_preview = True
-                        )
-                except ApiTelegramException as error:
-                    self.logger.info(str(error))
-                self.send_message(
-                    core_models.ParserUser.get_developer().telegram_chat_id,
-                    text,
-                    self.ParseMode.MARKDOWN,
-                    disable_web_page_preview = True
-                )
+                text = self.Formatter.join(text)
+                if platform.node() != self.settings.secrets.developer.pc_name:
+                    self.send_message(
+                        notification.new.item.user.telegram_chat_id,
+                        text,
+                        self.ParseMode.MARKDOWN,
+                        disable_web_page_preview = True
+                    )
+                else:
+                    try:
+                        # дублируется сообщение для другого пользователя по просьбе заказчика
+                        if notification.new.item.user == core_models.ParserUser.get_customer():
+                            self.send_message(
+                                5250931949,
+                                text,
+                                self.ParseMode.MARKDOWN,
+                                disable_web_page_preview = True
+                            )
+                    except ApiTelegramException as error:
+                        self.logger.info(str(error))
+                    self.send_message(
+                        core_models.ParserUser.get_developer().telegram_chat_id,
+                        text,
+                        self.ParseMode.MARKDOWN,
+                        disable_web_page_preview = True
+                    )
+            time.sleep(1)
 
     send_message = telebot.TeleBot.send_message
 
@@ -633,8 +636,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
         message_to_send = bot_telegram_models.SendToUsers.objects.get(id = callback.data.split(':')[-1])
 
         users = list(core_models.ParserUser.objects.exclude(username = message_to_send.user))
-        for user_batch in [users[x:x + self.settings.BROADCAST_MESSAGE_LIMIT]
-                           for x in range(0, len(users), self.settings.BROADCAST_MESSAGE_LIMIT)]:
+        for user_batch in [users[x:x + self.settings.API_MESSAGES_PER_SECOND_LIMIT]
+                           for x in range(0, len(users), self.settings.API_MESSAGES_PER_SECOND_LIMIT)]:
             for user in user_batch:
                 try:
                     self.copy_message(
