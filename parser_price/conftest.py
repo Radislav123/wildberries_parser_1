@@ -14,6 +14,5 @@ def pytest_generate_tests(metafunc: Metafunc):
     metafunc.function: FunctionDefinition
     metafunc.parametrize(
         "division_remainder",
-        [pytest.param(x, marks = pytest.mark.xdist_group(x))
-         for x in range(settings.PYTEST_XDIST_WORKER_COUNT)]
+        [pytest.param(x, marks = pytest.mark.xdist_group(x)) for x in range(settings.PYTEST_XDIST_WORKER_COUNT)]
     )

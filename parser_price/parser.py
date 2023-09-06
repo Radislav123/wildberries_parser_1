@@ -29,49 +29,32 @@ class Parser(parser_core.Parser):
         return driver
 
     @staticmethod
-    def update_item_name_site(item: models.Item, page: ItemPage) -> None:
-        item.name_site = page.item_full_name
-        item.save()
+    def parce_price(page: ItemPage) -> float | None:
+        if page.check_sold_out():
+            price = None
+        else:
+            try:
+                price = page.get_price()
+            except TimeoutException:
+                price = None
+        return price
 
-    def parse_price(self, item: models.Item) -> models.Price:
+    def parse_item(self, item: models.Item) -> models.Price:
         page = ItemPage(self, item.vendor_code)
         page.open()
+        price = self.parce_price(page)
+
+        # страница создается второй раз, чтобы все элементы создались заново (StaleElementReferenceException)
+        page = ItemPage(self, item.vendor_code)
         page.transfer_cookies(self.log_in_driver)
+        page.open()
+        final_price = self.parce_price(page)
 
-        try:
-            page.sold_out.init_if_necessary()
-        except TimeoutException:
-            # todo: вернуть парсинг цен
-            if False:
-                page.price_block.open()
-                price = float("".join(page.price_block.price.text.split()[:-1]))
-                try:
-                    final_price = float("".join(page.price_block.final_price.text.split()[:-1]))
-                    personal_sale = int(page.price_block.personal_sale.text.split()[-1][:-1])
-                except TimeoutException:
-                    final_price = float("".join(page.price_block.price.text.split()[:-1]))
-                    personal_sale = None
-            else:
-                # todo: убрать эти строки
-                from parsing_helper.web_elements import ExtendedWebElement
-
-                final_price_element = ExtendedWebElement(page, '//ins[@class = "price-block__final-price"]')
-                # noinspection PyStatementEffect
-                final_price_element.text
-                js_script = f"""xPathResult = document.evaluate('{final_price_element.xpath}', document);
-                                element = xPathResult.iterateNext();
-                                return element.textContent"""
-                final_price_text = self.driver.execute_script(js_script)
-                price = None
-                final_price = int("".join(final_price_text.split('\xa0')[:-1]))
-                personal_sale = None
-        else:
-            price = None
-            final_price = None
+        if price is None or final_price is None:
             personal_sale = None
-
+        else:
+            personal_sale = round((1 - (final_price / price)) * 100)
         reviews_amount = int("".join([x for x in page.review_amount.text.split()[:-1]]))
-        self.update_item_name_site(item, page)
 
         price_object = models.Price(
             item = item,
@@ -82,6 +65,7 @@ class Parser(parser_core.Parser):
             personal_sale = personal_sale
         )
 
+        item.name_site = page.get_item_full_name()
         item.category = models.Category.objects.get_or_create(name = page.category.text)[0]
         item.save()
 
@@ -133,7 +117,7 @@ class Parser(parser_core.Parser):
         prices = []
         for item in items:
             try:
-                price = self.parse_price(item)
+                price = self.parse_item(item)
                 price.save()
                 prices.append(price)
             except TimeoutException as error:
