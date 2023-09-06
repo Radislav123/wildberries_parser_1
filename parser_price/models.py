@@ -176,9 +176,7 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
         today = datetime.date.today()
         date_range = [today - datetime.timedelta(x) for x in range(cls.settings.MAX_HISTORY_DEPTH)]
 
-        for item in new_objects:
-            obj = new_objects[item]
-
+        for item, obj in new_objects.items():
             obj.prices = {}
             obj.final_prices = {}
             obj.personal_sales = {}

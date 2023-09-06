@@ -13,7 +13,7 @@
         3) выполнить миграции
             1)
            ```commandline
-           python manage.py makemigrations core parser_price parser_position
+           python manage.py makemigrations core parser_price parser_position bot_telegram
            python manage.py migrate
            ```
         4) запустить парсер вручную первый раз (первые полученные данные могут быть неверными)
@@ -21,7 +21,7 @@
             2) [*start/price_parser_customer.bat*](start/run_parser_price_customer.bat)
         5) [*настроить периодический запуск парсера*](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10)
             1) программа - `python` (19 пункт)
-            2) аргументы - `run.py positions` (20 пункт)
+            2) аргументы - `run.py positions true` (20 пункт)
             3) папка - папка проекта (21 пункт)
     3) запустить локальный сервер - раздел [*Разное*](#разное) пункт 1
         1) запуск сервера необходим для доступа к [*административной панели*](http://127.0.0.1:8000/admin/)
@@ -60,8 +60,11 @@
         1) `python parse.py positions true|false`
     2) запуск парсера цен - [*start/run_parser_price_customer.bat*](start/run_parser_price_customer.bat)
         1) `python parse.py prices true|false`
-    3) чтобы только проверить, что выбираются нужные тесты - `python parse.py prices true --collect-only`
-    4) в конце команды можно добавлять любые аргументы `pytest`
+    3) последний аргумент, принимающий значения `true|false`, отвечает за запуск парсера для заказчика или остальых пользователей
+        1) `true` - для заказчика
+        2) `false` - для остальных пользователей
+    4) чтобы только проверить, что выбираются нужные тесты - `python parse.py prices true --collect-only`
+    5) в конце команды можно добавлять любые аргументы `pytest`
         1) они перезапишут те, что определены в `PYTEST_ARGS`
            [*parser_price/settings.py*](parser_price/settings.py) или [*parser_position/settings.py*](parser_position/settings.py)
         2) пример - `python parse.py prices true --collect-only`
