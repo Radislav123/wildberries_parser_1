@@ -1,3 +1,4 @@
+import platform
 from typing import Any, Callable
 
 import telebot
@@ -259,25 +260,31 @@ class NotifierMixin(BotService):
                 raise WrongNotificationTypeException()
 
             text = self.Formatter.join(text)
-            self.send_message(
-                notification.new.item.user.telegram_chat_id,
-                text,
-                self.ParseMode.MARKDOWN,
-                disable_web_page_preview = True
-            )
-
-            try:
-                # дублируется сообщение для другого пользователя по просьбе заказчика
-                # user_id заказчика
-                if notification.new.item.user.telegram_user_id == 245207096:
-                    self.send_message(
-                        5250931949,
-                        text,
-                        self.ParseMode.MARKDOWN,
-                        disable_web_page_preview = True
-                    )
-            except telebot.apihelper.ApiTelegramException as error:
-                self.logger.info(str(error))
+            if platform.node() != self.settings.secrets.developer.pc_name:
+                self.send_message(
+                    notification.new.item.user.telegram_chat_id,
+                    text,
+                    self.ParseMode.MARKDOWN,
+                    disable_web_page_preview = True
+                )
+                try:
+                    # дублируется сообщение для другого пользователя по просьбе заказчика
+                    if notification.new.item.user == core_models.ParserUser.get_customer():
+                        self.send_message(
+                            5250931949,
+                            text,
+                            self.ParseMode.MARKDOWN,
+                            disable_web_page_preview = True
+                        )
+                except telebot.apihelper.ApiTelegramException as error:
+                    self.logger.info(str(error))
+            else:
+                self.send_message(
+                    core_models.ParserUser.get_developer().telegram_chat_id,
+                    text,
+                    self.ParseMode.MARKDOWN,
+                    disable_web_page_preview = True
+                )
 
     send_message = telebot.TeleBot.send_message
 

@@ -57,6 +57,9 @@ class Settings:
         self.BOT_TELEGRAM_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/bot_telegram"
         self.BOT_TELEGRAM_CREDENTIALS_PATH = f"{self.BOT_TELEGRAM_SECRETS_FOLDER}/credentials.json"
 
+        self.DEVELOPER_FOLDER = f"{self.SECRETS_FOLDER}/developer"
+        self.DEVELOPER_CREDENTIALS_PATH = f"{self.DEVELOPER_FOLDER}/credentials.json"
+
         # Настройки логгера
         self.LOG_FORMAT = "[%(asctime)s] - [%(levelname)s] - %(name)s -" \
                           " (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"

@@ -47,12 +47,16 @@ class SecretKeeper:
         url: str
         session_id: str
 
+    class Developer(Module):
+        pc_name: str
+
     database: Database
     customer_user: ParserUser
     developer_user: ParserUser
     geoparser: Geoparser
     bot_telegram: BotTelegram
     wildberries_log_in_driver: WildberriesLogInDriver
+    developer: Developer
 
     def __init__(self, settings: "Settings") -> None:
         self.add_module("database", settings.DATABASE_CREDENTIALS_PATH)
@@ -61,6 +65,7 @@ class SecretKeeper:
         self.add_module("geoparser", settings.GEOPARSER_CREDENTIALS_PATH)
         self.add_module("bot_telegram", settings.BOT_TELEGRAM_CREDENTIALS_PATH)
         self.add_module("wildberries_log_in_driver", settings.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH)
+        self.add_module("developer", settings.DEVELOPER_CREDENTIALS_PATH)
 
     @staticmethod
     def read_json(path: str) -> dict:
