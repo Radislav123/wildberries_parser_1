@@ -46,7 +46,11 @@ class Parser(parser_core.Parser):
         price = self.parce_price(page)
 
         # открывается другая страница, чтобы selenium не взял данные с прошлого экземпляра ItemPage
-        MainPage(self).open()
+        main_page = MainPage(self)
+        main_page.open()
+        # используется для ожидания прогрузки страницы
+        # noinspection PyStatementEffect
+        main_page.main_banner_container.text
 
         # страница создается второй раз, чтобы все элементы создались заново (StaleElementReferenceException)
         page = ItemPage(self, item.vendor_code)
