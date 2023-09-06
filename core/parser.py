@@ -20,6 +20,7 @@ class Parser:
     driver: Chrome
     parsing: models.Parsing
     parsing_type: str = None
+    headless = True
 
     @classmethod
     def setup_class(cls):
@@ -34,7 +35,8 @@ class Parser:
         # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--headless")
+        if self.headless:
+            options.add_argument("--headless")
         options.add_argument("--window-size=1920,1080")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
 

@@ -228,11 +228,10 @@ class NotifierMixin(BotService):
                 text = [
                     *self.construct_start_block(notification),
                     "",
-                    # todo: return 4 lines
-                    # *self.construct_price_block(notification),
-                    # "",
-                    # *self.construct_personal_sale_block(notification),
-                    # "",
+                    *self.construct_price_block(notification),
+                    "",
+                    *self.construct_personal_sale_block(notification),
+                    "",
                     *self.construct_final_price_block(notification),
                     "",
                     *self.construct_final_block()
@@ -247,11 +246,10 @@ class NotifierMixin(BotService):
                 text = [
                     *self.construct_start_block(notification),
                     "",
-                    # todo: return 4 lines
-                    # *self.construct_price_block(notification),
-                    # "",
-                    # *self.construct_no_personal_sale_block(),
-                    # "",
+                    *self.construct_price_block(notification),
+                    "",
+                    *self.construct_no_personal_sale_block(),
+                    "",
                     *self.construct_final_price_block(notification),
                     "",
                     *self.construct_final_block()
@@ -267,6 +265,7 @@ class NotifierMixin(BotService):
                     self.ParseMode.MARKDOWN,
                     disable_web_page_preview = True
                 )
+            else:
                 try:
                     # дублируется сообщение для другого пользователя по просьбе заказчика
                     if notification.new.item.user == core_models.ParserUser.get_customer():
@@ -278,7 +277,6 @@ class NotifierMixin(BotService):
                         )
                 except telebot.apihelper.ApiTelegramException as error:
                     self.logger.info(str(error))
-            else:
                 self.send_message(
                     core_models.ParserUser.get_developer().telegram_chat_id,
                     text,
