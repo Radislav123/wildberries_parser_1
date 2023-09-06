@@ -1,4 +1,5 @@
 import platform
+import time
 from typing import Any, Callable
 
 import telebot
@@ -597,7 +598,6 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 disable_web_page_preview = True
             )
 
-    # todo: сделать рассылку постепенной, чтобы не превышать ограничения Телеграмма
     def send_to_users(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         self.send_message(
@@ -631,12 +631,16 @@ class Bot(NotifierMixin, telebot.TeleBot):
     def send_to_users_callback_send(self, callback: types.CallbackQuery) -> None:
         message_to_send = bot_telegram_models.SendToUsers.objects.get(id = callback.data.split(':')[-1])
 
-        for user in core_models.ParserUser.objects.exclude(username = message_to_send.user):
-            self.copy_message(
-                user.telegram_chat_id,
-                message_to_send.user.telegram_chat_id,
-                message_to_send.telegram_message_id
-            )
+        users = list(core_models.ParserUser.objects.exclude(username = message_to_send.user))
+        for user_batch in [users[x:x + self.settings.BROADCAST_MESSAGE_LIMIT]
+                           for x in range(0, len(users), self.settings.BROADCAST_MESSAGE_LIMIT)]:
+            for user in user_batch:
+                self.copy_message(
+                    user.telegram_chat_id,
+                    message_to_send.user.telegram_chat_id,
+                    message_to_send.telegram_message_id
+                )
+            time.sleep(1)
         message_to_send.sent = True
         message_to_send.save()
 

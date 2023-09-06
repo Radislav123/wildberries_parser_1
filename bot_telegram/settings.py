@@ -23,3 +23,6 @@ class Settings(settings.Settings):
         self.SEND_TO_USER_KEEP_AMOUNT = 50
         # максимальное количество отслеживаемых товаров для пользователя
         self.MAX_USER_ITEMS = 10
+
+        # максимальное количество сообщений в секунду при рассылке пользователям сообщений от заказчика
+        self.BROADCAST_MESSAGE_LIMIT = 10
