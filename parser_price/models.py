@@ -93,7 +93,7 @@ class Price(ParserPriceModel):
         # не уведомлять повторно
         if sold_out and one_before and one_before.price is None:
             sold_out = False
-        if no_personal_sale and one_before and one_before.personal_sale is None:
+        if no_personal_sale and one_before and one_before.personal_sale is None and one_before.personal_sale == 0:
             no_personal_sale = False
 
         return sold_out, no_personal_sale
