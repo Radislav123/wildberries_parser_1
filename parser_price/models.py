@@ -85,7 +85,7 @@ class Price(ParserPriceModel):
             one_before = None
 
         for previous_price in previous_prices:
-            if previous_price.personal_sale is not None:
+            if previous_price.personal_sale is not None and previous_price.personal_sale != 0:
                 no_personal_sale = False
             if previous_price.price is not None:
                 sold_out = False

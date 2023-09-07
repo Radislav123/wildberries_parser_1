@@ -10,11 +10,11 @@ class Settings(settings.Settings):
     def __init__(self):
         super().__init__()
 
-        # порядок отображение динамических полей в административной панели
+        # порядок отображения динамических полей в административной панели
         self.DYNAMIC_FIELDS_ORDER = ["final_price", "price", "personal_sale"]
 
         # количество цен просматриваемых для проверок оповещений
-        self.NOTIFICATION_CHECK_DEPTH = 5
+        self.NOTIFICATION_CHECK_DEPTH = 3
 
         # количество парсингов пользователей, хранимых для пользователей
         self.USER_HISTORY_DEPTH = 10

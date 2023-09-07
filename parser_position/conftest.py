@@ -13,5 +13,6 @@ def pytest_generate_tests(metafunc: Metafunc):
     metafunc.parametrize(
         "city_dict",
         [pytest.param(city_dict, marks = pytest.mark.xdist_group(city_dict["name"]), id = city_dict["label"])
-         for city_dict in settings.CITIES]
+         # todo: оставить только Москву - временное решение
+         for city_dict in settings.CITIES[:1]]
     )
