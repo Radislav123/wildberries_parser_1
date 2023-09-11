@@ -97,35 +97,48 @@ class BotService:
             return "\n".join([cls.escape(string) for string in text])
 
     class Wildberries:
-        dest: str = None
-        regions: str = None
+        _dest: str = None
+        _regions: str = None
 
         def __init__(self, bot: "BotService") -> None:
             self.bot = bot
 
-            if self.dest is None or self.regions is None:
-                options = ChromeOptions()
-                # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
-                options.add_argument("--no-sandbox")
-                options.add_argument("--disable-blink-features=AutomationControlled")
-                options.add_argument("--headless")
-                options.add_argument("--window-size=1920,1080")
-                options.add_experimental_option("excludeSwitches", ["enable-logging"])
+        def prepare(self) -> None:
+            self.bot.logger.info("Preparing wildberries attributes.")
+            driver_options = ChromeOptions()
+            # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
+            driver_options.add_argument("--no-sandbox")
+            driver_options.add_argument("--disable-blink-features=AutomationControlled")
+            driver_options.add_argument("--headless")
+            driver_options.add_argument("--window-size=1920,1080")
+            driver_options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
-                cache_manager = DriverCacheManager(root_dir = pathlib.Path.cwd())
-                driver_manager = ChromeDriverManager(cache_manager = cache_manager).install()
-                service = Service(executable_path = driver_manager)
+            cache_manager = DriverCacheManager(root_dir = pathlib.Path.cwd())
+            driver_manager = ChromeDriverManager(cache_manager = cache_manager).install()
+            driver_service = Service(executable_path = driver_manager)
 
-                bot.driver = Chrome(options = options, service = service)
-                bot.driver.maximize_window()
-                bot.driver.execute_cdp_cmd("Network.setCacheDisabled", {"cacheDisabled": True})
+            self.bot.driver = Chrome(options = driver_options, service = driver_service)
+            self.bot.driver.maximize_window()
+            self.bot.driver.execute_cdp_cmd("Network.setCacheDisabled", {"cacheDisabled": True})
 
-                # noinspection PyTypeChecker
-                main_page = MainPage(self.bot)
-                main_page.open()
-                self.dest, self.regions = main_page.set_city(self.bot.settings.MOSCOW_CITY_DICT)
+            # noinspection PyTypeChecker
+            main_page = MainPage(self.bot)
+            main_page.open()
+            self._dest, self._regions = main_page.set_city(self.bot.settings.MOSCOW_CITY_DICT)
 
-                bot.driver.quit()
+            self.bot.driver.quit()
+
+        @property
+        def dest(self) -> str:
+            if self._dest is None:
+                self.prepare()
+            return self._dest
+
+        @property
+        def regions(self) -> str:
+            if self._regions is None:
+                self.prepare()
+            return self._regions
 
     settings = settings.Settings()
 

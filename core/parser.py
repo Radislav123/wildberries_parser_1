@@ -32,20 +32,20 @@ class Parser:
         self.parsing.not_parsed_items = {}
         self.logger.info("Start")
 
-        options = ChromeOptions()
+        driver_options = ChromeOptions()
         # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-blink-features=AutomationControlled")
+        driver_options.add_argument("--no-sandbox")
+        driver_options.add_argument("--disable-blink-features=AutomationControlled")
         if self.headless:
-            options.add_argument("--headless")
-        options.add_argument("--window-size=1920,1080")
-        options.add_experimental_option("excludeSwitches", ["enable-logging"])
+            driver_options.add_argument("--headless")
+        driver_options.add_argument("--window-size=1920,1080")
+        driver_options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
         cache_manager = DriverCacheManager(root_dir = pathlib.Path.cwd())
         driver_manager = ChromeDriverManager(cache_manager = cache_manager).install()
-        service = Service(executable_path = driver_manager)
+        driver_service = Service(executable_path = driver_manager)
 
-        self.driver = Chrome(options = options, service = service)
+        self.driver = Chrome(options = driver_options, service = driver_service)
         self.driver.maximize_window()
         self.driver.execute_cdp_cmd("Network.setCacheDisabled", {"cacheDisabled": True})
 
