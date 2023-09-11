@@ -48,16 +48,9 @@ class Parser(parser_core.Parser):
                 price_object.save()
                 price_objects.append(price_object)
 
-                part = item.vendor_code // 1000
-                vol = part // 100
-                for basket in range(1, 99):
-                    category_url = (f"https://basket-{str(basket).rjust(2, '0')}.wb.ru/vol{vol}"
-                                    f"/part{part}/{item.vendor_code}/info/ru/card.json")
-                    category_response = requests.get(category_url)
-                    if category_response.status_code == 200:
-                        category_name = category_response.json()["subj_name"]
-                        item.category = models.Category.objects.get_or_create(name = category_name)[0]
-                        break
+                item.category = models.Category.objects.get_or_create(
+                    name = service.get_category_name(item.vendor_code)
+                )[0]
                 item.name_site = f"{item_dict['brand']} / {item_dict['name']}"
                 item.save()
             except Exception as error:

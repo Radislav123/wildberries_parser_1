@@ -147,6 +147,32 @@ class NotifierMixin(BotService):
                 break
         return ownership
 
+    def construct_header(
+            self,
+            category_name: str | None,
+            vendor_code: int,
+            name_site: str,
+            name: str | None,
+            link: str
+    ) -> list[str]:
+        block = []
+        if category_name is not None:
+            block.append(
+                f"{parser_price_models.Category.get_field_verbose_name('name')}:"
+                f" {category_name}"
+            )
+
+        link_string = self.Formatter.link(name_site, link)
+        block.extend(
+            [
+                f"{parser_price_models.Item.get_field_verbose_name('name_site')}: {link_string}",
+                f"{parser_price_models.Item.get_field_verbose_name('vendor_code')}: {vendor_code}"
+            ]
+        )
+        if name is not None:
+            block.append(f"{parser_price_models.Item.get_field_verbose_name('name')}: {name}")
+        return block
+
     def construct_start_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
         if self.check_ownership(notification.new):
             block = [self.Token.OWNERSHIP]
@@ -154,21 +180,18 @@ class NotifierMixin(BotService):
             block = []
 
         if notification.new.item.category is not None:
-            block.append(
-                f"{notification.new.item.category.get_field_verbose_name('name')}:"
-                f" {notification.new.item.category.name}"
-            )
+            category_name = notification.new.item.category.name
+        else:
+            category_name = None
 
-        link_string = self.Formatter.link(
-            notification.new.item.name_site,
-            notification.new.item.link
-        )
         block.extend(
-            [
-                f"{notification.new.item.get_field_verbose_name('name_site')}: {link_string}",
-                f"{notification.new.item.get_field_verbose_name('vendor_code')}: {notification.new.item.vendor_code}",
-                f"{notification.new.item.get_field_verbose_name('name')}: {notification.new.item.name}"
-            ]
+            self.construct_header(
+                category_name,
+                notification.new.item.vendor_code,
+                notification.new.item.name_site,
+                notification.new.item.name,
+                notification.new.item.link
+            )
         )
 
         return block
@@ -557,7 +580,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         )
 
     def parse_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
-        vendor_code = message.text
+        vendor_code = int(message.text)
         # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
         request_personal_sale = 99
         url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
@@ -565,18 +588,34 @@ class Bot(NotifierMixin, telebot.TeleBot):
                f"&nm={vendor_code}")
         response = requests.get(url)
         item_dict = list(response.json()["data"]["products"])[0]
+        category_name = service.get_category_name(vendor_code)
+        name_site = service.get_name_site(item_dict)
         price, final_price, personal_sale = service.get_price(item_dict)
         if personal_sale is None:
             personal_sale = 0
+
+        block = self.construct_header(
+            category_name,
+            vendor_code,
+            name_site,
+            None,
+            parser_price_models.Item(vendor_code = vendor_code).link
+        )
+        block.extend(
+            [
+                "",
+                f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}: {price}",
+                f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
+                f" {final_price}",
+                f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
+                f" {personal_sale}",
+                ""
+            ]
+        )
+        block.extend(self.construct_final_block())
         self.send_message(
             user.telegram_chat_id,
-            self.Formatter.join(
-                [
-                    f"Цена: {price}",
-                    f"Финальная цена: {final_price}",
-                    f"СПП: {personal_sale}"
-                ]
-            ),
+            self.Formatter.join(block),
             self.ParseMode.MARKDOWN
         )
 

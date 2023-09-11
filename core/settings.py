@@ -72,7 +72,7 @@ class Settings:
         if "PYTEST_XDIST_WORKER_COUNT" in os.environ:
             self.PYTEST_XDIST_WORKER_COUNT = int(os.environ["PYTEST_XDIST_WORKER_COUNT"])
         else:
-            self.PYTEST_XDIST_WORKER_COUNT = None
+            self.PYTEST_XDIST_WORKER_COUNT = 1
 
         self.PYTEST_ARGS = [
             # путь до тестов
