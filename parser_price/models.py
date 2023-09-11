@@ -66,7 +66,7 @@ class Price(ParserPriceModel):
         ).order_by("id").last()
         return obj
 
-    def check_for_notification(self) -> tuple[bool, bool]:
+    def check_price(self) -> tuple[bool, bool]:
         sold_out = True
         no_personal_sale = True
 
@@ -85,7 +85,7 @@ class Price(ParserPriceModel):
             one_before = None
 
         for previous_price in previous_prices:
-            if previous_price.personal_sale is not None and previous_price.personal_sale != 0:
+            if previous_price.personal_sale is not None:
                 no_personal_sale = False
             if previous_price.price is not None:
                 sold_out = False
@@ -93,7 +93,7 @@ class Price(ParserPriceModel):
         # не уведомлять повторно
         if sold_out and one_before and one_before.price is None:
             sold_out = False
-        if no_personal_sale and one_before and one_before.personal_sale is None and one_before.personal_sale == 0:
+        if no_personal_sale and one_before and one_before.personal_sale is None:
             no_personal_sale = False
 
         return sold_out, no_personal_sale
@@ -105,12 +105,12 @@ class Price(ParserPriceModel):
         for new_price in new_prices:
             old_price = cls.objects.filter(
                 item = new_price.item,
-                price__isnull = False,
-                personal_sale__isnull = False
+                # price__isnull = False,
+                # personal_sale__isnull = False
                 # parsing__time -> id потому что у разработчика время на машине отличается от того,
                 # на которой происходит парсинг
             ).exclude(id = new_price.id).order_by("id").last()
-            sold_oud, no_personal_sale = new_price.check_for_notification()
+            sold_oud, no_personal_sale = new_price.check_price()
 
             if old_price is not None and not (new_price.price is None
                                               or new_price.final_price is None or new_price.personal_sale is None):

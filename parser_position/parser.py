@@ -130,7 +130,6 @@ class Parser(parser_core.Parser):
         ]
         return keywords
 
-    # todo: добавить сохранение ошибок и продолжение парсинга при ошибке по образу парсера цен
     def run_customer(self, city_dict: City) -> None:
         main_page = MainPage(self)
         main_page.open()
@@ -139,8 +138,11 @@ class Parser(parser_core.Parser):
         city_dict["regions"] = regions
         keywords = self.get_position_parser_keywords()
         for keyword in keywords:
-            position = self.find_position(city_dict, keyword)
-            position.save()
+            try:
+                position = self.find_position(city_dict, keyword)
+                position.save()
+            except Exception as error:
+                self.parsing.not_parsed_items[keyword.item] = error
 
         models.PreparedPosition.prepare(keywords, city_dict["name"])
 

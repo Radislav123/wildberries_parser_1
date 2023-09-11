@@ -1,10 +1,10 @@
+import logging
 from typing import Self, TYPE_CHECKING
 
 from parsing_helper.pages import BasePage
 from selenium.webdriver import Chrome
 from selenium.webdriver.remote.webdriver import BaseWebDriver
 
-import logging
 
 if TYPE_CHECKING:
     from core.parser import Parser
@@ -18,15 +18,7 @@ class WildberriesPage(BasePage):
 
     # todo: перевести страницы из web_helper на использование parser и BaseWebDriver
     def __init__(self, parser: "Parser"):
-        if not isinstance(parser, BaseWebDriver):
-            # todo: use parsing_helper.base_page.BasePage.parser
-            self.parser = parser
-            # todo: use parsing_helper.base_page.BasePage.settings
-            self.settings = self.parser.settings
-            # todo: use parsing_helper.base_page.BasePage.logger
-            self.logger = self.parser.logger
-            super().__init__(self.parser.driver)
-        else:
+        if isinstance(parser, BaseWebDriver):
             # todo: use parsing_helper.base_page.BasePage.parser
             self.parser = None
             # todo: use parsing_helper.base_page.BasePage.settings
@@ -35,6 +27,14 @@ class WildberriesPage(BasePage):
             self.logger: logging.Logger = None
             # parser == driver
             super().__init__(parser)
+        else:
+            # todo: use parsing_helper.base_page.BasePage.parser
+            self.parser = parser
+            # todo: use parsing_helper.base_page.BasePage.settings
+            self.settings = self.parser.settings
+            # todo: use parsing_helper.base_page.BasePage.logger
+            self.logger = self.parser.logger
+            super().__init__(self.parser.driver)
 
     @classmethod
     def create_without_parser(cls, driver: Chrome) -> Self:

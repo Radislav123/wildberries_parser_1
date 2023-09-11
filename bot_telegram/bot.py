@@ -1,13 +1,20 @@
+import pathlib
 import platform
 import time
 from typing import Any, Callable
 
+import requests
 import telebot
+from selenium.webdriver import Chrome, ChromeOptions
+from selenium.webdriver.chrome.service import Service
 from telebot import types
 from telebot.apihelper import ApiTelegramException
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.driver_cache import DriverCacheManager
 
 import logger
-from core import models as core_models
+from core import models as core_models, service
+from pages import MainPage
 from parser_price import models as parser_price_models
 from . import models as bot_telegram_models, settings
 
@@ -89,11 +96,43 @@ class BotService:
         def join(cls, text: list[str]) -> str:
             return "\n".join([cls.escape(string) for string in text])
 
+    class Wildberries:
+        dest: str = None
+        regions: str = None
+
+        def __init__(self, bot: "BotService") -> None:
+            self.bot = bot
+
+            if self.dest is None or self.regions is None:
+                options = ChromeOptions()
+                # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
+                options.add_argument("--no-sandbox")
+                options.add_argument("--disable-blink-features=AutomationControlled")
+                options.add_argument("--headless")
+                options.add_argument("--window-size=1920,1080")
+                options.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+                cache_manager = DriverCacheManager(root_dir = pathlib.Path.cwd())
+                driver_manager = ChromeDriverManager(cache_manager = cache_manager).install()
+                service = Service(executable_path = driver_manager)
+
+                bot.driver = Chrome(options = options, service = service)
+                bot.driver.maximize_window()
+                bot.driver.execute_cdp_cmd("Network.setCacheDisabled", {"cacheDisabled": True})
+
+                # noinspection PyTypeChecker
+                main_page = MainPage(self.bot)
+                main_page.open()
+                self.dest, self.regions = main_page.set_city(self.bot.settings.MOSCOW_CITY_DICT)
+
+                bot.driver.quit()
+
     settings = settings.Settings()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logger.Logger(self.settings.APP_NAME)
+        self.wildberries = self.Wildberries(self)
 
 
 class NotifierMixin(BotService):
@@ -296,6 +335,7 @@ class NotifierMixin(BotService):
 class Bot(NotifierMixin, telebot.TeleBot):
     user_commands = [
         types.BotCommand("start", "Регистрация"),
+        types.BotCommand("parse_item", "Получить цену товара"),
         types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
         types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
         types.BotCommand("get_all_items", "Список всех отслеживаемых товаров"),
@@ -322,7 +362,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
     def register_handlers(self) -> None:
         # команды для пользователей
         self.message_handler(commands = ["start"])(self.start)
-
+        self.message_handler(commands = ["parse_item"])(self.parse_item)
         self.message_handler(commands = ["add_item"])(self.add_item)
         self.message_handler(commands = ["remove_item"])(self.remove_item)
         self.message_handler(commands = ["get_all_items"])(self.get_all_items)
@@ -421,7 +461,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
             not_subscribed = self.get_needed_subscriptions(user)
             reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
 
-            if len(not_subscribed) > 0:
+            if (user != core_models.ParserUser.get_customer() and user != core_models.ParserUser.get_developer()
+                    and len(not_subscribed) > 0):
                 self.send_message(
                     user.telegram_chat_id,
                     self.Formatter.join([SUBSCRIPTION_TEXT]),
@@ -505,6 +546,39 @@ class Bot(NotifierMixin, telebot.TeleBot):
         for _, data in not_subscribed.items():
             buttons.append(types.InlineKeyboardButton(data[1], url = data[0]))
         return buttons
+
+    @subscription_filter
+    def parse_item(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.register_next_step_handler(message, self.parse_item_step_vendor_code, user)
+        self.send_message(
+            user.telegram_chat_id,
+            "Введите артикул товара."
+        )
+
+    def parse_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
+        vendor_code = message.text
+        # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
+        request_personal_sale = 99
+        url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
+               f"&dest={self.wildberries.dest}&regions={self.wildberries.regions}&spp={request_personal_sale}"
+               f"&nm={vendor_code}")
+        response = requests.get(url)
+        item_dict = list(response.json()["data"]["products"])[0]
+        price, final_price, personal_sale = service.get_price(item_dict)
+        if personal_sale is None:
+            personal_sale = 0
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(
+                [
+                    f"Цена: {price}",
+                    f"Финальная цена: {final_price}",
+                    f"СПП: {personal_sale}"
+                ]
+            ),
+            self.ParseMode.MARKDOWN
+        )
 
     @subscription_filter
     def add_item(self, message: types.Message) -> None:

@@ -5,7 +5,7 @@ import requests
 from selenium.webdriver import Chrome
 
 from bot_telegram import bot
-from core import models as core_models, parser as parser_core
+from core import models as core_models, parser as parser_core, service
 from pages import MainPage
 from . import models, settings
 
@@ -35,19 +35,7 @@ class Parser(parser_core.Parser):
         for item in items:
             try:
                 item_dict: dict = item_dicts[item.vendor_code]
-                if "basicPriceU" not in item_dict["extended"]:
-                    price = None
-                    final_price = None
-                    personal_sale = None
-                else:
-                    price = item_dict["extended"]["basicPriceU"]
-                    final_price = item_dict["salePriceU"]
-                    if price == final_price:
-                        personal_sale = None
-                    else:
-                        personal_sale = int(item_dict["extended"]["clientSale"])
-                    price = int(price) / 100
-                    final_price = int(final_price) / 100
+                price, final_price, personal_sale = service.get_price(item_dict)
 
                 price_object = models.Price(
                     item = item,
@@ -114,7 +102,7 @@ class Parser(parser_core.Parser):
         self.run(items, False)
 
     def run(self, items: list[models.Item], prepare_table: bool) -> None:
-        city_dict = [x for x in self.settings.CITIES if x["label"].lower() == "moscow"][0]
+        city_dict = self.settings.MOSCOW_CITY_DICT
         main_page = MainPage(self)
         main_page.open()
         dest, regions = main_page.set_city(city_dict)
@@ -126,14 +114,3 @@ class Parser(parser_core.Parser):
 
         if prepare_table:
             models.PreparedPrice.prepare(items)
-        if len(self.parsing.not_parsed_items) > 0:
-            self.logger.info(f"Not parsed items: {self.parsing.not_parsed_items}")
-            self.parsing.success = False
-            self.parsing.save()
-
-            exception = parser_core.UnsuccessfulParsing(*list(self.parsing.not_parsed_items.values()))
-            raise exception from exception.args[-1]
-        else:
-            self.parsing.not_parsed_items = None
-            self.parsing.success = True
-            self.parsing.save()

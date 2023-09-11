@@ -36,22 +36,27 @@ class DateKeyJsonFieldDecoder(json.JSONDecoder):
 class NotParsedItemsJsonFieldEncoder(DjangoJSONEncoder):
     def dump_value(self, value) -> dict:
         if isinstance(value, BaseException):
-            tb = []
-            for i in traceback.format_exception(value):
-                tb.extend(i.split('\n'))
-
-            # noinspection PyUnresolvedReferences
-            obj = {
-                "class": str(type(value)),
-                "message": value.msg,
-                "args": value.args,
-                "cause": value.__cause__,
-                "traceback": tb
-            }
+            obj = self.dump_exception(value)
         elif isinstance(value, dict):
             obj = value
         else:
             obj = {super().default(value): ""}
+        return obj
+
+    @staticmethod
+    def dump_exception(exception: BaseException) -> dict:
+        tb = []
+        for i in traceback.format_exception(exception):
+            tb.extend(i.split('\n'))
+
+        # noinspection PyUnresolvedReferences
+        obj = {
+            "class": str(type(exception)),
+            "message": str(exception),
+            "args": exception.args,
+            "cause": exception.__cause__,
+            "traceback": tb
+        }
         return obj
 
     def encode(self, o: Any) -> str:
