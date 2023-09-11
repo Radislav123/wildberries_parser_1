@@ -1,12 +1,12 @@
 from typing import Any
 
 import openpyxl
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver import Chrome, ChromeOptions, Remote
+import requests
+from selenium.webdriver import Chrome
 
 from bot_telegram import bot
 from core import models as core_models, parser as parser_core
-from pages import ItemPage, MainPage
+from pages import MainPage
 from . import models, settings
 
 
@@ -16,68 +16,66 @@ class Parser(parser_core.Parser):
     bot_telegram = bot.Bot()
     parsing_type = "price"
 
-    def setup_method(self):
-        super().setup_method()
-        self.log_in_driver = self.connect_log_in_driver()
+    def parse_items(
+            self,
+            items: list[models.Item],
+            dest: str,
+            regions: str
+    ) -> tuple[list[models.Price], dict[models.Item, Exception]]:
+        # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
+        request_personal_sale = 99
+        url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
+               f"&dest={dest}&regions={regions}&spp={request_personal_sale}"
+               f"&nm={';'.join([str(x.vendor_code) for x in items])}")
+        items_response = requests.get(url)
 
-    def connect_log_in_driver(self) -> Remote:
-        options = ChromeOptions()
-        options.add_argument("--headless")
-        driver = Remote(self.settings.secrets.wildberries_log_in_driver.url, options = options)
-        driver.close()
-        driver.session_id = self.settings.secrets.wildberries_log_in_driver.session_id
-        return driver
-
-    @staticmethod
-    def parce_price(page: ItemPage) -> float | None:
-        if page.check_sold_out():
-            price = None
-        else:
+        item_dicts = {x["id"]: x for x in items_response.json()["data"]["products"]}
+        price_objects = []
+        errors = {}
+        for item in items:
             try:
-                price = page.get_price()
-            except TimeoutException:
-                price = None
-        return price
+                item_dict: dict = item_dicts[item.vendor_code]
+                if "basicPriceU" not in item_dict["extended"]:
+                    price = None
+                    final_price = None
+                    personal_sale = None
+                else:
+                    price = item_dict["extended"]["basicPriceU"]
+                    final_price = item_dict["salePriceU"]
+                    if price == final_price:
+                        personal_sale = None
+                    else:
+                        personal_sale = int(item_dict["extended"]["clientSale"])
+                    price = int(price) / 100
+                    final_price = int(final_price) / 100
 
-    def parse_item(self, item: models.Item) -> models.Price:
-        page = ItemPage(self, item.vendor_code)
-        page.reset_cookies()
-        page.open()
-        price = self.parce_price(page)
+                price_object = models.Price(
+                    item = item,
+                    parsing = self.parsing,
+                    reviews_amount = int(item_dict["feedbacks"]),
+                    price = price,
+                    final_price = final_price,
+                    personal_sale = personal_sale
+                )
+                price_object.save()
+                price_objects.append(price_object)
 
-        # открывается другая страница, чтобы selenium не взял данные с прошлого экземпляра ItemPage
-        main_page = MainPage(self)
-        main_page.open()
-        # используется для ожидания прогрузки страницы
-        # noinspection PyStatementEffect
-        main_page.main_banner_container.text
+                part = item.vendor_code // 1000
+                vol = part // 100
+                for basket in range(1, 99):
+                    category_url = (f"https://basket-{str(basket).rjust(2, '0')}.wb.ru/vol{vol}"
+                                    f"/part{part}/{item.vendor_code}/info/ru/card.json")
+                    category_response = requests.get(category_url)
+                    if category_response.status_code == 200:
+                        category_name = category_response.json()["subj_name"]
+                        item.category = models.Category.objects.get_or_create(name = category_name)[0]
+                        break
+                item.name_site = f"{item_dict['brand']} / {item_dict['name']}"
+                item.save()
+            except Exception as error:
+                errors[item] = error
 
-        # страница создается второй раз, чтобы все элементы создались заново (StaleElementReferenceException)
-        page = ItemPage(self, item.vendor_code)
-        page.transfer_cookies(self.log_in_driver)
-        page.open()
-        final_price = self.parce_price(page)
-
-        if price is None or final_price is None:
-            personal_sale = None
-        else:
-            personal_sale = round((1 - (final_price / price)) * 100)
-        reviews_amount = int("".join([x for x in page.review_amount.text.split()[:-1]]))
-
-        price_object = models.Price(
-            item = item,
-            parsing = self.parsing,
-            reviews_amount = reviews_amount,
-            price = price,
-            final_price = final_price,
-            personal_sale = personal_sale
-        )
-
-        item.name_site = page.get_item_full_name()
-        item.category = models.Category.objects.get_or_create(name = page.category.text)[0]
-        item.save()
-
-        return price_object
+        return price_objects, errors
 
     @classmethod
     def get_price_parser_item_dicts(cls) -> list[dict[str, Any]]:
@@ -86,12 +84,7 @@ class Parser(parser_core.Parser):
         item_dicts = []
         row = 2
         while sheet.cell(row, 1).value:
-            item_dicts.append(
-                {
-                    "vendor_code": sheet.cell(row, 1).value,
-                    "name": sheet.cell(row, 2).value
-                }
-            )
+            item_dicts.append({"vendor_code": sheet.cell(row, 1).value, "name": sheet.cell(row, 2).value})
             row += 1
         return item_dicts
 
@@ -120,16 +113,13 @@ class Parser(parser_core.Parser):
                  if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
         self.run(items, False)
 
-    def run(self, items: list[models.Item], prepare_table: bool):
-        self.parsing.not_parsed_items = {}
-        prices = []
-        for item in items:
-            try:
-                price = self.parse_item(item)
-                price.save()
-                prices.append(price)
-            except TimeoutException as error:
-                self.parsing.not_parsed_items[item] = error
+    def run(self, items: list[models.Item], prepare_table: bool) -> None:
+        city_dict = [x for x in self.settings.CITIES if x["label"].lower() == "moscow"][0]
+        main_page = MainPage(self)
+        main_page.open()
+        dest, regions = main_page.set_city(city_dict)
+        prices, errors = self.parse_items(items, dest, regions)
+        self.parsing.not_parsed_items = errors
 
         notifications = models.Price.get_notifications(prices)
         self.bot_telegram.notify(notifications)

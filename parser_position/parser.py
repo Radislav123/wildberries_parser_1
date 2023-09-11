@@ -130,7 +130,6 @@ class Parser(parser_core.Parser):
         ]
         return keywords
 
-    # todo: переделать распараллеливание по образу парсера цен?
     # todo: добавить сохранение ошибок и продолжение парсинга при ошибке по образу парсера цен
     def run_customer(self, city_dict: City) -> None:
         main_page = MainPage(self)
