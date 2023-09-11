@@ -1,3 +1,4 @@
+import argparse
 import random
 
 from core import models as core_models
@@ -9,9 +10,13 @@ from ...bot import Bot
 class Command(parser_price_command.ParserPriceCommand):
     help = "Отправляет тестовое оповещение"
 
+    def add_arguments(self, parser: argparse.ArgumentParser):
+        parser.add_argument("--developer", action = argparse.BooleanOptionalAction)
+        parser.add_argument("--customer", action = argparse.BooleanOptionalAction)
+
     @staticmethod
-    def construct_price() -> models.Price:
-        item = models.Item.objects.filter(user = core_models.ParserUser.get_customer()).first()
+    def construct_price(user: core_models.ParserUser) -> models.Price:
+        item = models.Item.objects.filter(user = user).first()
         parsing = core_models.Parsing.objects.first()
         price = models.Price(
             item = item,
@@ -24,10 +29,16 @@ class Command(parser_price_command.ParserPriceCommand):
         return price
 
     def handle(self, *args, **options) -> None:
+        if options["customer"]:
+            user = core_models.ParserUser.get_customer()
+        elif options["developer"]:
+            user = core_models.ParserUser.get_developer()
+        else:
+            raise ValueError("Set --customer or --developer option")
         notifications = [
             models.Price.Notification(
-                self.construct_price(),
-                self.construct_price(),
+                self.construct_price(user),
+                self.construct_price(user),
                 False,
                 False
             )

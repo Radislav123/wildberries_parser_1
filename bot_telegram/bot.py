@@ -104,7 +104,8 @@ class BotService:
             self.bot = bot
 
         def prepare(self) -> None:
-            self.bot.logger.info("Preparing wildberries attributes.")
+            self.bot.logger.info("Preparing wildberries attributes")
+
             driver_options = ChromeOptions()
             # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
             driver_options.add_argument("--no-sandbox")
@@ -337,6 +338,9 @@ class NotifierMixin(BotService):
                     raise WrongNotificationTypeException()
 
                 text = self.Formatter.join(text)
+                if (platform.node() == self.settings.secrets.developer.pc_name and
+                        notification.new.item.user == core_models.ParserUser.get_customer()):
+                    notification.new.item.user = core_models.ParserUser.get_developer()
                 if platform.node() != self.settings.secrets.developer.pc_name:
                     self.send_message(
                         notification.new.item.user.telegram_chat_id,
