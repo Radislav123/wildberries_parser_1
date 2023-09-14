@@ -108,8 +108,9 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
 
 
 class Parsing(CoreModel):
-    date = models.DateField("Дата парсинга", auto_now_add = True)
-    time = models.DateTimeField("Время парсинга", auto_now_add = True)
+    date = models.DateField("Дата начала парсинга", auto_now_add = True)
+    time = models.DateTimeField("Время начала парсинга", auto_now_add = True)
+    duration = models.DurationField("Продолжительность парсинга")
     # None - парсинг не закончен
     # True - без ошибок
     # False - с ошибками
@@ -123,6 +124,10 @@ class Parsing(CoreModel):
 
     def __str__(self) -> str:
         return f"{super().__str__()} at {self.time}"
+
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None) -> None:
+        self.duration = datetime.datetime.now() - self.time
+        super().save(force_insert, force_update, using, update_fields)
 
 
 class Item(CoreModel):

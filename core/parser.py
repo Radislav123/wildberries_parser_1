@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from selenium.webdriver import Chrome, ChromeOptions
@@ -27,7 +28,7 @@ class Parser:
         cls.logger = logger.Logger(cls.settings.APP_NAME)
 
     def setup_method(self):
-        self.parsing = models.Parsing(type = self.parsing_type)
+        self.parsing = models.Parsing(type = self.parsing_type, duration = datetime.timedelta())
         self.parsing.save()
         self.parsing.not_parsed_items = {}
         self.logger.info("Start")

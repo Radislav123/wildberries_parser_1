@@ -383,6 +383,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
     ]
     customer_commands = [
         types.BotCommand("send_to_users", "Рассылка пользователям"),
+        types.BotCommand("parse_item", "Получить цену товара"),
     ]
     developer_commands = [
         types.BotCommand("register_as_developer", "Сохраняет Вас как разработчика в БД"),
