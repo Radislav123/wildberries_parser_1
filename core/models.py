@@ -126,7 +126,11 @@ class Parsing(CoreModel):
         return f"{super().__str__()} at {self.time}"
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None) -> None:
-        self.duration = datetime.datetime.now() - self.time
+        if self.time is None:
+            time = datetime.datetime.now()
+        else:
+            time = self.time
+        self.duration = datetime.datetime.now() - time
         super().save(force_insert, force_update, using, update_fields)
 
 
