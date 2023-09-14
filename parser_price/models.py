@@ -112,8 +112,7 @@ class Price(ParserPriceModel):
             ).exclude(id = new_price.id).order_by("id").last()
             sold_oud, no_personal_sale = new_price.check_price()
 
-            if old_price is not None and not (new_price.price is None
-                                              or new_price.final_price is None or new_price.personal_sale is None):
+            if old_price is not None and not (new_price.price is None or new_price.final_price is None):
                 if new_price.price is not None and old_price.price is not None:
                     price_changing = new_price.price - old_price.price
                 else:

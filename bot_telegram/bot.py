@@ -244,28 +244,34 @@ class NotifierMixin(BotService):
 
     def construct_personal_sale_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
         block_name = notification.new.get_field_verbose_name("personal_sale")
+        new_personal_sale = notification.new.personal_sale
+        old_personal_sale = notification.old.personal_sale
+        if new_personal_sale is None:
+            new_personal_sale = 0
+        if old_personal_sale is None:
+            old_personal_sale = 0
 
-        if notification.new.personal_sale != notification.old.personal_sale:
-            if notification.new.personal_sale is not None and notification.old.personal_sale is not None:
-                if notification.new.personal_sale > notification.old.personal_sale:
+        if new_personal_sale != old_personal_sale:
+            if new_personal_sale is not None and old_personal_sale is not None:
+                if new_personal_sale > old_personal_sale:
                     emoji = self.Token.UP
                 else:
                     emoji = self.Token.DOWN
 
                 block = [
                     f"{self.Token.CHANGES_PERSONAL_SALE} {block_name} изменилась",
-                    f"{emoji} {block_name}: {notification.new.personal_sale} <==="
-                    f" {self.Formatter.strikethrough(notification.old.personal_sale)}"
-                    f" {self.Formatter.changes_repr(notification.new.personal_sale, notification.old.personal_sale)} %"
+                    f"{emoji} {block_name}: {new_personal_sale} <==="
+                    f" {self.Formatter.strikethrough(old_personal_sale)}"
+                    f" {self.Formatter.changes_repr(new_personal_sale, old_personal_sale)} %"
                 ]
             else:
                 block = [
                     f"{self.Token.CHANGES_PERSONAL_SALE} {block_name} изменилась",
-                    f"{self.Token.NO_CHANGES} {block_name}: {notification.new.personal_sale} <==="
-                    f" {self.Formatter.strikethrough(notification.old.personal_sale)} %"
+                    f"{self.Token.NO_CHANGES} {block_name}: {new_personal_sale} <==="
+                    f" {self.Formatter.strikethrough(old_personal_sale)} %"
                 ]
         else:
-            block = [f"{self.Token.NO_CHANGES} {block_name}: {notification.new.personal_sale}"]
+            block = [f"{self.Token.NO_CHANGES} {block_name}: {new_personal_sale}"]
 
         return block
 

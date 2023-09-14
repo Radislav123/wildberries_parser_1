@@ -3,6 +3,7 @@ import requests
 
 def get_price(item_dict: dict) -> tuple[float, float, int]:
     if "basicPriceU" not in item_dict["extended"]:
+        # товар распродан
         price = None
         final_price = None
         personal_sale = None
