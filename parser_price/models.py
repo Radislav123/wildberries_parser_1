@@ -66,70 +66,34 @@ class Price(ParserPriceModel):
         ).order_by("id").last()
         return obj
 
-    def check_price(self) -> tuple[bool, bool]:
-        sold_out = True
-        no_personal_sale = True
-
-        # parsing__time -> id потому что у разработчика время на машине отличается от того,
-        # на которой происходит парсинг
-        previous_prices = self.__class__.objects.filter(item = self.item).order_by("id")
-        check_depth = len(previous_prices) - self.settings.NOTIFICATION_CHECK_DEPTH - 1
-        if check_depth < 0:
-            check_depth = 0
-        previous_prices = previous_prices[check_depth:]
-
-        if len(previous_prices) >= self.settings.NOTIFICATION_CHECK_DEPTH:
-            one_before = previous_prices[0]
-            previous_prices = previous_prices[1:]
-        else:
-            one_before = None
-
-        for previous_price in previous_prices:
-            if previous_price.personal_sale is not None:
-                no_personal_sale = False
-            if previous_price.price is not None:
-                sold_out = False
-
-        # не уведомлять повторно
-        if sold_out and one_before and one_before.price is None:
-            sold_out = False
-        if no_personal_sale and one_before and one_before.personal_sale is None:
-            no_personal_sale = False
-
-        return sold_out, no_personal_sale
-
     @classmethod
     def get_notifications(cls, new_prices: list["Price"]) -> list[Notification]:
         notifications: list[cls.Notification] = []
 
         for new_price in new_prices:
-            old_price = cls.objects.filter(
-                item = new_price.item,
-                # price__isnull = False,
-                # personal_sale__isnull = False
-                # parsing__time -> id потому что у разработчика время на машине отличается от того,
-                # на которой происходит парсинг
-            ).exclude(id = new_price.id).order_by("id").last()
-            sold_oud, no_personal_sale = new_price.check_price()
+            new_sold_oud = new_price.price is None and new_price.final_price is None and new_price.personal_sale is None
+            new_no_personal_sale = new_price.personal_sale is None
 
-            if old_price is not None and not (new_price.price is None or new_price.final_price is None):
+            # parsing__time -> id потому что у разработчика время на машине отличается от того,
+            # на которой происходит парсинг
+            old_price = cls.objects.filter(item = new_price.item).exclude(id = new_price.id).order_by("id").last()
+            old_sold_oud = old_price.price is None and old_price.final_price is None and old_price.personal_sale is None
+            old_no_personal_sale = old_price.personal_sale is None
+
+            if old_price is not None:
                 if new_price.price is not None and old_price.price is not None:
                     price_changing = new_price.price - old_price.price
                 else:
-                    if new_price.price is None or old_price.price is None:
-                        price_changing = 0
-                    else:
-                        price_changing = None
+                    price_changing = 0
+
                 if new_price.personal_sale is not None and old_price.personal_sale is not None:
                     personal_sale_changing = new_price.personal_sale - old_price.personal_sale
                 else:
-                    if new_price.personal_sale is None or old_price.personal_sale is None:
-                        personal_sale_changing = 0
-                    else:
-                        personal_sale_changing = None
+                    personal_sale_changing = 0
 
-                if (price_changing != 0 or personal_sale_changing != 0) or (sold_oud or no_personal_sale):
-                    notifications.append(cls.Notification(new_price, old_price, sold_oud, no_personal_sale))
+                if (price_changing != 0 or personal_sale_changing != 0 or new_sold_oud != old_sold_oud
+                        or new_no_personal_sale != old_no_personal_sale):
+                    notifications.append(cls.Notification(new_price, old_price, new_sold_oud, new_no_personal_sale))
 
         return notifications
 

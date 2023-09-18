@@ -13,8 +13,5 @@ class Settings(settings.Settings):
         # порядок отображения динамических полей в административной панели
         self.DYNAMIC_FIELDS_ORDER = ["final_price", "price", "personal_sale"]
 
-        # количество цен просматриваемых для проверок оповещений
-        self.NOTIFICATION_CHECK_DEPTH = 1
-
         # количество парсингов пользователей, хранимых для пользователей
         self.USER_HISTORY_DEPTH = 10
