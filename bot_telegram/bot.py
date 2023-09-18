@@ -50,19 +50,47 @@ class BotService:
         OWNERSHIP = "❗❗❗"
 
     class Formatter:
-        ESCAPE_WALL = "|||"
+        ESCAPE_WALL = "|!&!|"
 
         @classmethod
         def wall(cls, data: Any) -> str:
             return f"{cls.ESCAPE_WALL}{data}{cls.ESCAPE_WALL}"
 
         @classmethod
+        def remove_walls(cls, data: Any) -> str:
+            if isinstance(data, str) and data.startswith(cls.ESCAPE_WALL) and data.endswith(cls.ESCAPE_WALL):
+                string = "".join(data.split(cls.ESCAPE_WALL))
+            else:
+                string = str(data)
+            return string
+
+        @classmethod
+        def copyable(cls, data: Any) -> str:
+            return cls.wall(f"`{cls.remove_walls(data)}`")
+
+        @classmethod
+        def underline(cls, data: Any) -> str:
+            return cls.wall(telebot.formatting.munderline(cls.remove_walls(data), escape = False))
+
+        @classmethod
+        def bold(cls, data: Any) -> str:
+            return cls.wall(telebot.formatting.mbold(cls.remove_walls(data), escape = False))
+
+        @classmethod
+        def code(cls, data: Any) -> str:
+            return cls.wall(telebot.formatting.mcode(cls.remove_walls(data), escape = False))
+
+        @classmethod
+        def spoiler(cls, data: Any) -> str:
+            return cls.wall(telebot.formatting.mspoiler(cls.remove_walls(data), escape = False))
+
+        @classmethod
         def strikethrough(cls, data: Any) -> str:
-            return cls.wall(telebot.formatting.mstrikethrough(str(data)))
+            return cls.wall(telebot.formatting.mstrikethrough(cls.remove_walls(data), escape = False))
 
         @classmethod
         def italic(cls, data: Any) -> str:
-            return cls.wall(telebot.formatting.mitalic(str(data)))
+            return cls.wall(telebot.formatting.mitalic(cls.remove_walls(data), escape = False))
 
         @classmethod
         def link(cls, data: Any, link: str) -> str:
@@ -70,8 +98,8 @@ class BotService:
 
         @classmethod
         def escape(cls, string: str) -> str:
-            # текст между "|||" не будет экранирован (cls.ESCAPE_WALL)
-            # "escaped text ||| not escaped text ||| more escaped text ||| more not escaped text ||| more escaped text"
+            # текст между cls.ESCAPE_WALL не будет экранирован
+            # "escaped text |wall| not escaped text |wall| more escaped text
             chars_to_escape = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
 
             chunks = string.split(cls.ESCAPE_WALL)
@@ -379,26 +407,34 @@ class NotifierMixin(BotService):
 
 # todo: перейти с поллинга на вебхук
 class Bot(NotifierMixin, telebot.TeleBot):
+    # общие команды
+    common_commands = [
+        types.BotCommand("parse_item", "Получить цену товара"),
+        types.BotCommand("get_chat_id", "Получить chat.id"),
+    ]
+    # команды для пользователей
     user_commands = [
         types.BotCommand("start", "Регистрация"),
-        types.BotCommand("parse_item", "Получить цену товара"),
         types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
         types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
-        types.BotCommand("get_all_items", "Список всех отслеживаемых товаров"),
+        types.BotCommand("get_all_items", "Получить список всех отслеживаемых товаров"),
         types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
     ]
+    # команды для заказчика
     customer_commands = [
         types.BotCommand("send_to_users", "Рассылка пользователям"),
-        types.BotCommand("parse_item", "Получить цену товара"),
     ]
+    # команды для разработчика
     developer_commands = [
-        types.BotCommand("register_as_developer", "Сохраняет Вас как разработчика в БД"),
-        types.BotCommand("save_chat_id", "Сохраняет user_id в файл temp_chat_id.txt"),
-        types.BotCommand("remove_user", "Удаляет Вас из БД бота"),
-        types.BotCommand("reset_command_list", "Сбрасывает список команд"),
+        types.BotCommand("register_as_developer", "Сохранить Вас как разработчика в БД"),
+        types.BotCommand("remove_user", "Удалить Вас из БД бота"),
+        types.BotCommand("reset_command_list", "Сбросить список команд"),
     ]
     developer_commands.extend(customer_commands)
     developer_commands.extend(user_commands)
+    user_commands.extend(common_commands)
+    customer_commands.extend(common_commands)
+    developer_commands.extend(common_commands)
 
     def __init__(self, token: str = None):
         if token is None:
@@ -407,9 +443,12 @@ class Bot(NotifierMixin, telebot.TeleBot):
         super().__init__(token)
 
     def register_handlers(self) -> None:
+        # общие команды
+        self.message_handler(commands = ["parse_item"])(self.parse_item)
+        self.message_handler(commands = ["get_chat_id"])(self.get_chat_id)
+
         # команды для пользователей
         self.message_handler(commands = ["start"])(self.start)
-        self.message_handler(commands = ["parse_item"])(self.parse_item)
         self.message_handler(commands = ["add_item"])(self.add_item)
         self.message_handler(commands = ["remove_item"])(self.remove_item)
         self.message_handler(commands = ["get_all_items"])(self.get_all_items)
@@ -426,7 +465,6 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
         # команды для разработчика
         self.message_handler(commands = ["register_as_developer"])(self.register_as_developer)
-        self.message_handler(commands = ["save_chat_id"])(self.save_chat_id)
         self.message_handler(commands = ["remove_user"])(self.remove_user)
         self.message_handler(commands = ["reset_command_list"])(self.reset_command_list)
 
@@ -501,6 +539,13 @@ class Bot(NotifierMixin, telebot.TeleBot):
             reply_markup = reply_markup
         )
 
+    def get_chat_id(self, message: types.Message) -> None:
+        self.send_message(
+            message.chat.id,
+            self.Formatter.join([self.Formatter.spoiler(self.Formatter.copyable(message.chat.id))]),
+            self.ParseMode.MARKDOWN
+        )
+
     @staticmethod
     def subscription_filter(function: Callable) -> Callable:
         def wrapper(self: "Bot", message: types.Message, *args, **kwargs):
@@ -550,13 +595,6 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.delete_my_commands(scope)
         self.send_message(user.telegram_chat_id, "Ваш список команд сброшен.")
 
-    def save_chat_id(self, message: types.Message) -> None:
-        with open("temp_chat_id.txt", 'w') as file:
-            file.write(f"{message.chat.id}\n")
-
-        text = "Идентификатор чата сохранен."
-        self.send_message(message.chat.id, text)
-
     # чтобы бот мог корректно проверять подписки, он должен быть администратором канала
     # https://core.telegram.org/bots/api#getchatmember
     def get_needed_subscriptions(self, user: core_models.ParserUser) -> Subscriptions:
@@ -580,12 +618,13 @@ class Bot(NotifierMixin, telebot.TeleBot):
             text = [SUBSCRIPTION_TEXT]
             not_subscribed = self.get_needed_subscriptions(user)
             reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
-            self.send_message(
-                user.telegram_chat_id,
-                self.Formatter.join(text),
-                self.ParseMode.MARKDOWN,
-                reply_markup = reply_markup
-            )
+            if platform.node() != self.settings.secrets.developer.pc_name:
+                self.send_message(
+                    user.telegram_chat_id,
+                    self.Formatter.join(text),
+                    self.ParseMode.MARKDOWN,
+                    reply_markup = reply_markup
+                )
 
     @staticmethod
     def construct_subscription_buttons(not_subscribed: Subscriptions) -> list[types.InlineKeyboardButton]:
