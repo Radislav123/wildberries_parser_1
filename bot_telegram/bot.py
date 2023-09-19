@@ -66,31 +66,31 @@ class BotService:
 
         @classmethod
         def copyable(cls, data: Any) -> str:
-            return cls.wall(f"`{cls.remove_walls(data)}`")
+            return cls.wall(f"`{str(data)}`")
 
         @classmethod
         def underline(cls, data: Any) -> str:
-            return cls.wall(telebot.formatting.munderline(cls.remove_walls(data), escape = False))
+            return cls.wall(telebot.formatting.munderline(str(data)))
 
         @classmethod
         def bold(cls, data: Any) -> str:
-            return cls.wall(telebot.formatting.mbold(cls.remove_walls(data), escape = False))
+            return cls.wall(telebot.formatting.mbold(str(data)))
 
         @classmethod
         def code(cls, data: Any) -> str:
-            return cls.wall(telebot.formatting.mcode(cls.remove_walls(data), escape = False))
+            return cls.wall(telebot.formatting.mcode(str(data)))
 
         @classmethod
         def spoiler(cls, data: Any) -> str:
-            return cls.wall(telebot.formatting.mspoiler(cls.remove_walls(data), escape = False))
+            return cls.wall(telebot.formatting.mspoiler(str(data)))
 
         @classmethod
         def strikethrough(cls, data: Any) -> str:
-            return cls.wall(telebot.formatting.mstrikethrough(cls.remove_walls(data), escape = False))
+            return cls.wall(telebot.formatting.mstrikethrough(str(data)))
 
         @classmethod
         def italic(cls, data: Any) -> str:
-            return cls.wall(telebot.formatting.mitalic(cls.remove_walls(data), escape = False))
+            return cls.wall(telebot.formatting.mitalic(str(data)))
 
         @classmethod
         def link(cls, data: Any, link: str) -> str:
@@ -130,6 +130,9 @@ class BotService:
 
         def __init__(self, bot: "BotService") -> None:
             self.bot = bot
+
+            if platform.node() != self.bot.settings.secrets.developer.pc_name:
+                self.prepare()
 
         def prepare(self) -> None:
             self.bot.logger.info("Preparing wildberries attributes")
@@ -542,7 +545,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
     def get_chat_id(self, message: types.Message) -> None:
         self.send_message(
             message.chat.id,
-            self.Formatter.join([self.Formatter.spoiler(self.Formatter.copyable(message.chat.id))]),
+            self.Formatter.join([self.Formatter.copyable(message.chat.id)]),
             self.ParseMode.MARKDOWN
         )
 
