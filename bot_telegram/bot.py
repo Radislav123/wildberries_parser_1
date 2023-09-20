@@ -131,9 +131,6 @@ class BotService:
         def __init__(self, bot: "BotService") -> None:
             self.bot = bot
 
-            if platform.node() != self.bot.settings.secrets.developer.pc_name:
-                self.prepare()
-
         def prepare(self) -> None:
             self.bot.logger.info("Preparing wildberries attributes")
 
