@@ -17,20 +17,17 @@ class UnsuccessfulParsing(Exception):
 
 class Parser:
     settings = settings.Settings()
-    logger: logging.Logger
+    logger: logging.LoggerAdapter
     driver: Chrome
     parsing: models.Parsing
     parsing_type: str = None
     headless = True
 
-    @classmethod
-    def setup_class(cls):
-        cls.logger = logger.Logger(cls.settings.APP_NAME)
-
     def setup_method(self):
         self.parsing = models.Parsing(type = self.parsing_type, duration = datetime.timedelta())
         self.parsing.save()
         self.parsing.not_parsed_items = {}
+        self.logger = logger.Logger(self.settings.APP_NAME, self.parsing.id)
         self.logger.info("Start")
 
         driver_options = ChromeOptions()

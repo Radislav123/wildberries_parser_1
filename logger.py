@@ -36,7 +36,7 @@ class Logger:
         return handler
 
     # уровни отображения логов описаны в documentation/LOGGING.md в разделе Информация о логировании
-    def __new__(cls, logger_name) -> logging.Logger:
+    def __new__(cls, logger_name: str, parsing_id: int | None) -> logging.LoggerAdapter:
         # создает папку для логов, если ее нет
         Path(cls.settings.LOG_FOLDER).mkdir(parents = True, exist_ok = True)
         logger = logging.getLogger(logger_name)
@@ -47,12 +47,13 @@ class Logger:
             # в консоль
             cls.construct_handler(cls.settings.CONSOLE_LOG_LEVEL, True)
         ]
+        logger = logging.LoggerAdapter(logger, {"parsing_id": parsing_id})
         return logger
 
 
 # для проверки логгера
 if __name__ == "__main__":
-    test_logger = Logger(__name__)
+    test_logger = Logger(__name__, None)
     print(f"logger name: {test_logger.name}")
     print(f"help: {Logger.__doc__}")
 

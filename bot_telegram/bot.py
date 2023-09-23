@@ -173,7 +173,7 @@ class BotService:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logger.Logger(self.settings.APP_NAME)
+        self.logger = logger.Logger(self.settings.APP_NAME, None)
         self.wildberries = self.Wildberries(self)
 
 
@@ -215,7 +215,7 @@ class NotifierMixin(BotService):
             block.append(f"{parser_price_models.Item.get_field_verbose_name('name')}: {name}")
         return block
 
-    def construct_start_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
+    def construct_start_block(self, notification: parser_price_models.Notification) -> list[str]:
         if self.check_ownership(notification.new):
             block = [self.Token.OWNERSHIP]
         else:
@@ -243,7 +243,7 @@ class NotifierMixin(BotService):
         return block
 
     # todo: добавить хранение и парсинг валюты
-    def construct_price_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
+    def construct_price_block(self, notification: parser_price_models.Notification) -> list[str]:
         block_name = notification.new.get_field_verbose_name("price")
 
         if notification.new.price != notification.old.price:
@@ -270,7 +270,7 @@ class NotifierMixin(BotService):
 
         return block
 
-    def construct_personal_sale_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
+    def construct_personal_sale_block(self, notification: parser_price_models.Notification) -> list[str]:
         block_name = notification.new.get_field_verbose_name("personal_sale")
         new_personal_sale = notification.new.personal_sale
         old_personal_sale = notification.old.personal_sale
@@ -303,7 +303,7 @@ class NotifierMixin(BotService):
 
         return block
 
-    def construct_final_price_block(self, notification: parser_price_models.Price.Notification) -> list[str]:
+    def construct_final_price_block(self, notification: parser_price_models.Notification) -> list[str]:
         block_name = notification.new.get_field_verbose_name("final_price")
 
         if notification.new.final_price != notification.old.final_price:
@@ -334,72 +334,80 @@ class NotifierMixin(BotService):
     def construct_no_personal_sale_block(self) -> list[str]:
         return [f"{self.Token.NO_PERSONAL_SALE} Скидка постоянного покупателя отсутствует"]
 
-    def notify(self, notifications: list[parser_price_models.Price.Notification]) -> None:
+    def notify(self, notifications: list[parser_price_models.Notification]) -> None:
         limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
         for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
             for notification in notification_batch:
-                if not notification.sold_out and not notification.no_personal_sale:
-                    text = [
-                        *self.construct_start_block(notification),
-                        "",
-                        *self.construct_price_block(notification),
-                        "",
-                        *self.construct_personal_sale_block(notification),
-                        "",
-                        *self.construct_final_price_block(notification),
-                        "",
-                        *self.construct_final_block()
-                    ]
-                elif notification.sold_out:
-                    text = [
-                        *self.construct_start_block(notification),
-                        "",
-                        *self.construct_sold_out_block()
-                    ]
-                elif notification.no_personal_sale:
-                    text = [
-                        *self.construct_start_block(notification),
-                        "",
-                        *self.construct_price_block(notification),
-                        "",
-                        *self.construct_no_personal_sale_block(),
-                        "",
-                        *self.construct_final_price_block(notification),
-                        "",
-                        *self.construct_final_block()
-                    ]
-                else:
-                    raise WrongNotificationTypeException()
+                try:
+                    if not notification.sold_out and not notification.no_personal_sale:
+                        text = [
+                            *self.construct_start_block(notification),
+                            "",
+                            *self.construct_price_block(notification),
+                            "",
+                            *self.construct_personal_sale_block(notification),
+                            "",
+                            *self.construct_final_price_block(notification),
+                            "",
+                            *self.construct_final_block()
+                        ]
+                    elif notification.sold_out:
+                        text = [
+                            *self.construct_start_block(notification),
+                            "",
+                            *self.construct_sold_out_block()
+                        ]
+                    elif notification.no_personal_sale:
+                        text = [
+                            *self.construct_start_block(notification),
+                            "",
+                            *self.construct_price_block(notification),
+                            "",
+                            *self.construct_no_personal_sale_block(),
+                            "",
+                            *self.construct_final_price_block(notification),
+                            "",
+                            *self.construct_final_block()
+                        ]
+                    else:
+                        raise WrongNotificationTypeException()
 
-                text = self.Formatter.join(text)
-                if (platform.node() == self.settings.secrets.developer.pc_name and
-                        notification.new.item.user == core_models.ParserUser.get_customer()):
-                    notification.new.item.user = core_models.ParserUser.get_developer()
-                if platform.node() != self.settings.secrets.developer.pc_name:
-                    self.send_message(
-                        notification.new.item.user.telegram_chat_id,
-                        text,
-                        self.ParseMode.MARKDOWN,
-                        disable_web_page_preview = True
-                    )
-                else:
-                    try:
-                        # дублируется сообщение для другого пользователя по просьбе заказчика
-                        if notification.new.item.user == core_models.ParserUser.get_customer():
-                            self.send_message(
-                                5250931949,
-                                text,
-                                self.ParseMode.MARKDOWN,
-                                disable_web_page_preview = True
-                            )
-                    except ApiTelegramException as error:
-                        self.logger.info(str(error))
-                    self.send_message(
-                        core_models.ParserUser.get_developer().telegram_chat_id,
-                        text,
-                        self.ParseMode.MARKDOWN,
-                        disable_web_page_preview = True
-                    )
+                    text = self.Formatter.join(text)
+                    if (platform.node() == self.settings.secrets.developer.pc_name and
+                            notification.new.item.user == core_models.ParserUser.get_customer()):
+                        notification.new.item.user = core_models.ParserUser.get_developer()
+                    if platform.node() != self.settings.secrets.developer.pc_name:
+                        self.send_message(
+                            notification.new.item.user.telegram_chat_id,
+                            text,
+                            self.ParseMode.MARKDOWN,
+                            disable_web_page_preview = True
+                        )
+                    else:
+                        try:
+                            # дублируется сообщение для другого пользователя по просьбе заказчика
+                            if notification.new.item.user == core_models.ParserUser.get_customer():
+                                self.send_message(
+                                    5250931949,
+                                    text,
+                                    self.ParseMode.MARKDOWN,
+                                    disable_web_page_preview = True
+                                )
+                        except ApiTelegramException as error:
+                            self.logger.info(str(error))
+                        self.send_message(
+                            core_models.ParserUser.get_developer().telegram_chat_id,
+                            text,
+                            self.ParseMode.MARKDOWN,
+                            disable_web_page_preview = True
+                        )
+                    notification.delivered = True
+                except Exception as error:
+                    notification.delivered = False
+                    notification.error = str(error)
+                    raise error
+                finally:
+                    notification.save()
             time.sleep(1)
 
     send_message = telebot.TeleBot.send_message

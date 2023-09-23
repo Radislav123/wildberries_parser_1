@@ -62,7 +62,7 @@ class Settings:
         self.DEVELOPER_CREDENTIALS_PATH = f"{self.DEVELOPER_FOLDER}/credentials.json"
 
         # Настройки логгера
-        self.LOG_FORMAT = "[%(asctime)s] - [%(levelname)s] - %(name)s -" \
+        self.LOG_FORMAT = "[%(asctime)s] - [%(levelname)s] - [%(parsing_id)d] - %(name)s -" \
                           " (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s"
         self.LOG_FOLDER = "logs"
         self.CONSOLE_LOG_LEVEL = logging.DEBUG

@@ -1,4 +1,3 @@
-import dataclasses
 import datetime
 from typing import Self
 
@@ -42,13 +41,6 @@ class Item(ParserPriceModel, core_models.Item):
 
 
 class Price(ParserPriceModel):
-    @dataclasses.dataclass
-    class Notification:
-        new: "Price"
-        old: "Price"
-        sold_out: bool
-        no_personal_sale: bool
-
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = Item.get_field_verbose_name("vendor_code"))
     parsing = models.ForeignKey(core_models.Parsing, models.PROTECT)
     reviews_amount = models.PositiveIntegerField("Количество отзывов")
@@ -67,8 +59,8 @@ class Price(ParserPriceModel):
         return obj
 
     @classmethod
-    def get_notifications(cls, new_prices: list["Price"]) -> list[Notification]:
-        notifications: list[cls.Notification] = []
+    def get_notifications(cls, new_prices: list["Price"]) -> list["Notification"]:
+        notifications: list[Notification] = []
 
         for new_price in new_prices:
             new_sold_oud = new_price.price is None and new_price.final_price is None and new_price.personal_sale is None
@@ -93,9 +85,26 @@ class Price(ParserPriceModel):
 
                 if (price_changing != 0 or personal_sale_changing != 0 or new_sold_oud != old_sold_oud
                         or new_no_personal_sale != old_no_personal_sale):
-                    notifications.append(cls.Notification(new_price, old_price, new_sold_oud, new_no_personal_sale))
+                    notifications.append(
+                        Notification(
+                            new = new_price,
+                            old = old_price,
+                            sold_out = new_sold_oud,
+                            no_personal_sale = new_no_personal_sale
+                        )
+                    )
+        Notification.objects.bulk_create(notifications)
 
         return notifications
+
+
+class Notification(ParserPriceModel):
+    new = models.ForeignKey(Price, models.PROTECT, related_name = "notification_set_new")
+    old = models.ForeignKey(Price, models.PROTECT, related_name = "notification_set_old")
+    sold_out = models.BooleanField()
+    no_personal_sale = models.BooleanField()
+    delivered = models.BooleanField(null = True)
+    error = models.TextField(null = True)
 
 
 class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):

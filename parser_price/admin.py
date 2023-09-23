@@ -134,14 +134,21 @@ class CategoryAdmin(ParserPriceAdmin):
 
 class ItemAdmin(ParserPriceAdmin):
     model = parser_price_models.Item
-
     list_filter = ("user", "vendor_code")
 
 
 class PriceAdmin(ParserPriceAdmin):
     model = parser_price_models.Price
-
     list_filter = ("item__user", "item")
+
+
+class NotificationAdmin(ParserPriceAdmin):
+    model = parser_price_models.Notification
+    extra_list_display = {"new__parsing__time": "new"}
+
+    @staticmethod
+    def new__parsing__time(obj: model) -> datetime.datetime:
+        return obj.new.parsing.time
 
 
 class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
@@ -207,5 +214,5 @@ class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):
         return new_queryset
 
 
-model_admins_to_register = [CategoryAdmin, ItemAdmin, PriceAdmin, PreparedPriceAdmin]
+model_admins_to_register = [CategoryAdmin, ItemAdmin, PriceAdmin, NotificationAdmin, PreparedPriceAdmin]
 core_admin.register_models(model_admins_to_register)

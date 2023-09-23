@@ -161,6 +161,7 @@ class DateCommentAdmin(ParserPositionAdmin):
 
 class ItemAdmin(ParserPositionAdmin):
     model = parser_position_models.Item
+    list_filter = ("user",)
 
 
 class KeywordAdmin(ParserPositionAdmin):
