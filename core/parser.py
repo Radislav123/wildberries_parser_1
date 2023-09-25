@@ -39,7 +39,7 @@ class Parser:
         driver_options.add_argument("--window-size=1920,1080")
         driver_options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
-        cache_manager = DriverCacheManager(root_dir = pathlib.Path.cwd())
+        cache_manager = DriverCacheManager(root_dir = f"{pathlib.Path.cwd()}/webdrivers/{self.settings.APP_NAME}")
         driver_manager = ChromeDriverManager(cache_manager = cache_manager).install()
         driver_service = Service(executable_path = driver_manager)
 
