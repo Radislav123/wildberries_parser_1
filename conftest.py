@@ -6,7 +6,7 @@ from logger import Logger
 
 
 settings = Settings()
-logger = Logger(__name__, None)
+logger = Logger(__name__)
 
 
 @pytest.fixture(autouse = True)

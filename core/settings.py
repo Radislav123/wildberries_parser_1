@@ -137,3 +137,12 @@ class Settings:
     @property
     def APP_ROOT_PATH(self) -> str:
         return os.path.abspath(f"{__file__}/../../{self.APP_NAME}")
+
+    # noinspection PyPep8Naming
+    @property
+    def PARSING_ID(self) -> int | None:
+        if "PARSING_ID" in os.environ:
+            parsing_id = int(os.environ["PARSING_ID"])
+        else:
+            parsing_id = None
+        return parsing_id

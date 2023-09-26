@@ -80,8 +80,6 @@ class CoreAdmin(admin.ModelAdmin):
     extra_list_display: dict[str, str] = {}
 
     def __init__(self, model, admin_site):
-        super().__init__(model, admin_site)
-
         self.list_display = [field for field in self._list_display if field not in self.hidden_fields]
         for field, before_field in self.extra_list_display.items():
             if before_field is None:
@@ -93,6 +91,8 @@ class CoreAdmin(admin.ModelAdmin):
             self.fieldsets += self._fieldsets
         else:
             self.fieldsets = self._fieldsets
+
+        super().__init__(model, admin_site)
 
     @property
     def _list_display(self) -> tuple:

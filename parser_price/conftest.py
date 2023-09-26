@@ -6,7 +6,7 @@ from .settings import Settings
 
 
 settings = Settings()
-logger = Logger(f"{settings.APP_NAME}_conftest", None)
+logger = Logger(f"{settings.APP_NAME}_conftest")
 
 
 def pytest_generate_tests(metafunc: Metafunc):

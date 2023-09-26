@@ -2,11 +2,13 @@ import time
 
 import requests
 from requests import JSONDecodeError
+from logger import Logger
 
 from core.settings import Settings
 
 
 settings = Settings()
+logger = Logger(f"{settings.APP_NAME}_service")
 
 
 def parse_prices(
@@ -27,7 +29,7 @@ def parse_prices(
     for vendor_code in vendor_codes:
         try:
             item_dict: dict = item_dicts[vendor_code]
-            price, final_price, personal_sale = get_price(item_dict)
+            price, final_price, personal_sale, sold_out = get_price(item_dict)
             reviews_amount = int(item_dict["feedbacks"])
             category_name = get_category_name(vendor_code)
             name_site = f"{item_dict['brand']} / {item_dict['name']}"
@@ -36,6 +38,8 @@ def parse_prices(
                 "price": price,
                 "final_price": final_price,
                 "personal_sale": personal_sale,
+                # todo: add sold_out to model
+                "sold_out": sold_out,
                 "reviews_amount": reviews_amount,
                 "category_name": category_name,
                 "name_site": name_site
@@ -46,14 +50,17 @@ def parse_prices(
     return prices, errors
 
 
-def get_price(item_dict: dict) -> tuple[float, float, int]:
-    if "basicPriceU" not in item_dict["extended"]:
-        # товар распродан
+def get_price(item_dict: dict) -> tuple[float, float, int, bool]:
+    sold_out = "wh" not in item_dict
+    if sold_out:
         price = None
         final_price = None
         personal_sale = None
     else:
-        price = item_dict["extended"]["basicPriceU"]
+        if "basicPriceU" in item_dict["extended"]:
+            price = item_dict["extended"]["basicPriceU"]
+        else:
+            price = item_dict["priceU"]
         final_price = item_dict["salePriceU"]
         if price == final_price:
             personal_sale = None
@@ -61,7 +68,7 @@ def get_price(item_dict: dict) -> tuple[float, float, int]:
             personal_sale = int(item_dict["extended"]["clientSale"])
         price = int(price) / 100
         final_price = int(final_price) / 100
-    return price, final_price, personal_sale
+    return price, final_price, personal_sale, sold_out
 
 
 def get_category_name(vendor_code: int) -> str:
@@ -79,7 +86,7 @@ def get_category_name(vendor_code: int) -> str:
     return category_name
 
 
-# todo: добавить проверку на наличие товара
+# не использовать на прямую, так как нет проверки на наличие товара
 def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> dict[str, int | list[int]]:
     try:
         page = 1
@@ -124,17 +131,22 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
 
 
 def parse_positions(
-        # {keyword: vendor_code}
-        vendor_codes: dict[str, int],
+        vendor_codes: list[int],
+        keywords: list[str],
         dest: str,
         regions: str
-) -> tuple[dict[str, dict[str, int | list[int]]], dict[int, Exception]]:
+) -> tuple[dict[tuple[int, str], dict[str, int | list[int]]], dict[int, Exception]]:
+    prices, _ = parse_prices(vendor_codes, dest, regions)
+
     positions = {}
     errors = {}
-    for keyword, vendor_code in vendor_codes.items():
+    for keyword, vendor_code in zip(keywords, vendor_codes):
         try:
-            position = parse_position(vendor_code, keyword, dest, regions)
-            positions[keyword] = position
+            if prices[vendor_code]["sold_out"]:
+                position = {"page": None, "position": None, "page_capacities": None}
+            else:
+                position = parse_position(vendor_code, keyword, dest, regions)
+            positions[(vendor_code, keyword)] = position
         except Exception as error:
             errors[vendor_code] = error
     return positions, errors

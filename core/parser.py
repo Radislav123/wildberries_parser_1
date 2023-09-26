@@ -1,5 +1,7 @@
 import datetime
 import logging
+import os
+import pathlib
 
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
@@ -8,7 +10,6 @@ from webdriver_manager.core.driver_cache import DriverCacheManager
 
 import logger
 from . import models, settings
-import pathlib
 
 
 class UnsuccessfulParsing(Exception):
@@ -26,8 +27,9 @@ class Parser:
     def setup_method(self):
         self.parsing = models.Parsing(type = self.parsing_type, duration = datetime.timedelta())
         self.parsing.save()
+        os.environ["PARSING_ID"] = str(self.parsing.id)
         self.parsing.not_parsed_items = {}
-        self.logger = logger.Logger(self.settings.APP_NAME, self.parsing.id)
+        self.logger = logger.Logger(self.settings.APP_NAME)
         self.logger.info("Start")
 
         driver_options = ChromeOptions()

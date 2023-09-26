@@ -117,7 +117,7 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
             cls.objects.filter(position__keyword__in = keywords, position__city = city).values_list("id", flat = True)
         )
 
-        new_objects: dict[Keyword, Self] = {
+        new_objects: dict[Keyword, PreparedPosition] = {
             keyword: cls(
                 # parsing__time -> id потому что у разработчика время на машине отличается от того,
                 # на которой происходит парсинг

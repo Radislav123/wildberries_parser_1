@@ -172,7 +172,7 @@ class BotService:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logger.Logger(self.settings.APP_NAME, None)
+        self.logger = logger.Logger(self.settings.APP_NAME)
         self.wildberries = self.Wildberries(self)
 
 

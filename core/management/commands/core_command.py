@@ -11,4 +11,4 @@ class CoreCommand(BaseCommand, abc.ABC):
 
     def __init__(self):
         super().__init__()
-        self.logger = logger.Logger(self.__class__.__name__, None)
+        self.logger = logger.Logger(self.__class__.__name__)

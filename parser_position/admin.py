@@ -170,6 +170,14 @@ class KeywordAdmin(ParserPositionAdmin):
 
 class PositionAdmin(ParserPositionAdmin):
     model = parser_position_models.Position
+    extra_list_display = {"keyword__item__vendor_code": "keyword"}
+
+    @staticmethod
+    def keyword__item__vendor_code(obj: model) -> int:
+        return obj.keyword.item.vendor_code
+
+    # todo: название не отображается - проверить
+    keyword__item__vendor_code.short_description = parser_position_models.Item.get_field_verbose_name("vendor_code")
 
 
 class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdmin):

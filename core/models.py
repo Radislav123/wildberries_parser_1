@@ -71,7 +71,7 @@ class CoreModel(models.Model):
 
     settings = settings
     # todo: move logger to parsing_helper
-    logger = logger.Logger(Meta.__qualname__[:-5], None)
+    logger = logger.Logger(Meta.__qualname__[:-5])
 
     @classmethod
     def get_field_verbose_name(cls, field_name: str) -> str:
