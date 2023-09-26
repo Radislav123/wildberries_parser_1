@@ -1,5 +1,8 @@
 import abc
+import csv
 import datetime
+import os.path
+from collections import defaultdict
 from io import BytesIO
 from typing import Callable
 
@@ -166,23 +169,52 @@ class ItemAdmin(ParserPositionAdmin):
 
 class KeywordAdmin(ParserPositionAdmin):
     model = parser_position_models.Keyword
+    frequency_last_update: float | None = None
+
+    def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
+        self.update_frequency()
+        queryset: django_models.QuerySet = super().get_queryset(request)
+        return queryset
+
+    @classmethod
+    def update_frequency(cls) -> None:
+        frequency_last_update = os.path.getmtime(cls.settings.FREQUENCY_DATA_PATH)
+        if cls.frequency_last_update is None or cls.frequency_last_update < frequency_last_update:
+            keywords = cls.model.objects.filter(item__user = core_models.ParserUser.get_customer())
+            updated_keywords = []
+            keywords_dict = defaultdict(list)
+            for keyword in keywords:
+                keywords_dict[keyword.value].append(keyword)
+
+            cls.frequency_last_update = frequency_last_update
+            with open(cls.settings.FREQUENCY_DATA_PATH, 'r', encoding = "utf-8") as file:
+                reader = csv.reader(file)
+                frequency = {row[0]: int(row[1]) for row in reader}
+
+            for keyword_value, keyword_objects in keywords_dict.items():
+                if keyword_value in frequency:
+                    for keyword in keyword_objects:
+                        keyword.frequency = frequency[keyword_value]
+                    updated_keywords.extend(keyword_objects)
+
+            cls.model.objects.bulk_update(updated_keywords, ["frequency"])
 
 
 class PositionAdmin(ParserPositionAdmin):
     model = parser_position_models.Position
-    extra_list_display = {"keyword__item__vendor_code": "keyword"}
+    extra_list_display = {"vendor_code": "keyword"}
 
     @staticmethod
-    def keyword__item__vendor_code(obj: model) -> int:
+    def vendor_code(obj: model) -> int:
         return obj.keyword.item.vendor_code
 
     # todo: название не отображается - проверить
-    keyword__item__vendor_code.short_description = parser_position_models.Item.get_field_verbose_name("vendor_code")
+    vendor_code.short_description = parser_position_models.Item.get_field_verbose_name("vendor_code")
 
 
 class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdmin):
     model = parser_position_models.PreparedPosition
-    default_list_display = ("vendor_code", "item_name", "keyword", "city", "colorized_long_movement")
+    default_list_display = ("vendor_code", "item_name", "keyword", "frequency", "city", "colorized_long_movement")
     list_filter = ("position__city", PreparedPositionItemNameListFilter, PreparedPositionActualListFilter)
     actions = (download_prepared_position_excel,)
 
@@ -205,6 +237,11 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
         return obj.position.keyword.value
 
     keyword.short_description = parser_position_models.Keyword.get_field_verbose_name("value")
+
+    def frequency(self, obj: model) -> int:
+        return obj.position.keyword.frequency
+
+    frequency.short_description = parser_position_models.Keyword.get_field_verbose_name("frequency")
 
     def city(self, obj: model) -> str:
         return obj.position.city
@@ -263,6 +300,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
         return super().changelist_view(request, extra_context)
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
+        KeywordAdmin.update_frequency()
         queryset: django_models.QuerySet = super().get_queryset(request)
         new_queryset = queryset.filter(position__keyword__item__user = self.get_user()) \
             .order_by("position__keyword__item_name", "position__keyword__item", "position__city")

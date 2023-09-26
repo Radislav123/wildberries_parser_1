@@ -24,8 +24,9 @@ class Settings:
         self.CITIES = self.read_json(self.CITIES_PATH)
         self.MOSCOW_CITY_DICT = [x for x in self.CITIES if x["label"].lower() == "moscow"][0]
 
-        self.PARSER_PRICE_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_price.xlsx"
         self.PARSER_POSITION_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_position.xlsx"
+        self.FREQUENCY_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/requests.csv"
+        self.PARSER_PRICE_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/parser_price.xlsx"
 
         self.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/wildberries_log_in_driver_data.json"
 

@@ -34,6 +34,7 @@ class Keyword(ParserPositionModel):
     item = models.ForeignKey(Item, models.PROTECT, verbose_name = "Товар")
     item_name = models.CharField("Название")
     value = models.CharField("Ключевая фраза")
+    frequency = models.PositiveIntegerField("Частотность", null = True)
 
     def __str__(self) -> str:
         return self.value
