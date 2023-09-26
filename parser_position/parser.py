@@ -1,11 +1,7 @@
-import time
-
 import openpyxl
-import requests
-from requests.exceptions import JSONDecodeError
 
-from core import models as core_models, parser as parser_core
-from pages import MainPage, SearchResultsPage
+from core import models as core_models, parser as parser_core, service
+from pages import MainPage
 from . import models, settings
 
 
@@ -16,81 +12,31 @@ class Parser(parser_core.Parser):
     settings = settings.Settings()
     parsing_type = "position"
 
-    # не используется, но оставлен
-    def find_position_on_page(self, page_number: int, items_number: int, keyword: models.Keyword) -> int:
-        """Находит позицию товара на конкретной странице подобно пользователю."""
+    def parse_positions(
+            self,
+            keywords: list[models.Keyword],
+            dest: str,
+            regions: str,
+            city: str
+    ) -> tuple[list[models.Position], dict[models.Item, Exception]]:
+        keywords_dict = {x.value: x for x in keywords}
+        items_dict = {x.vendor_code: x for x in set(keyword.item for keyword in keywords)}
+        positions, errors = service.parse_positions({x.value: x.item.vendor_code for x in keywords}, dest, regions)
+        errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
+        position_objects = [
+            models.Position(
+                keyword = keywords_dict[keyword],
+                parsing = self.parsing,
+                city = city,
+                page_capacities = position["page_capacities"],
+                page = position["page"],
+                value = position["position"]
+            ) for keyword, position in positions.items()
+        ]
 
-        search_results_page = SearchResultsPage(self, page_number, keyword.value)
-        search_results_page.open()
-        checked_items = 0
-        found = False
-        # None возвращаться не должен, так как этот товар точно есть на странице
-        position = None
+        models.Position.objects.bulk_create(position_objects)
 
-        while not found and items_number > len(search_results_page.items):
-            for number, item in enumerate(search_results_page.items[checked_items:], checked_items + 1):
-                checked_items += 1
-                # ожидание прогрузки
-                item.init(item.WaitCondition.VISIBLE)
-                item_id = int(item.get_attribute("data-nm-id"))
-                if item_id == keyword.item.vendor_code:
-                    position = number
-                    found = True
-                    break
-            search_results_page.scroll_down(50)
-            search_results_page.items.reset()
-        return position
-
-    def find_position(self, city_dict: City, keyword: models.Keyword) -> models.Position:
-        """Находит позицию товара в выдаче поиска по ключевому слову среди всех страниц."""
-
-        try:
-            page = 1
-            position = None
-            page_capacities = []
-            while page:
-                # noinspection SpellCheckingInspection
-                url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub" \
-                      f"&dest={city_dict['dest']}&page={page}&query={keyword.value}&regions={city_dict['regions']}" \
-                      f"&resultset=catalog&sort=popular&spp=0&suppressSpellcheck=false"
-                response = requests.get(url)
-                try_number = 0
-                try_success = False
-                while try_number < self.settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT and not try_success:
-                    try_number += 1
-                    try:
-                        page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
-                        try_success = True
-                    except JSONDecodeError:
-                        if not try_success and try_number >= self.settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT:
-                            page = None
-                            break
-                        else:
-                            # еще одна попытка
-                            time.sleep(1)
-                else:
-                    # noinspection PyUnboundLocalVariable
-                    page_capacities.append(len(page_vendor_codes))
-                    if keyword.item.vendor_code in page_vendor_codes:
-                        position = page_vendor_codes.index(keyword.item.vendor_code) + 1
-                        break
-                    page += 1
-        except KeyError as error:
-            if "data" in error.args:
-                # если возвращаемая позиция == None => товар не был найден по данному ключевому слову
-                page_capacities = None
-                page = None
-                position = None
-            else:
-                raise error
-        return models.Position(
-            keyword = keyword,
-            parsing = self.parsing,
-            city = city_dict["name"],
-            page_capacities = page_capacities,
-            page = page,
-            value = position
-        )
+        return position_objects, errors
 
     @classmethod
     def get_position_parser_item_dicts(cls) -> list[dict[str, str | int]]:
@@ -131,20 +77,19 @@ class Parser(parser_core.Parser):
         return keywords
 
     def run_customer(self, city_dict: City) -> None:
-        main_page = MainPage(self)
-        main_page.open()
-        dest, regions = main_page.set_city(city_dict)
-        city_dict["dest"] = dest
-        city_dict["regions"] = regions
         keywords = self.get_position_parser_keywords()
-        for keyword in keywords:
-            try:
-                position = self.find_position(city_dict, keyword)
-                position.save()
-            except Exception as error:
-                self.parsing.not_parsed_items[keyword.item] = error
-
-        models.PreparedPosition.prepare(keywords, city_dict["name"])
+        self.run(keywords, city_dict, True)
 
     def run_other(self, city_dict: City) -> None:
         raise NotImplementedError()
+
+    def run(self, keywords: list[models.Keyword], city_dict: City, prepare_table: bool) -> None:
+        main_page = MainPage(self)
+        main_page.open()
+        dest, regions = main_page.set_city(city_dict)
+        city = city_dict["name"]
+        _, errors = self.parse_positions(keywords, dest, regions, city)
+        self.parsing.not_parsed_items = errors
+
+        if prepare_table:
+            models.PreparedPosition.prepare(keywords, city)

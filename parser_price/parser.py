@@ -1,7 +1,6 @@
 from typing import Any
 
 import openpyxl
-import requests
 from selenium.webdriver import Chrome
 
 from bot_telegram import bot
