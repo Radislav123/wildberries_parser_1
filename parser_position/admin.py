@@ -39,13 +39,15 @@ def colorize_movement(data: int | None) -> SafeString | str | None:
 def download_prepared_position_excel(
         admin_model: "PreparedPositionAdmin",
         request: HttpRequest,
-        queryset: django_models.QuerySet
+        queryset: django_models.QuerySet[parser_position_models.PreparedPosition]
 ) -> HttpResponse:
     model_name = f"{admin_model.model.__name__}"
     stream = BytesIO()
     book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
     sheet = book.add_worksheet(model_name)
-    dynamic_fields_offset = 5
+    dynamic_fields_offset = 6
+    # todo: добавить, если необходимо убрать из выгрузки товары без позиции
+    # queryset = [x for x in queryset if x.position.real_position is not None]
 
     # запись шапки
     header = [
@@ -87,7 +89,6 @@ def download_prepared_position_excel(
 
     # запись комментариев
     # todo: добавить логику выбора пользователя
-    # comments = parser_position_models.DateComment.objects.filter(user = user)
     comments = parser_position_models.DateComment.objects.filter(user = core_models.ParserUser.get_customer())
     for comment_number, date in enumerate(date_range):
         comment = comments.filter(date = date).last()
