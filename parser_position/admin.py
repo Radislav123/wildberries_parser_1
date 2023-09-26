@@ -186,12 +186,12 @@ class KeywordAdmin(ParserPositionAdmin):
             updated_keywords = []
             keywords_dict = defaultdict(list)
             for keyword in keywords:
-                keywords_dict[keyword.value].append(keyword)
+                keywords_dict[keyword.value.lower()].append(keyword)
 
             cls.frequency_last_update = frequency_last_update
             with open(cls.settings.FREQUENCY_DATA_PATH, 'r', encoding = "utf-8") as file:
                 reader = csv.reader(file)
-                frequency = {row[0]: int(row[1]) for row in reader}
+                frequency = {row[0].lower(): int(row[1]) for row in reader}
 
             for keyword_value, keyword_objects in keywords_dict.items():
                 if keyword_value in frequency:
