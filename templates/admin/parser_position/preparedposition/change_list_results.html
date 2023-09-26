@@ -9,7 +9,7 @@
 <table id="result_list">
 <thead>
 <tr>
-    {% for empty_cell in "012345" %}
+    {% for empty_cell in "0123456" %}
     <th scope="col">
         <span>{{""}}</span>
     </th>
@@ -25,7 +25,7 @@
 </tr>
 <tr>
 {% for header in result_headers %}
-{% if forloop.counter <= 6 %}
+{% if forloop.counter <= 7 %}
 <th scope="col"{{ header.class_attrib }}>
    {% if header.sortable and header.sort_priority > 0 %}
        <div class="sortoptions">

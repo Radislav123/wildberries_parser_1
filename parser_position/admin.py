@@ -52,6 +52,7 @@ def download_prepared_position_excel(
         parser_position_models.Item.get_field_verbose_name("vendor_code"),
         parser_position_models.Keyword.get_field_verbose_name("item_name"),
         parser_position_models.Keyword.get_field_verbose_name("value"),
+        parser_position_models.Keyword.get_field_verbose_name("frequency"),
         parser_position_models.Position.get_field_verbose_name("city"),
         admin_model.model.get_field_verbose_name("long_movement"),
     ]
@@ -73,8 +74,9 @@ def download_prepared_position_excel(
         sheet.write(row_number, 0, data.position.keyword.item.vendor_code)
         sheet.write(row_number, 1, data.position.keyword.item_name)
         sheet.write(row_number, 2, data.position.keyword.value)
-        sheet.write(row_number, 3, data.position.city)
-        sheet.write(row_number, 4, data.long_movement)
+        sheet.write(row_number, 3, data.position.keyword.frequency)
+        sheet.write(row_number, 4, data.position.city)
+        sheet.write(row_number, 5, data.long_movement)
         for column_multiplier, date in enumerate(date_range):
             position_repr_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 0
             movement_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 1
