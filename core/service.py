@@ -1,6 +1,43 @@
 import requests
 
 
+def parse_prices(
+        vendor_codes: list[int],
+        dest: str,
+        regions: str
+) -> tuple[dict[int, dict[str, int | float | str]], dict[int, Exception]]:
+    # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
+    request_personal_sale = 99
+    url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
+           f"&dest={dest}&regions={regions}&spp={request_personal_sale}"
+           f"&nm={';'.join([str(x) for x in vendor_codes])}")
+    items_response = requests.get(url)
+
+    item_dicts = {x["id"]: x for x in items_response.json()["data"]["products"]}
+    prices = {}
+    errors = {}
+    for vendor_code in vendor_codes:
+        try:
+            item_dict: dict = item_dicts[vendor_code]
+            price, final_price, personal_sale = get_price(item_dict)
+            reviews_amount = int(item_dict["feedbacks"])
+            category_name = get_category_name(vendor_code)
+            name_site = f"{item_dict['brand']} / {item_dict['name']}"
+
+            prices[vendor_code] = {
+                "price": price,
+                "final_price": final_price,
+                "personal_sale": personal_sale,
+                "reviews_amount": reviews_amount,
+                "category_name": category_name,
+                "name_site": name_site
+            }
+        except Exception as error:
+            errors[vendor_code] = error
+
+    return prices, errors
+
+
 def get_price(item_dict: dict) -> tuple[float, float, int]:
     if "basicPriceU" not in item_dict["extended"]:
         # товар распродан
@@ -17,10 +54,6 @@ def get_price(item_dict: dict) -> tuple[float, float, int]:
         price = int(price) / 100
         final_price = int(final_price) / 100
     return price, final_price, personal_sale
-
-
-def get_name_site(item_dict: dict) -> str:
-    return f"{item_dict['brand']} / {item_dict['name']}"
 
 
 def get_category_name(vendor_code: int) -> str:

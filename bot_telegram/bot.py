@@ -3,7 +3,6 @@ import platform
 import time
 from typing import Any, Callable
 
-import requests
 import telebot
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.chrome.service import Service
@@ -652,34 +651,30 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
     def parse_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
         vendor_code = int(message.text)
-        # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
-        request_personal_sale = 99
-        url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
-               f"&dest={self.wildberries.dest}&regions={self.wildberries.regions}&spp={request_personal_sale}"
-               f"&nm={vendor_code}")
-        response = requests.get(url)
-        item_dict = list(response.json()["data"]["products"])[0]
-        category_name = service.get_category_name(vendor_code)
-        name_site = service.get_name_site(item_dict)
-        price, final_price, personal_sale = service.get_price(item_dict)
-        if personal_sale is None:
-            personal_sale = 0
+        prices, errors = service.parse_prices([vendor_code], self.wildberries.dest, self.wildberries.regions)
+        price = prices[vendor_code]
+        if vendor_code in errors:
+            raise errors[vendor_code]
+
+        if price["personal_sale"] is None:
+            price["personal_sale"] = 0
 
         block = self.construct_header(
-            category_name,
+            price["category_name"],
             vendor_code,
-            name_site,
+            price["name_site"],
             None,
             parser_price_models.Item(vendor_code = vendor_code).link
         )
         block.extend(
             [
                 "",
-                f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}: {price}",
+                f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
+                f" {price['price']}",
                 f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
-                f" {final_price}",
+                f" {price['final_price']}",
                 f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
-                f" {personal_sale}",
+                f" {price['personal_sale']}",
                 ""
             ]
         )

@@ -22,39 +22,24 @@ class Parser(parser_core.Parser):
             dest: str,
             regions: str
     ) -> tuple[list[models.Price], dict[models.Item, Exception]]:
-        # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
-        request_personal_sale = 99
-        url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
-               f"&dest={dest}&regions={regions}&spp={request_personal_sale}"
-               f"&nm={';'.join([str(x.vendor_code) for x in items])}")
-        items_response = requests.get(url)
-
-        item_dicts = {x["id"]: x for x in items_response.json()["data"]["products"]}
+        items_dict = {x.vendor_code: x for x in items}
+        prices, errors = service.parse_prices(list(items_dict), dest, regions)
+        errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
         price_objects = []
-        errors = {}
-        for item in items:
-            try:
-                item_dict: dict = item_dicts[item.vendor_code]
-                price, final_price, personal_sale = service.get_price(item_dict)
+        for vendor_code, price in prices.items():
+            price_object = models.Price(
+                item = items_dict[vendor_code],
+                parsing = self.parsing,
+                reviews_amount = price["reviews_amount"],
+                price = price["price"],
+                final_price = price["final_price"],
+                personal_sale = price["personal_sale"]
+            )
+            price_objects.append(price_object)
+            items_dict[vendor_code].category = models.Category.objects.get_or_create(name = price["category_name"])[0]
 
-                price_object = models.Price(
-                    item = item,
-                    parsing = self.parsing,
-                    reviews_amount = int(item_dict["feedbacks"]),
-                    price = price,
-                    final_price = final_price,
-                    personal_sale = personal_sale
-                )
-                price_object.save()
-                price_objects.append(price_object)
-
-                item.category = models.Category.objects.get_or_create(
-                    name = service.get_category_name(item.vendor_code)
-                )[0]
-                item.name_site = f"{item_dict['brand']} / {item_dict['name']}"
-                item.save()
-            except Exception as error:
-                errors[item] = error
+        models.Price.objects.bulk_create(price_objects)
+        models.Item.objects.bulk_update(items_dict.values(), ["category"])
 
         return price_objects, errors
 
