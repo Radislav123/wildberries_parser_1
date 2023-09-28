@@ -172,7 +172,8 @@ class ItemAdmin(ParserPositionAdmin):
 
 class KeywordAdmin(ParserPositionAdmin):
     model = parser_position_models.Keyword
-    frequency_last_update: float | None = None
+    frequency_file_last_update: float | None = None
+    parser_data_file_last_update: float | None = None
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         self.update_frequency()
@@ -181,15 +182,18 @@ class KeywordAdmin(ParserPositionAdmin):
 
     @classmethod
     def update_frequency(cls) -> None:
-        frequency_last_update = os.path.getmtime(cls.settings.FREQUENCY_DATA_PATH)
-        if cls.frequency_last_update is None or cls.frequency_last_update < frequency_last_update:
+        frequency_file_last_update = os.path.getmtime(cls.settings.FREQUENCY_DATA_PATH)
+        parser_data_file_last_update = os.path.getmtime(cls.settings.PARSER_POSITION_DATA_PATH)
+        if (cls.frequency_file_last_update is None or cls.parser_data_file_last_update or
+                cls.frequency_file_last_update < frequency_file_last_update or
+                cls.parser_data_file_last_update < parser_data_file_last_update):
             keywords = cls.model.objects.filter(item__user = core_models.ParserUser.get_customer())
             updated_keywords = []
             keywords_dict = defaultdict(list)
             for keyword in keywords:
                 keywords_dict[keyword.value.lower()].append(keyword)
 
-            cls.frequency_last_update = frequency_last_update
+            cls.frequency_file_last_update = frequency_file_last_update
             with open(cls.settings.FREQUENCY_DATA_PATH, 'r', encoding = "utf-8") as file:
                 reader = csv.reader(file)
                 frequency = {row[0].lower(): int(row[1]) for row in reader}
