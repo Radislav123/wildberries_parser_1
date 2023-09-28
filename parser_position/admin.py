@@ -184,7 +184,7 @@ class KeywordAdmin(ParserPositionAdmin):
     def update_frequency(cls) -> None:
         frequency_file_last_update = os.path.getmtime(cls.settings.FREQUENCY_DATA_PATH)
         parser_data_file_last_update = os.path.getmtime(cls.settings.PARSER_POSITION_DATA_PATH)
-        if (cls.frequency_file_last_update is None or cls.parser_data_file_last_update or
+        if (cls.frequency_file_last_update is None or cls.parser_data_file_last_update is None or
                 cls.frequency_file_last_update < frequency_file_last_update or
                 cls.parser_data_file_last_update < parser_data_file_last_update):
             keywords = cls.model.objects.filter(item__user = core_models.ParserUser.get_customer())
