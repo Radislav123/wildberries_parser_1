@@ -133,8 +133,6 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
 
     @classmethod
     def prepare(cls, items: list[Item]) -> None:
-        old_object_ids = list(cls.objects.filter(price__item__in = items).values_list("id", flat = True))
-
         new_objects: dict[Item, Self] = {
             # parsing__time -> id потому что у разработчика время на машине отличается от того,
             # на которой происходит парсинг
@@ -143,6 +141,7 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
 
         today = datetime.date.today()
         date_range = [today - datetime.timedelta(x) for x in range(cls.settings.MAX_HISTORY_DEPTH)]
+        objects_to_save = []
 
         for item, obj in new_objects.items():
             obj.prices = {}
@@ -150,6 +149,7 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
             obj.personal_sales = {}
             for date in date_range:
                 try:
+                    # вроде бы, исключение ожидается в этой строке
                     last_price = Price.get_last_by_item_date(obj.price.item, date)
                     if last_price is not None:
                         obj.prices[date] = last_price.price
@@ -159,9 +159,11 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
                         obj.prices[date] = None
                         obj.final_prices[date] = None
                         obj.personal_sales[date] = None
-                    obj.save()
+                    objects_to_save.append(obj)
                 except ObjectDoesNotExist:
-                    if item.vendor_code in old_object_ids:
-                        old_object_ids.remove(item.vendor_code)
+                    pass
 
-        cls.objects.filter(id__in = old_object_ids).delete()
+        cls.objects.bulk_create(objects_to_save)
+        objects_to_delete = (cls.objects.filter(price__item__in = items)
+                             .exclude(id__in = (x.id for x in objects_to_save)).values_list("id", flat = True))
+        cls.objects.filter(id__in = objects_to_delete).delete()

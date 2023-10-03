@@ -174,6 +174,7 @@ class KeywordAdmin(ParserPositionAdmin):
     model = parser_position_models.Keyword
     frequency_file_last_update: float | None = None
     parser_data_file_last_update: float | None = None
+    list_filter = ("item_name",)
 
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         self.update_frequency()

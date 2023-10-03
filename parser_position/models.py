@@ -114,10 +114,6 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
 
     @classmethod
     def prepare(cls, keywords: list[Keyword], city: str) -> None:
-        old_object_ids = list(
-            cls.objects.filter(position__keyword__in = keywords, position__city = city).values_list("id", flat = True)
-        )
-
         new_objects: dict[Keyword, PreparedPosition] = {
             keyword: cls(
                 # parsing__time -> id потому что у разработчика время на машине отличается от того,
@@ -128,6 +124,7 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
 
         today = datetime.date.today()
         date_range = [today - datetime.timedelta(x) for x in range(cls.settings.MAX_HISTORY_DEPTH + 1)]
+        objects_to_save = []
 
         for keyword, obj in new_objects.items():
             obj.positions = {}
@@ -145,9 +142,12 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
                     obj.movements[date] = None
 
             obj.prepare_long_movement()
-            obj.save()
+            objects_to_save.append(obj)
 
-        cls.objects.filter(id__in = old_object_ids).delete()
+        cls.objects.bulk_create(objects_to_save)
+        objects_to_delete = (cls.objects.filter(position__keyword__in = keywords, position__city = city).
+                             exclude(id__in = (x.id for x in objects_to_save)).values_list("id", flat = True))
+        cls.objects.filter(id__in = objects_to_delete).delete()
 
     def prepare_long_movement(self) -> None:
         # self.long_movement = last_positions[0].movement_from(last_positions[self.settings.LONG_MOVEMENT_DELTA])
