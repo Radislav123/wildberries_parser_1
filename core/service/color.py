@@ -11,9 +11,7 @@ class Color:
 
 class XLSXColor(Color):
     @classmethod
-    def gradient_green(cls, bottom: int, top: int, value: int) -> str:
-        gradient_top = 255
-        gradient_bottom = 0
+    def gradient_green(cls, bottom: int, top: int, gradient_bottom: int, gradient_top: int, value: int) -> str:
         if value < bottom:
             value = bottom
         if value > top:
@@ -30,9 +28,7 @@ class XLSXColor(Color):
         return f"#{''.join(color)}"
 
     @classmethod
-    def gradient_red(cls, bottom: int, top: int, value: int) -> str:
-        gradient_top = 255
-        gradient_bottom = 0
+    def gradient_red(cls, bottom: int, top: int, gradient_bottom: int, gradient_top: int, value: int) -> str:
         if value < bottom:
             value = bottom
         if value > top:

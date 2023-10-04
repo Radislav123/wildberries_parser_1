@@ -48,12 +48,12 @@ def download_prepared_position_excel(
                 movement_format = default_text_format
             elif movement > 0:
                 movement_format = book.add_format()
-                color = XLSXColor.gradient_red(-30, 0, -movement)
-                movement_format.set_bg_color(color)
+                color = XLSXColor.gradient_red(-50, 0, 0, 100, -movement)
+                movement_format.set_font_color(color)
             else:
                 movement_format = book.add_format()
-                color = XLSXColor.gradient_green(-30, 0, movement)
-                movement_format.set_bg_color(color)
+                color = XLSXColor.gradient_green(-50, 0, 0, 100, movement)
+                movement_format.set_font_color(color)
             movement_format_cache[movement] = movement_format
         return movement_format_cache[movement]
 
@@ -65,7 +65,7 @@ def download_prepared_position_excel(
                 page, position = position_repr.split('/')
                 if page == "1":
                     position_repr_format = book.add_format()
-                    color = XLSXColor.gradient_green(0, 100, int(position))
+                    color = XLSXColor.gradient_green(0, 100, 0, 255, int(position))
                     position_repr_format.set_bg_color(color)
                 else:
                     position_repr_format = default_text_format
@@ -359,7 +359,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
         ordering = (
             "position__keyword__item_name",
             "position__keyword__item__vendor_code",
-            "position__keyword__frequency",
+            "-position__keyword__frequency",
             "position__city",
             "position__keyword__value",
         )
