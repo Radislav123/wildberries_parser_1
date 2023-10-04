@@ -139,7 +139,7 @@ def parse_positions(
         keywords: list[str],
         dest: str,
         regions: str
-) -> tuple[dict[tuple[int, str], dict[str, int | list[int]]], dict[int, Exception]]:
+) -> tuple[dict[tuple[int, str], dict[str, int | list[int] | bool | None]], dict[int, Exception]]:
     prices, _ = parse_prices(list(set(vendor_codes)), dest, regions)
 
     positions = {}
@@ -150,6 +150,7 @@ def parse_positions(
                 position = {"page": None, "position": None, "page_capacities": None}
             else:
                 position = parse_position(vendor_code, keyword, dest, regions)
+            position["sold_out"] = prices[vendor_code]["sold_out"]
             positions[(vendor_code, keyword)] = position
         except Exception as error:
             errors[vendor_code] = error

@@ -50,6 +50,7 @@ class Position(ParserPositionModel):
     page_capacities = ArrayField(models.PositiveIntegerField(), verbose_name = "Емкости страниц", null = True)
     page = models.PositiveIntegerField("Страница", null = True)
     value = models.PositiveIntegerField("Позиция", null = True)
+    sold_out = models.BooleanField("Распродано", null = True)
 
     @property
     def position_repr(self) -> str:

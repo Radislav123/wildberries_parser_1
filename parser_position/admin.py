@@ -46,8 +46,6 @@ def download_prepared_position_excel(
     book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
     sheet = book.add_worksheet(model_name)
     dynamic_fields_offset = 6
-    # todo: добавить, если необходимо убрать из выгрузки товары без позиции
-    # queryset = [x for x in queryset if x.position.real_position is not None]
 
     # запись шапки
     header = [
@@ -310,6 +308,9 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         KeywordAdmin.update_frequency()
         queryset: django_models.QuerySet = super().get_queryset(request)
+        filtering = {
+            "position__keyword__item__user": self.get_user(),
+        }
         ordering = (
             "position__keyword__item_name",
             "position__keyword__item__vendor_code",
@@ -317,7 +318,10 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
             "position__city",
             "position__keyword__value",
         )
-        new_queryset = queryset.filter(position__keyword__item__user = self.get_user()).order_by(*ordering)
+        excluding = {
+            "position__sold_out": True,
+        }
+        new_queryset = queryset.filter(**filtering).exclude(**excluding).order_by(*ordering)
         return new_queryset
 
 
