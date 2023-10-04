@@ -12,7 +12,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.driver_cache import DriverCacheManager
 
 import logger
-from core import models as core_models, service
+from core import models as core_models
+from core.service import parsing
 from pages import MainPage
 from parser_price import models as parser_price_models
 from . import models as bot_telegram_models, settings
@@ -651,7 +652,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
     def parse_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
         vendor_code = int(message.text)
-        prices, errors = service.parse_prices([vendor_code], self.wildberries.dest, self.wildberries.regions)
+        prices, errors = parsing.parse_prices([vendor_code], self.wildberries.dest, self.wildberries.regions)
         price = prices[vendor_code]
         if vendor_code in errors:
             raise errors[vendor_code]

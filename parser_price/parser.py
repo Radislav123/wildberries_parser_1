@@ -4,7 +4,8 @@ import openpyxl
 from selenium.webdriver import Chrome
 
 from bot_telegram import bot
-from core import models as core_models, parser as parser_core, service
+from core import models as core_models, parser as parser_core
+from core.service import parsing
 from pages import MainPage
 from . import models, settings
 
@@ -22,7 +23,7 @@ class Parser(parser_core.Parser):
             regions: str
     ) -> tuple[list[models.Price], dict[models.Item, Exception]]:
         items_dict = {x.vendor_code: x for x in items}
-        prices, errors = service.parse_prices(list(items_dict), dest, regions)
+        prices, errors = parsing.parse_prices(list(items_dict), dest, regions)
         errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
         price_objects = []
         for vendor_code, price in prices.items():

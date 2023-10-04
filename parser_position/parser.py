@@ -1,6 +1,7 @@
 import openpyxl
 
-from core import models as core_models, parser as parser_core, service
+from core import models as core_models, parser as parser_core
+from core.service import parsing
 from pages import MainPage
 from . import models, settings
 
@@ -21,7 +22,7 @@ class Parser(parser_core.Parser):
     ) -> tuple[list[models.Position], dict[models.Item, Exception]]:
         keywords_dict = {(x.item.vendor_code, x.value): x for x in keywords}
         items_dict = {x.vendor_code: x for x in set(keyword.item for keyword in keywords)}
-        positions, errors = service.parse_positions(
+        positions, errors = parsing.parse_positions(
             [x.item.vendor_code for x in keywords], [x.value for x in keywords], dest, regions
         )
         errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}

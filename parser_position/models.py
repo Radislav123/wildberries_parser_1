@@ -55,9 +55,12 @@ class Position(ParserPositionModel):
     @property
     def position_repr(self) -> str:
         page = self.page
+        value = self.value
         if page is None:
             page = "-"
-        return f"{page}/{self.value}"
+        if value is None:
+            value = "-"
+        return f"{page}/{value}"
 
     @property
     def real_position(self) -> int | None:

@@ -7,6 +7,7 @@ from io import BytesIO
 from typing import Callable
 
 import xlsxwriter
+import xlsxwriter.format
 from django.db import models as django_models
 from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
@@ -14,6 +15,7 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
 from core import admin as core_admin, models as core_models
+from core.service.color import AdminPanelColor, XLSXColor
 from . import models as parser_position_models, parser
 from .settings import Settings
 
@@ -21,12 +23,12 @@ from .settings import Settings
 settings = Settings()
 
 
-def colorize_movement(data: int | None) -> SafeString | str | None:
+def colorize_movement_admin_panel(data: int | None) -> SafeString | str | None:
     if data is not None:
         if data > 0:
-            string = format_html(f'<span style="color: #ef6f6f;">+{data}</span>')
+            string = format_html(f'<span style="color: {AdminPanelColor.RED};">+{data}</span>')
         elif data < 0:
-            string = format_html(f'<span style="color: #6aa84f;">{data}</span>')
+            string = format_html(f'<span style="color: {AdminPanelColor.GREEN};">{data}</span>')
         else:
             string = str(data)
     else:
@@ -35,17 +37,50 @@ def colorize_movement(data: int | None) -> SafeString | str | None:
 
 
 # noinspection PyUnusedLocal
-
 def download_prepared_position_excel(
         admin_model: "PreparedPositionAdmin",
         request: HttpRequest,
         queryset: django_models.QuerySet[parser_position_models.PreparedPosition]
 ) -> HttpResponse:
+    def get_movement_format(movement: int | None) -> xlsxwriter.format.Format:
+        if movement not in movement_format_cache:
+            if movement is None or movement == 0:
+                movement_format = default_text_format
+            elif movement > 0:
+                movement_format = book.add_format()
+                color = XLSXColor.gradient_red(-30, 0, -movement)
+                movement_format.set_bg_color(color)
+            else:
+                movement_format = book.add_format()
+                color = XLSXColor.gradient_green(-30, 0, movement)
+                movement_format.set_bg_color(color)
+            movement_format_cache[movement] = movement_format
+        return movement_format_cache[movement]
+
+    def get_position_repr_format(position_repr: str | None) -> xlsxwriter.format.Format:
+        if position_repr not in position_repr_format_cache:
+            if position_repr is None:
+                position_repr_format = default_text_format
+            else:
+                page, position = position_repr.split('/')
+                if page == "1":
+                    position_repr_format = book.add_format()
+                    color = XLSXColor.gradient_green(0, 100, int(position))
+                    position_repr_format.set_bg_color(color)
+                else:
+                    position_repr_format = default_text_format
+            position_repr_format_cache[position_repr] = position_repr_format
+        return position_repr_format_cache[position_repr]
+
     model_name = f"{admin_model.model.__name__}"
     stream = BytesIO()
     book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
     sheet = book.add_worksheet(model_name)
     dynamic_fields_offset = 6
+
+    default_text_format = book.add_format()
+    movement_format_cache: dict[int | None, xlsxwriter.format.Format] = {}
+    position_repr_format_cache: dict[str | None, xlsxwriter.format.Format] = {}
 
     # запись шапки
     header = [
@@ -76,13 +111,23 @@ def download_prepared_position_excel(
         sheet.write(row_number, 2, data.position.keyword.value)
         sheet.write(row_number, 3, data.position.keyword.frequency)
         sheet.write(row_number, 4, data.position.city)
-        sheet.write(row_number, 5, data.long_movement)
+        sheet.write(row_number, 5, data.long_movement, get_movement_format(data.long_movement))
         for column_multiplier, date in enumerate(date_range):
             position_repr_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 0
             movement_column_number = dynamic_fields_offset + column_multiplier * dynamic_fields_number + 1
             if date in data.position_reprs:
-                sheet.write(row_number, position_repr_column_number, data.position_reprs[date])
-                sheet.write(row_number, movement_column_number, data.movements[date])
+                sheet.write(
+                    row_number,
+                    position_repr_column_number,
+                    data.position_reprs[date],
+                    get_position_repr_format(data.position_reprs[date])
+                )
+                sheet.write(
+                    row_number,
+                    movement_column_number,
+                    data.movements[date],
+                    get_movement_format(data.movements[date])
+                )
     sheet.autofit()
 
     # запись комментариев
@@ -255,7 +300,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
     city.short_description = parser_position_models.Position.get_field_verbose_name("city")
 
     def colorized_long_movement(self, obj: model) -> SafeString:
-        return colorize_movement(obj.long_movement)
+        return colorize_movement_admin_panel(obj.long_movement)
 
     colorized_long_movement.short_description = model.get_field_verbose_name("long_movement")
 
@@ -265,7 +310,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
             field = getattr(obj, json_field_name)
             data = field.get(date, None)
             if field_name == "movement":
-                data = colorize_movement(data)
+                data = colorize_movement_admin_panel(data)
             return data
 
         dynamic_field.__name__ = self.model.get_dynamic_field_name(field_name, day_delta)
