@@ -140,7 +140,7 @@ def parse_positions(
         dest: str,
         regions: str
 ) -> tuple[dict[tuple[int, str], dict[str, int | list[int]]], dict[int, Exception]]:
-    prices, _ = parse_prices(vendor_codes, dest, regions)
+    prices, _ = parse_prices(list(set(vendor_codes)), dest, regions)
 
     positions = {}
     errors = {}

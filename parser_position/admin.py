@@ -310,8 +310,14 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
     def get_queryset(self, request: HttpRequest) -> django_models.QuerySet:
         KeywordAdmin.update_frequency()
         queryset: django_models.QuerySet = super().get_queryset(request)
-        new_queryset = queryset.filter(position__keyword__item__user = self.get_user()) \
-            .order_by("position__keyword__item_name", "position__keyword__item", "position__city")
+        ordering = (
+            "position__keyword__item_name",
+            "position__keyword__item__vendor_code",
+            "position__keyword__frequency",
+            "position__city",
+            "position__keyword__value",
+        )
+        new_queryset = queryset.filter(position__keyword__item__user = self.get_user()).order_by(*ordering)
         return new_queryset
 
 
