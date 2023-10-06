@@ -547,16 +547,9 @@ class Bot(NotifierMixin, telebot.TeleBot):
             reply_markup = reply_markup
         )
 
-    def get_chat_id(self, message: types.Message) -> None:
-        self.send_message(
-            message.chat.id,
-            self.Formatter.join([self.Formatter.copyable(message.chat.id)]),
-            self.ParseMode.MARKDOWN
-        )
-
     @staticmethod
     def subscription_filter(function: Callable) -> Callable:
-        def wrapper(self: "Bot", message: types.Message, *args, **kwargs):
+        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
             user = self.get_parser_user(message.from_user)
             not_subscribed = self.get_needed_subscriptions(user)
             reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
@@ -574,6 +567,47 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
         return wrapper
 
+    @staticmethod
+    def customer_filter(function: Callable) -> Callable:
+        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
+            user = self.get_parser_user(message.from_user)
+
+            if user != core_models.ParserUser.get_customer() and user != core_models.ParserUser.get_developer():
+                self.send_message(
+                    user.telegram_chat_id,
+                    "Только заказчик может пользоваться данной командой.",
+                    self.ParseMode.MARKDOWN
+                )
+            else:
+                return function(self, message, *args, **kwargs)
+
+        return wrapper
+
+    @staticmethod
+    def developer_filter(function: Callable) -> Callable:
+        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
+            user = self.get_parser_user(message.from_user)
+
+            if user != core_models.ParserUser.get_developer():
+                self.send_message(
+                    user.telegram_chat_id,
+                    "Только разработчик может пользоваться данной командой.",
+                    self.ParseMode.MARKDOWN
+                )
+            else:
+                return function(self, message, *args, **kwargs)
+
+        return wrapper
+
+    @subscription_filter
+    def get_chat_id(self, message: types.Message) -> None:
+        self.send_message(
+            message.chat.id,
+            self.Formatter.join([self.Formatter.copyable(message.chat.id)]),
+            self.ParseMode.MARKDOWN
+        )
+
+    @developer_filter
     def remove_user(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         items = parser_price_models.Item.objects.filter(user = user)
@@ -597,6 +631,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             "Вы зарегистрированы как разработчик"
         )
 
+    @developer_filter
     def reset_command_list(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         scope = types.BotCommandScopeChat(user.telegram_chat_id)
@@ -782,6 +817,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 disable_web_page_preview = True
             )
 
+    @customer_filter
     def send_to_users(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
         self.send_message(
