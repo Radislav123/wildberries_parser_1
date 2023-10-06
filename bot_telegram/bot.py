@@ -522,7 +522,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 telegram_user_id = message.from_user.id,
                 telegram_chat_id = message.chat.id
             )
-            text = ["Вы уже были зарегистрированы. Повторная регистрация невозможна"]
+            text = ["Вы уже были зарегистрированы. Повторная регистрация невозможна."]
             reply_markup = []
         except core_models.ParserUser.DoesNotExist:
             user = core_models.ParserUser(
@@ -575,7 +575,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             if user != core_models.ParserUser.get_customer() and user != core_models.ParserUser.get_developer():
                 self.send_message(
                     user.telegram_chat_id,
-                    "Только заказчик может пользоваться данной командой.",
+                    self.Formatter.join(["Только заказчик может пользоваться данной командой."]),
                     self.ParseMode.MARKDOWN
                 )
             else:
@@ -591,7 +591,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             if user != core_models.ParserUser.get_developer():
                 self.send_message(
                     user.telegram_chat_id,
-                    "Только разработчик может пользоваться данной командой.",
+                    self.Formatter.join(["Только разработчик может пользоваться данной командой."]),
                     self.ParseMode.MARKDOWN
                 )
             else:
