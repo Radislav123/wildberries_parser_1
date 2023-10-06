@@ -852,19 +852,22 @@ class Bot(NotifierMixin, telebot.TeleBot):
         message_to_send = bot_telegram_models.SendToUsers.objects.get(id = callback.data.split(':')[-1])
 
         users = list(core_models.ParserUser.objects.exclude(username = message_to_send.user))
-        for user_batch in [users[x:x + self.settings.API_MESSAGES_PER_SECOND_LIMIT]
-                           for x in range(0, len(users), self.settings.API_MESSAGES_PER_SECOND_LIMIT)]:
-            for user in user_batch:
-                try:
-                    self.copy_message(
-                        user.telegram_chat_id,
-                        message_to_send.user.telegram_chat_id,
-                        message_to_send.telegram_message_id
-                    )
-                except ApiTelegramException as error:
-                    if error.error_code == 403 and "bot was blocked by the user" in error.description:
-                        pass
-            time.sleep(1)
+        if platform.node() != self.settings.secrets.developer.pc_name:
+            for user_batch in [users[x:x + self.settings.API_MESSAGES_PER_SECOND_LIMIT]
+                               for x in range(0, len(users), self.settings.API_MESSAGES_PER_SECOND_LIMIT)]:
+                for user in user_batch:
+                    try:
+                        self.copy_message(
+                            user.telegram_chat_id,
+                            message_to_send.user.telegram_chat_id,
+                            message_to_send.telegram_message_id
+                        )
+                    except ApiTelegramException as error:
+                        if error.error_code == 403 and "bot was blocked by the user" in error.description:
+                            self.logger.info("bot was blocked")
+                        else:
+                            self.logger.info(error.description)
+                time.sleep(1)
         message_to_send.sent = True
         message_to_send.save()
 
