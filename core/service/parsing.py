@@ -97,6 +97,7 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
         position = None
         page_capacities = []
         while page:
+            # todo: можно ускорить, если искать по одному ключевому запросу сразу несколько товаров
             # noinspection SpellCheckingInspection
             url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub" \
                   f"&dest={dest}&page={page}&query={keyword}&regions={regions}" \

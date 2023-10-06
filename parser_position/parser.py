@@ -80,11 +80,14 @@ class Parser(parser_core.Parser):
         ]
         return keywords
 
-    def run_customer(self, city_dict: City) -> None:
-        keywords = self.get_position_parser_keywords()
-        self.run(keywords, city_dict, True)
+    def run_customer(self, division_remainder: int) -> None:
+        keywords = [x for x in self.get_position_parser_keywords()
+                    if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+        # todo: оставить только Москву - временное решение
+        for city_dict in [self.settings.MOSCOW_CITY_DICT]:
+            self.run(keywords, city_dict, True)
 
-    def run_other(self, city_dict: City) -> None:
+    def run_other(self, division_remainder: int) -> None:
         raise NotImplementedError()
 
     def run(self, keywords: list[models.Keyword], city_dict: City, prepare_table: bool) -> None:

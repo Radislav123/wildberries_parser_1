@@ -1,5 +1,5 @@
 import pytest
-from _pytest.python import FunctionDefinition, Metafunc
+from _pytest.python import Metafunc
 
 from .settings import Settings
 
@@ -8,11 +8,7 @@ settings = Settings()
 
 
 def pytest_generate_tests(metafunc: Metafunc):
-    # noinspection PyTypeHints
-    metafunc.function: FunctionDefinition
     metafunc.parametrize(
-        "city_dict",
-        [pytest.param(city_dict, marks = pytest.mark.xdist_group(city_dict["name"]), id = city_dict["label"])
-         # todo: оставить только Москву - временное решение
-         for city_dict in [settings.MOSCOW_CITY_DICT]]
+        "division_remainder",
+        [pytest.param(x, marks = pytest.mark.xdist_group(x)) for x in range(settings.PYTEST_XDIST_WORKER_COUNT)]
     )
