@@ -24,6 +24,7 @@ def parse_prices(
     errors = {}
 
     for vendor_codes_chunk in chunks:
+        # todo: сделать запросы асинхронными (ThreadPoolExecutor)
         url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
                f"&dest={dest}&regions={regions}&spp={request_personal_sale}"
                f"&nm={';'.join(str(x) for x in vendor_codes_chunk)}")
@@ -79,6 +80,7 @@ def get_category_name(vendor_code: int) -> str:
     part = vendor_code // 1000
     vol = part // 100
     for basket in range(1, 99):
+        # todo: сделать запросы асинхронными (ThreadPoolExecutor)
         category_url = (f"https://basket-{str(basket).rjust(2, '0')}.wb.ru/vol{vol}"
                         f"/part{part}/{vendor_code}/info/ru/card.json")
         category_response = requests.get(category_url)
@@ -97,6 +99,7 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
         position = None
         page_capacities = []
         while page:
+            # todo: сделать запросы асинхронными (ThreadPoolExecutor)
             # todo: можно ускорить, если искать по одному ключевому запросу сразу несколько товаров
             # noinspection SpellCheckingInspection
             url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub" \

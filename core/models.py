@@ -107,6 +107,7 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
         super().save()
 
 
+# todo: объединить параллельные парсинги в один
 class Parsing(CoreModel):
     date = models.DateField("Дата начала парсинга", auto_now_add = True)
     time = models.DateTimeField("Время начала парсинга", auto_now_add = True)

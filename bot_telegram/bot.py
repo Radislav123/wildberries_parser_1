@@ -407,6 +407,7 @@ class NotifierMixin(BotService):
                     notification.error = str(error)
                     raise error
                 finally:
+                    # todo: переделать на bulk_update
                     notification.save()
             time.sleep(1)
 

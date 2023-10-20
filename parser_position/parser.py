@@ -46,34 +46,37 @@ class Parser(parser_core.Parser):
     def get_position_parser_item_dicts(cls) -> list[dict[str, str | int]]:
         book = openpyxl.load_workbook(cls.settings.PARSER_POSITION_DATA_PATH)
         sheet = book.active
-        items = []
+        items = {}
         row = 2
         while sheet.cell(row, 1).value:
-            items.append(
-                {
-                    "vendor_code": int(sheet.cell(row, 1).value),
-                    "name": sheet.cell(row, 2).value,
-                    "keyword": sheet.cell(row, 3).value
-                }
-            )
+            item = {
+                "vendor_code": int(sheet.cell(row, 1).value),
+                "name": sheet.cell(row, 2).value,
+                "keyword": sheet.cell(row, 3).value
+            }
+            items[f"{item['vendor_code']}_{item['keyword']}"] = item
             row += 1
-        return items
+
+        return list(items.values())
 
     @classmethod
     def get_position_parser_keywords(cls) -> list[models.Keyword]:
+        customer = core_models.ParserUser.get_customer()
         item_dicts = cls.get_position_parser_item_dicts()
         # создание отсутствующих товаров в БД
         items = {
             x["vendor_code"]: models.Item.objects.get_or_create(
                 vendor_code = x["vendor_code"],
-                user = core_models.ParserUser.get_customer()
+                user = customer
             )[0] for x in item_dicts
         }
 
+        # todo: переписать с использованием bulk_create
+        # https://stackoverflow.com/a/74189912/13186004
         keywords = [
             models.Keyword.objects.update_or_create(
                 item = items[x["vendor_code"]],
-                item__user = core_models.ParserUser.get_customer(),
+                item__user = customer,
                 value = x["keyword"],
                 defaults = {"item_name": x["name"]}
             )[0] for x in item_dicts

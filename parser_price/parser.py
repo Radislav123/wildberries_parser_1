@@ -47,18 +47,24 @@ class Parser(parser_core.Parser):
     def get_price_parser_item_dicts(cls) -> list[dict[str, Any]]:
         book = openpyxl.load_workbook(cls.settings.PARSER_PRICE_DATA_PATH)
         sheet = book.active
-        item_dicts = []
+        items = {}
         row = 2
         while sheet.cell(row, 1).value:
-            item_dicts.append({"vendor_code": sheet.cell(row, 1).value, "name": sheet.cell(row, 2).value})
+            item = {
+                "vendor_code": sheet.cell(row, 1).value,
+                "name": sheet.cell(row, 2).value
+            }
+            items[item["vendor_code"]] = item
             row += 1
-        return item_dicts
+        return list(items.values())
 
     @classmethod
     def get_price_parser_items(cls) -> list[models.Item]:
         item_dicts = cls.get_price_parser_item_dicts()
         items = []
 
+        # todo: переписать с использованием bulk_create
+        # https://stackoverflow.com/a/74189912/13186004
         for item_dict in item_dicts:
             items.append(
                 models.Item.objects.update_or_create(
@@ -92,3 +98,5 @@ class Parser(parser_core.Parser):
 
         if prepare_table:
             models.PreparedPrice.prepare(items)
+        # todo: remove log
+        self.logger.debug(f"{self.parsing.id} finished, items: {items}")
