@@ -45,7 +45,7 @@ class Settings:
         # если True - используются SHOW_HISTORY_DEPTH и DOWNLOAD_HISTORY_DEPTH,
         # иначе - отображаются и выгружаются все доступные даты
         # должно задаваться в дочерних классах
-        self.DYNAMIC_FIELDS_ORDER: list[str] = []
+        self.DYNAMIC_FIELDS_ORDER: list[str]
 
         # Пути секретов
         self.SECRETS_FOLDER = "secrets"

@@ -325,9 +325,8 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
         date_range = [today - datetime.timedelta(x) for x in range(self.settings.SHOW_HISTORY_DEPTH)]
 
         extra_context["dynamic_field_names"] = [
-            self.dynamic_field_names[field_name](date)
-            for date in date_range
-            for field_name in self.settings.DYNAMIC_FIELDS_ORDER
+            self.dynamic_field_names[field_name](f"____{date}____")
+            for date in date_range for field_name in self.settings.DYNAMIC_FIELDS_ORDER
         ]
 
         # добавление контекста для выведения комментариев

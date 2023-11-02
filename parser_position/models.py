@@ -54,15 +54,21 @@ class Position(ParserPositionModel):
     promo_position = models.PositiveIntegerField("Рекламная позиция", null = True)
     sold_out = models.BooleanField("Распродано", null = True)
 
-    @property
-    def position_repr(self) -> str:
-        page = self.page
-        position = self.position
+    @staticmethod
+    def get_position_repr(page: int | None, position: int | None) -> str:
         if page is None:
             page = "-"
         if position is None:
             position = "-"
         return f"{page}/{position}"
+
+    @property
+    def position_repr(self) -> str:
+        return self.get_position_repr(self.page, self.position)
+
+    @property
+    def promo_position_repr(self) -> str:
+        return self.get_position_repr(self.promo_page, self.promo_position)
 
     @property
     def real_position(self) -> int | None:
@@ -140,7 +146,12 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
             for number, date in enumerate(date_range[:-1]):
                 if last_positions[number] is not None:
                     obj.positions[date] = last_positions[number].real_position
-                    obj.position_reprs[date] = last_positions[number].position_repr
+                    # была реклама
+                    if last_positions[number].promo_position and last_positions[number].promo_page:
+                        obj.position_reprs[date] = (f"{last_positions[number].promo_position_repr} <= "
+                                                    f"{last_positions[number].position_repr}")
+                    else:
+                        obj.position_reprs[date] = last_positions[number].position_repr
                     obj.movements[date] = last_positions[number].movement_from(last_positions[number + 1])
                 else:
                     obj.positions[date] = None
