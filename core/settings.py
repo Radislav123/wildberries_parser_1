@@ -53,9 +53,9 @@ class Settings:
         self.DATABASE_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/database"
         self.DATABASE_CREDENTIALS_PATH = f"{self.DATABASE_SECRETS_FOLDER}/credentials.json"
 
-        self.ADMIN_PANEL_FOLDER = f"{self.SECRETS_FOLDER}/admin_panel"
-        self.CUSTOMER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_FOLDER}/customer_user.json"
-        self.DEVELOPER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_FOLDER}/developer_user.json"
+        self.ADMIN_PANEL_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/admin_panel"
+        self.CUSTOMER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/customer_user.json"
+        self.DEVELOPER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/developer_user.json"
 
         self.GEOPARSER_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/geoparser"
         self.GEOPARSER_CREDENTIALS_PATH = f"{self.GEOPARSER_SECRETS_FOLDER}/credentials.json"
@@ -63,8 +63,8 @@ class Settings:
         self.BOT_TELEGRAM_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/bot_telegram"
         self.BOT_TELEGRAM_CREDENTIALS_PATH = f"{self.BOT_TELEGRAM_SECRETS_FOLDER}/credentials.json"
 
-        self.DEVELOPER_FOLDER = f"{self.SECRETS_FOLDER}/developer"
-        self.DEVELOPER_CREDENTIALS_PATH = f"{self.DEVELOPER_FOLDER}/credentials.json"
+        self.DEVELOPER_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/developer"
+        self.DEVELOPER_CREDENTIALS_PATH = f"{self.DEVELOPER_SECRETS_FOLDER}/credentials.json"
 
         # Настройки логгера
         self.LOG_FORMAT = "[%(asctime)s] - [%(levelname)s] - [%(parsing)s] - %(name)s -" \

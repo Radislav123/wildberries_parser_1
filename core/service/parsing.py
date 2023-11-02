@@ -97,6 +97,8 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
     try:
         page = 1
         position = None
+        promo_page = None
+        promo_position = None
         page_capacities = []
         while page:
             # todo: сделать запросы асинхронными (ThreadPoolExecutor)
@@ -106,12 +108,14 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
                   f"&dest={dest}&page={page}&query={keyword}&regions={regions}" \
                   f"&resultset=catalog&sort=popular&spp=0&suppressSpellcheck=false"
             response = requests.get(url)
+            products = response.json()["data"]["products"]
             try_number = 0
             try_success = False
             while try_number < settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT and not try_success:
                 try_number += 1
                 try:
-                    page_vendor_codes = [x["id"] for x in response.json()["data"]["products"]]
+                    page_vendor_codes = [x["id"] for x in products]
+                    logs = {x["id"]: x["log"] for x in products if "log" in x and len(x["log"])}
                     try_success = True
                 except JSONDecodeError:
                     if not try_success and try_number >= settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT:
@@ -125,6 +129,13 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
                 page_capacities.append(len(page_vendor_codes))
                 if vendor_code in page_vendor_codes:
                     position = page_vendor_codes.index(vendor_code) + 1
+                    # noinspection PyUnboundLocalVariable
+                    if vendor_code in logs:
+                        promo_page = page
+                        promo_position = position
+                        # предполагается, что емкость каждой страницы совпадает с емкостью первой
+                        page = logs[vendor_code]["position"] // page_capacities[0] + 1
+                        position = logs[vendor_code]["position"] % page_capacities[0] + 1
                     break
                 page += 1
     except KeyError as error:
@@ -133,9 +144,17 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
             page_capacities = None
             page = None
             position = None
+            promo_page = None
+            promo_position = None
         else:
             raise error
-    return {"page": page, "position": position, "page_capacities": page_capacities}
+    return {
+        "page_capacities": page_capacities,
+        "page": page,
+        "position": position,
+        "promo_page": promo_page,
+        "promo_position": promo_position
+    }
 
 
 def parse_positions(
@@ -151,7 +170,13 @@ def parse_positions(
     for keyword, vendor_code in zip(keywords, vendor_codes):
         try:
             if prices[vendor_code]["sold_out"]:
-                position = {"page": None, "position": None, "page_capacities": None}
+                position = {
+                    "page_capacities": None,
+                    "page": None,
+                    "position": None,
+                    "promo_page": None,
+                    "promo_position": None
+                }
             else:
                 position = parse_position(vendor_code, keyword, dest, regions)
             position["sold_out"] = prices[vendor_code]["sold_out"]
