@@ -49,18 +49,20 @@ class Position(ParserPositionModel):
     # количества товаров на страницах
     page_capacities = ArrayField(models.PositiveIntegerField(), verbose_name = "Емкости страниц", null = True)
     page = models.PositiveIntegerField("Страница", null = True)
-    value = models.PositiveIntegerField("Позиция", null = True)
+    position = models.PositiveIntegerField("Позиция", null = True)
+    promo_page = models.PositiveIntegerField("Рекламная страница", null = True)
+    promo_position = models.PositiveIntegerField("Рекламная позиция", null = True)
     sold_out = models.BooleanField("Распродано", null = True)
 
     @property
     def position_repr(self) -> str:
         page = self.page
-        value = self.value
+        position = self.position
         if page is None:
             page = "-"
-        if value is None:
-            value = "-"
-        return f"{page}/{value}"
+        if position is None:
+            position = "-"
+        return f"{page}/{position}"
 
     @property
     def real_position(self) -> int | None:
@@ -68,10 +70,10 @@ class Position(ParserPositionModel):
         # 5 страница, все страницы с заполненностью по 100, 30 позиция
         # 100 * (5 - 1) + 30 = 430
 
-        if self.page_capacities is not None and self.value is not None:
-            real_position = sum(self.page_capacities[:self.page - 1]) + self.value
+        if self.page_capacities is not None and self.position is not None:
+            real_position = sum(self.page_capacities[:self.page - 1]) + self.position
         else:
-            real_position = self.value
+            real_position = self.position
         return real_position
 
     @classmethod
@@ -85,7 +87,7 @@ class Position(ParserPositionModel):
         return obj
 
     def movement_from(self, other: "Position") -> int:
-        if other is None or other.value is None or self.value is None:
+        if other is None or other.position is None or self.position is None:
             movement = None
         else:
             movement = self.real_position - other.real_position

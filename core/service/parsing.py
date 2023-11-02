@@ -108,12 +108,13 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
                   f"&dest={dest}&page={page}&query={keyword}&regions={regions}" \
                   f"&resultset=catalog&sort=popular&spp=0&suppressSpellcheck=false"
             response = requests.get(url)
-            products = response.json()["data"]["products"]
             try_number = 0
             try_success = False
             while try_number < settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT and not try_success:
                 try_number += 1
                 try:
+                    response_json = response.json()
+                    products = response_json["data"]["products"]
                     page_vendor_codes = [x["id"] for x in products]
                     logs = {x["id"]: x["log"] for x in products if "log" in x and len(x["log"])}
                     try_success = True
@@ -136,6 +137,9 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
                         # предполагается, что емкость каждой страницы совпадает с емкостью первой
                         page = logs[vendor_code]["position"] // page_capacities[0] + 1
                         position = logs[vendor_code]["position"] % page_capacities[0] + 1
+                    break
+                elif "original" in response_json["metadata"]:
+                    # страницы закончились, теперь идет другая выдача
                     break
                 page += 1
     except KeyError as error:

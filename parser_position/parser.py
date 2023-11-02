@@ -33,7 +33,9 @@ class Parser(parser_core.Parser):
                 city = city,
                 page_capacities = position["page_capacities"],
                 page = position["page"],
-                value = position["position"],
+                position = position["position"],
+                promo_page = position["promo_page"],
+                promo_position = position["promo_position"],
                 sold_out = position["sold_out"]
             ) for key, position in positions.items()
         ]
