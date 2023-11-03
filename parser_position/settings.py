@@ -15,3 +15,5 @@ class Settings(settings.Settings):
 
         # порядок отображение динамических полей в административной панели
         self.DYNAMIC_FIELDS_ORDER = ["position_repr", "movement"]
+
+        self.PROMO_SEPARATOR = "<="

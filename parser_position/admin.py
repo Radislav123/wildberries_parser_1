@@ -57,12 +57,16 @@ def download_prepared_position_excel(
             movement_format_cache[movement] = movement_format
         return movement_format_cache[movement]
 
-    def get_position_repr_format(position_repr: str | None) -> xlsxwriter.format.Format:
+    def get_position_repr_format() -> xlsxwriter.format.Format:
+        position_repr = data.position_reprs[date]
         if position_repr not in position_repr_format_cache:
             if position_repr is None:
                 position_repr_format = default_text_format
             else:
-                page, position = position_repr.split('/')
+                if settings.PROMO_SEPARATOR in position_repr:
+                    page, position = position_repr.split(settings.PROMO_SEPARATOR)[1].strip().split('/')
+                else:
+                    page, position = position_repr.split('/')
                 if page == "1":
                     position_repr_format = book.add_format()
                     color = XLSXColor.gradient_green(0, 100, 0, 255, XLSXColor.GradientType.LOG2, int(position))
@@ -120,7 +124,7 @@ def download_prepared_position_excel(
                     row_number,
                     position_repr_column_number,
                     data.position_reprs[date],
-                    get_position_repr_format(data.position_reprs[date])
+                    get_position_repr_format()
                 )
                 sheet.write(
                     row_number,

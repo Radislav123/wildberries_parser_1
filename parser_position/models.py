@@ -148,7 +148,8 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
                     obj.positions[date] = last_positions[number].real_position
                     # была реклама
                     if last_positions[number].promo_position and last_positions[number].promo_page:
-                        obj.position_reprs[date] = (f"{last_positions[number].promo_position_repr} <= "
+                        obj.position_reprs[date] = (f"{last_positions[number].promo_position_repr}"
+                                                    f" {settings.PROMO_SEPARATOR} "
                                                     f"{last_positions[number].position_repr}")
                     else:
                         obj.position_reprs[date] = last_positions[number].position_repr

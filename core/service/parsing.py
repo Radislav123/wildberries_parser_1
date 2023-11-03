@@ -128,6 +128,7 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
             else:
                 # noinspection PyUnboundLocalVariable
                 page_capacities.append(len(page_vendor_codes))
+                # noinspection PyUnboundLocalVariable
                 if vendor_code in page_vendor_codes:
                     position = page_vendor_codes.index(vendor_code) + 1
                     # noinspection PyUnboundLocalVariable
