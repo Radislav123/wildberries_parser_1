@@ -5,6 +5,7 @@ import math
 class Color:
     GREEN = "#6aa84f"
     RED = "#ef6f6f"
+    YELLOW = "#fdff82"
 
     @staticmethod
     def to_hex(value: int) -> str:

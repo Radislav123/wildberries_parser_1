@@ -45,7 +45,7 @@ def download_prepared_position_excel(
     def get_movement_format(movement: int | None) -> xlsxwriter.format.Format:
         if movement not in movement_format_cache:
             if movement is None or movement == 0:
-                movement_format = default_text_format
+                movement_format = default_format
             elif movement > 0:
                 movement_format = book.add_format()
                 color = XLSXColor.gradient_red(-50, 0, 0, 100, XLSXColor.GradientType.LINEAR, -movement)
@@ -61,7 +61,7 @@ def download_prepared_position_excel(
         position_repr = data.position_reprs[date]
         if position_repr not in position_repr_format_cache:
             if position_repr is None:
-                position_repr_format = default_text_format
+                position_repr_format = default_format
             else:
                 if settings.PROMO_SEPARATOR in position_repr:
                     page, position = position_repr.split(settings.PROMO_SEPARATOR)[0].strip().split('/')
@@ -76,7 +76,7 @@ def download_prepared_position_excel(
                     color = XLSXColor.gradient_green(0, 100, 0, 255, XLSXColor.GradientType.LOG2, int(position))
                     position_repr_format.set_bg_color(color)
                 else:
-                    position_repr_format = default_text_format
+                    position_repr_format = default_format
             position_repr_format_cache[position_repr] = position_repr_format
         return position_repr_format_cache[position_repr]
 
@@ -86,7 +86,9 @@ def download_prepared_position_excel(
     sheet = book.add_worksheet(model_name)
     dynamic_fields_offset = 6
 
-    default_text_format = book.add_format()
+    default_format = book.add_format()
+    first_three_yellow_format = book.add_format()
+    first_three_yellow_format.set_bg_color(XLSXColor.YELLOW)
     movement_format_cache: dict[int | None, xlsxwriter.format.Format] = {}
     position_repr_format_cache: dict[str | None, xlsxwriter.format.Format] = {}
 
@@ -114,9 +116,13 @@ def download_prepared_position_excel(
     dynamic_fields_number = len(admin_model.settings.DYNAMIC_FIELDS_ORDER)
     for row_number, data in enumerate(queryset, 2):
         data: admin_model.model
-        sheet.write(row_number, 0, data.position.keyword.item.vendor_code)
-        sheet.write(row_number, 1, data.position.keyword.item_name)
-        sheet.write(row_number, 2, data.position.keyword.value)
+        if data.position.promo_position is not None and data.position.promo_page is not None:
+            first_three_format = first_three_yellow_format
+        else:
+            first_three_format = default_format
+        sheet.write(row_number, 0, data.position.keyword.item.vendor_code, first_three_format)
+        sheet.write(row_number, 1, data.position.keyword.item_name, first_three_format)
+        sheet.write(row_number, 2, data.position.keyword.value, first_three_format)
         sheet.write(row_number, 3, data.position.keyword.frequency)
         sheet.write(row_number, 4, data.position.city)
         sheet.write(row_number, 5, data.long_movement, get_movement_format(data.long_movement))
