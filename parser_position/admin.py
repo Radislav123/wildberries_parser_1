@@ -67,12 +67,8 @@ def download_prepared_position_excel(
                     page, position = position_repr.split(settings.PROMO_SEPARATOR)[0].strip().split('/')
                 else:
                     page, position = position_repr.split('/')
-                # todo: return line
-                # if page == "1":
-                # todo: remove line
-                if page == "1" and position != "-":
+                if page == "1":
                     position_repr_format = book.add_format()
-                    # todo: исправить - идет неправильно сохранение (page = 1, position = None, когда товара нет в выдаче)
                     color = XLSXColor.gradient_green(0, 100, 0, 255, XLSXColor.GradientType.LOG2, int(position))
                     position_repr_format.set_bg_color(color)
                 else:

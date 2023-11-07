@@ -141,6 +141,7 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
                     break
                 elif "original" in response_json["metadata"]:
                     # страницы закончились, теперь идет другая выдача
+                    page = None
                     break
                 page += 1
     except KeyError as error:
