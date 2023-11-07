@@ -64,7 +64,7 @@ def download_prepared_position_excel(
                 position_repr_format = default_text_format
             else:
                 if settings.PROMO_SEPARATOR in position_repr:
-                    page, position = position_repr.split(settings.PROMO_SEPARATOR)[1].strip().split('/')
+                    page, position = position_repr.split(settings.PROMO_SEPARATOR)[0].strip().split('/')
                 else:
                     page, position = position_repr.split('/')
                 # todo: return line
