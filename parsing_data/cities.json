@@ -1,38 +1,44 @@
 [
-  {
-    "name": "Москва",
-    "label": "Moscow",
-    "latitude": "55.755825",
-    "longitude": "37.617298"
-  },
-  {
-    "name": "Санкт-Петербург",
-    "label": "Saint Petersburg",
-    "latitude": "59.934280",
-    "longitude": "30.335098"
-  },
-  {
-    "name": "Екатеринбург",
-    "label": "Yekaterinburg",
-    "latitude": "56.838924",
-    "longitude": "60.605701"
-  },
-  {
-    "name": "Казань",
-    "label": "Kazan",
-    "latitude": "55.830433",
-    "longitude": "49.066082"
-  },
-  {
-    "name": "Новосибирск",
-    "label": "Novosibirsk",
-    "latitude": "55.008354",
-    "longitude": "82.935730"
-  },
-  {
-    "name": "Краснодар",
-    "label": "Krasnodar",
-    "latitude": "45.039268",
-    "longitude": "38.987221"
-  }
+    {
+        "name": "Москва",
+        "label": "Moscow",
+        "dest": "-1255987",
+        "latitude": "55.755825",
+        "longitude": "37.617298"
+    },
+    {
+        "name": "Санкт-Петербург",
+        "label": "Saint Petersburg",
+        "dest": "-1185367",
+        "latitude": "59.934280",
+        "longitude": "30.335098"
+    },
+    {
+        "name": "Екатеринбург",
+        "label": "Yekaterinburg",
+        "dest": "-5817698",
+        "latitude": "56.838924",
+        "longitude": "60.605701"
+    },
+    {
+        "name": "Казань",
+        "label": "Kazan",
+        "dest": "-2133465",
+        "latitude": "55.830433",
+        "longitude": "49.066082"
+    },
+    {
+        "name": "Новосибирск",
+        "label": "Novosibirsk",
+        "dest": "-365341",
+        "latitude": "55.008354",
+        "longitude": "82.935730"
+    },
+    {
+        "name": "Краснодар",
+        "label": "Krasnodar",
+        "dest": "12358063",
+        "latitude": "45.039268",
+        "longitude": "38.987221"
+    }
 ]

@@ -14,7 +14,6 @@ logger = Logger(f"{settings.APP_NAME}_service")
 def parse_prices(
         vendor_codes: list[int],
         dest: str,
-        regions: str
 ) -> tuple[dict[int, dict[str, int | float | str]], dict[int, Exception]]:
     # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
     request_personal_sale = 99
@@ -26,7 +25,7 @@ def parse_prices(
     for vendor_codes_chunk in chunks:
         # todo: сделать запросы асинхронными (ThreadPoolExecutor)
         url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
-               f"&dest={dest}&regions={regions}&spp={request_personal_sale}"
+               f"&dest={dest}&spp={request_personal_sale}"
                f"&nm={';'.join(str(x) for x in vendor_codes_chunk)}")
         items_response = requests.get(url)
 
@@ -93,7 +92,7 @@ def get_category_name(vendor_code: int) -> str:
 
 
 # не использовать на прямую, так как нет проверки на наличие товара
-def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> dict[str, int | list[int]]:
+def parse_position(vendor_code: int, keyword: str, dest: str) -> dict[str, int | list[int]]:
     try:
         page = 1
         position = None
@@ -104,9 +103,8 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
             # todo: сделать запросы асинхронными (ThreadPoolExecutor)
             # todo: можно ускорить, если искать по одному ключевому запросу сразу несколько товаров
             # noinspection SpellCheckingInspection
-            url = f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub" \
-                  f"&dest={dest}&page={page}&query={keyword}&regions={regions}" \
-                  f"&resultset=catalog&sort=popular&spp=0&suppressSpellcheck=false"
+            url = (f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub&dest={dest}&page={page}"
+                   f"&query={keyword}&resultset=catalog&sort=popular&spp=0&suppressSpellcheck=false")
             response = requests.get(url)
             try_number = 0
             try_success = False
@@ -166,10 +164,9 @@ def parse_position(vendor_code: int, keyword: str, dest: str, regions: str) -> d
 def parse_positions(
         vendor_codes: list[int],
         keywords: list[str],
-        dest: str,
-        regions: str
+        dest: str
 ) -> tuple[dict[tuple[int, str], dict[str, int | list[int] | bool | None]], dict[int, Exception]]:
-    prices, _ = parse_prices(list(set(vendor_codes)), dest, regions)
+    prices, _ = parse_prices(list(set(vendor_codes)), dest)
 
     positions = {}
     errors = {}
@@ -184,7 +181,7 @@ def parse_positions(
                     "promo_position": None
                 }
             else:
-                position = parse_position(vendor_code, keyword, dest, regions)
+                position = parse_position(vendor_code, keyword, dest)
             position["sold_out"] = prices[vendor_code]["sold_out"]
             positions[(vendor_code, keyword)] = position
         except Exception as error:

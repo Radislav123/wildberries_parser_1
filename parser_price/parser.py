@@ -6,7 +6,6 @@ from selenium.webdriver import Chrome
 from bot_telegram import bot
 from core import models as core_models, parser as parser_core
 from core.service import parsing
-from pages import MainPage
 from . import models, settings
 
 
@@ -19,11 +18,10 @@ class Parser(parser_core.Parser):
     def parse_items(
             self,
             items: list[models.Item],
-            dest: str,
-            regions: str
+            dest: str
     ) -> tuple[list[models.Price], dict[models.Item, Exception]]:
         items_dict = {x.vendor_code: x for x in items}
-        prices, errors = parsing.parse_prices(list(items_dict), dest, regions)
+        prices, errors = parsing.parse_prices(list(items_dict), dest)
         errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
         price_objects = []
         for vendor_code, price in prices.items():
@@ -87,10 +85,8 @@ class Parser(parser_core.Parser):
 
     def run(self, items: list[models.Item], prepare_table: bool) -> None:
         city_dict = self.settings.MOSCOW_CITY_DICT
-        main_page = MainPage(self)
-        main_page.open()
-        dest, regions = main_page.set_city(city_dict)
-        prices, errors = self.parse_items(items, dest, regions)
+        dest = city_dict["dest"]
+        prices, errors = self.parse_items(items, dest)
         self.parsing.not_parsed_items = errors
 
         notifications = models.Price.get_notifications(prices)
@@ -98,5 +94,3 @@ class Parser(parser_core.Parser):
 
         if prepare_table:
             models.PreparedPrice.prepare(items)
-        # todo: remove log
-        self.logger.debug(f"{self.parsing.id} finished, items: {items}")

@@ -2,7 +2,6 @@ import openpyxl
 
 from core import models as core_models, parser as parser_core
 from core.service import parsing
-from pages import MainPage
 from . import models, settings
 
 
@@ -17,13 +16,12 @@ class Parser(parser_core.Parser):
             self,
             keywords: list[models.Keyword],
             dest: str,
-            regions: str,
             city: str
     ) -> tuple[list[models.Position], dict[models.Item, Exception]]:
         keywords_dict = {(x.item.vendor_code, x.value): x for x in keywords}
         items_dict = {x.vendor_code: x for x in set(keyword.item for keyword in keywords)}
         positions, errors = parsing.parse_positions(
-            [x.item.vendor_code for x in keywords], [x.value for x in keywords], dest, regions
+            [x.item.vendor_code for x in keywords], [x.value for x in keywords], dest
         )
         errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
         position_objects = [
@@ -96,11 +94,9 @@ class Parser(parser_core.Parser):
         raise NotImplementedError()
 
     def run(self, keywords: list[models.Keyword], city_dict: City, prepare_table: bool) -> None:
-        main_page = MainPage(self)
-        main_page.open()
-        dest, regions = main_page.set_city(city_dict)
         city = city_dict["name"]
-        _, errors = self.parse_positions(keywords, dest, regions, city)
+        dest = city_dict["dest"]
+        _, errors = self.parse_positions(keywords, dest, city)
         self.parsing.not_parsed_items = errors
 
         if prepare_table:
