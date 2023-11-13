@@ -688,7 +688,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
     def parse_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
         vendor_code = int(message.text)
-        prices, errors = parsing.parse_prices([vendor_code], self.wildberries.dest, self.wildberries.regions)
+        prices, errors = parsing.parse_prices([vendor_code], self.wildberries.dest)
         price = prices[vendor_code]
         if vendor_code in errors:
             raise errors[vendor_code]

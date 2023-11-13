@@ -18,6 +18,7 @@
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/.wdm" />
       <excludeFolder url="file://$MODULE_DIR$/webdrivers" />
+      <excludeFolder url="file://$MODULE_DIR$/logs" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.11 (wildberries_parser_1)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
