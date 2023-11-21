@@ -643,40 +643,50 @@ class Bot(NotifierMixin, telebot.TeleBot):
         )
 
     def parse_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
-        vendor_code = int(message.text)
-        prices, errors = parsing.parse_prices([vendor_code], self.wildberries.dest)
-        price = prices[vendor_code]
-        if vendor_code in errors:
-            raise errors[vendor_code]
+        try:
+            vendor_code = int(message.text)
+            prices, errors = parsing.parse_prices([vendor_code], self.wildberries.dest)
+            price = prices[vendor_code]
+            if vendor_code in errors:
+                raise errors[vendor_code]
 
-        if price["personal_sale"] is None:
-            price["personal_sale"] = 0
+            if price["personal_sale"] is None:
+                price["personal_sale"] = 0
 
-        block = self.construct_header(
-            price["category_name"],
-            vendor_code,
-            price["name_site"],
-            None,
-            parser_price_models.Item(vendor_code = vendor_code).link
-        )
-        block.extend(
-            [
-                "",
-                f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
-                f" {price['price']}",
-                f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
-                f" {price['final_price']}",
-                f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
-                f" {price['personal_sale']}",
-                ""
-            ]
-        )
-        block.extend(self.construct_final_block())
-        self.send_message(
-            user.telegram_chat_id,
-            self.Formatter.join(block),
-            self.ParseMode.MARKDOWN
-        )
+            block = self.construct_header(
+                price["category_name"],
+                vendor_code,
+                price["name_site"],
+                None,
+                parser_price_models.Item(vendor_code = vendor_code).link
+            )
+            block.extend(
+                [
+                    "",
+                    # todo: return
+                    # f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
+                    # f" {price['price']}",
+                    f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
+                    f" {price['final_price']}",
+                    # todo: return
+                    # f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
+                    # f" {price['personal_sale']}",
+                    ""
+                ]
+            )
+            block.extend(self.construct_final_block())
+            self.send_message(
+                user.telegram_chat_id,
+                self.Formatter.join(block),
+                self.ParseMode.MARKDOWN
+            )
+        except Exception as error:
+            self.send_message(
+                user.telegram_chat_id,
+                self.Formatter.join(["Произошла ошибка. Попробуйте еще раз чуть позже."]),
+                self.ParseMode.MARKDOWN
+            )
+            raise error
 
     @subscription_filter
     def add_item(self, message: types.Message) -> None:
