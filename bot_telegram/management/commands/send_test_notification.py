@@ -36,12 +36,15 @@ class Command(parser_price_command.ParserPriceCommand):
         else:
             raise ValueError("Set --customer or --developer option")
         notifications = [
-            models.Price.Notification(
-                self.construct_price(user),
-                self.construct_price(user),
-                False,
-                False
+            models.Notification(
+                new = self.construct_price(user),
+                old = self.construct_price(user),
+                sold_out = (True, False)[random.randint(0, 1)],
+                no_personal_sale = (True, False)[random.randint(0, 1)]
             )
         ]
         bot = Bot()
-        bot.notify(notifications)
+        try:
+            bot.notify(notifications)
+        except ValueError:
+            pass
