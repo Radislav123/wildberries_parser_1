@@ -1,20 +1,14 @@
-import pathlib
 import platform
 import time
 from typing import Any, Callable
 
 import telebot
-from selenium.webdriver import Chrome, ChromeOptions
-from selenium.webdriver.chrome.service import Service
 from telebot import types
 from telebot.apihelper import ApiTelegramException
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.driver_cache import DriverCacheManager
 
 import logger
 from core import models as core_models
 from core.service import parsing
-from pages import MainPage
 from parser_price import models as parser_price_models
 from . import models as bot_telegram_models, settings
 
@@ -125,49 +119,9 @@ class BotService:
             return "\n".join([cls.escape(string) for string in text])
 
     class Wildberries:
-        _dest: str = None
-        _regions: str = None
-
         def __init__(self, bot: "BotService") -> None:
             self.bot = bot
-
-        def prepare(self) -> None:
-            self.bot.logger.info("Preparing wildberries attributes")
-
-            driver_options = ChromeOptions()
-            # этот параметр тоже нужен, так как в режиме headless с некоторыми элементами нельзя взаимодействовать
-            driver_options.add_argument("--no-sandbox")
-            driver_options.add_argument("--disable-blink-features=AutomationControlled")
-            driver_options.add_argument("--headless")
-            driver_options.add_argument("--window-size=1920,1080")
-            driver_options.add_experimental_option("excludeSwitches", ["enable-logging"])
-
-            cache_manager = DriverCacheManager(root_dir = pathlib.Path.cwd())
-            driver_manager = ChromeDriverManager(cache_manager = cache_manager).install()
-            driver_service = Service(executable_path = driver_manager)
-
-            self.bot.driver = Chrome(options = driver_options, service = driver_service)
-            self.bot.driver.maximize_window()
-            self.bot.driver.execute_cdp_cmd("Network.setCacheDisabled", {"cacheDisabled": True})
-
-            # noinspection PyTypeChecker
-            main_page = MainPage(self.bot)
-            main_page.open()
-            self._dest, self._regions = main_page.set_city(self.bot.settings.MOSCOW_CITY_DICT)
-
-            self.bot.driver.quit()
-
-        @property
-        def dest(self) -> str:
-            if self._dest is None:
-                self.prepare()
-            return self._dest
-
-        @property
-        def regions(self) -> str:
-            if self._regions is None:
-                self.prepare()
-            return self._regions
+            self.dest = self.bot.settings.MOSCOW_CITY_DICT["dest"]
 
     settings = settings.Settings()
 
