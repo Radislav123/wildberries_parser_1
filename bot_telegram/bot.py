@@ -296,10 +296,11 @@ class NotifierMixin(BotService):
                     if not notification.sold_out and not notification.no_personal_sale:
                         text = [
                             *self.construct_start_block(notification),
-                            "",
-                            *self.construct_price_block(notification),
-                            "",
-                            *self.construct_personal_sale_block(notification),
+                            # todo: return
+                            # "",
+                            # *self.construct_price_block(notification),
+                            # "",
+                            # *self.construct_personal_sale_block(notification),
                             "",
                             *self.construct_final_price_block(notification),
                             "",
@@ -314,10 +315,11 @@ class NotifierMixin(BotService):
                     elif notification.no_personal_sale:
                         text = [
                             *self.construct_start_block(notification),
-                            "",
-                            *self.construct_price_block(notification),
-                            "",
-                            *self.construct_no_personal_sale_block(),
+                            # todo: return
+                            # "",
+                            # *self.construct_price_block(notification),
+                            # "",
+                            # *self.construct_no_personal_sale_block(),
                             "",
                             *self.construct_final_price_block(notification),
                             "",
