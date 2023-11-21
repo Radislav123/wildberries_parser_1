@@ -93,4 +93,4 @@ class Parser(parser_core.Parser):
         self.bot_telegram.notify(notifications)
 
         if prepare_table:
-            models.PreparedPrice.prepare(items)
+            models.PreparedPrice.prepare([x for x in items if x not in errors])

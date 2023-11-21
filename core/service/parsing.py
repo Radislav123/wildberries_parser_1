@@ -55,22 +55,34 @@ def parse_prices(
 
 
 def get_price(item_dict: dict) -> tuple[float, float, int, bool]:
-    sold_out = "wh" not in item_dict
+    sold_out = True
+    for size in item_dict["sizes"]:
+        if len(size["stocks"]) > 0:
+            sold_out = False
+            break
     if sold_out:
         price = None
         final_price = None
         personal_sale = None
     else:
-        if "basicPriceU" in item_dict["extended"]:
-            price = item_dict["extended"]["basicPriceU"]
+        if False:
+            # todo: remove it?
+            if "basicPriceU" in item_dict["extended"]:
+                price = item_dict["extended"]["basicPriceU"]
+            else:
+                price = item_dict["priceU"]
+            final_price = item_dict["salePriceU"]
+            if price == final_price:
+                personal_sale = None
+            else:
+                personal_sale = int(item_dict["extended"]["clientSale"])
         else:
-            price = item_dict["priceU"]
-        final_price = item_dict["salePriceU"]
-        if price == final_price:
+            # todo: rewrite
+            price = None
+            final_price = item_dict["salePriceU"]
+            # todo: rewrite
             personal_sale = None
-        else:
-            personal_sale = int(item_dict["extended"]["clientSale"])
-        price = int(price) / 100
+        # price = int(price) / 100
         final_price = int(final_price) / 100
     return price, final_price, personal_sale, sold_out
 

@@ -100,4 +100,4 @@ class Parser(parser_core.Parser):
         self.parsing.not_parsed_items = errors
 
         if prepare_table:
-            models.PreparedPosition.prepare(keywords, city)
+            models.PreparedPosition.prepare([x for x in keywords if x.item not in errors], city)
