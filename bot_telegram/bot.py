@@ -660,21 +660,25 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 None,
                 parser_price_models.Item(vendor_code = vendor_code).link
             )
-            block.extend(
-                [
-                    "",
-                    # todo: return
-                    # f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
-                    # f" {price['price']}",
-                    f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
-                    f" {price['final_price']}",
-                    # todo: return
-                    # f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
-                    # f" {price['personal_sale']}",
-                    ""
-                ]
-            )
-            block.extend(self.construct_final_block())
+            if price["sold_out"]:
+                block.append("")
+                block.extend(self.construct_sold_out_block())
+            else:
+                block.extend(
+                    [
+                        "",
+                        # todo: return
+                        # f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
+                        # f" {price['price']}",
+                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
+                        f" {price['final_price']}",
+                        # todo: return
+                        # f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
+                        # f" {price['personal_sale']}",
+                        ""
+                    ]
+                )
+                block.extend(self.construct_final_block())
             self.send_message(
                 user.telegram_chat_id,
                 self.Formatter.join(block),
