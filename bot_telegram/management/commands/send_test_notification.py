@@ -38,13 +38,14 @@ class Command(parser_price_command.ParserPriceCommand):
         notifications = [
             models.Notification(
                 new = self.construct_price(user),
-                old = self.construct_price(user),
-                sold_out = (True, False)[random.randint(0, 1)],
-                no_personal_sale = (True, False)[random.randint(0, 1)]
+                old = self.construct_price(user)
             )
         ]
         bot = Bot()
         try:
             bot.notify(notifications)
-        except ValueError:
-            pass
+        except ValueError as error:
+            if "save() prohibited to prevent data loss" in error.args[0] and error.__context__ is None:
+                pass
+            else:
+                raise error.__context__

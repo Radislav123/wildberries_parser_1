@@ -115,10 +115,7 @@ class Price(ParserPriceModel):
                     notifications.append(
                         Notification(
                             new = new,
-                            old = old,
-                            sold_out = new.sold_out,
-                            # todo: это заглушка
-                            no_personal_sale = new.personal_sale is not None
+                            old = old
                         )
                     )
 
@@ -131,8 +128,6 @@ class Price(ParserPriceModel):
 class Notification(ParserPriceModel):
     new = models.ForeignKey(Price, models.PROTECT, related_name = "notification_set_new")
     old = models.ForeignKey(Price, models.PROTECT, related_name = "notification_set_old")
-    sold_out = models.BooleanField()
-    no_personal_sale = models.BooleanField()
     delivered = models.BooleanField(null = True)
     error = models.TextField(null = True)
 

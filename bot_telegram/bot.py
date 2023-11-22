@@ -285,6 +285,10 @@ class NotifierMixin(BotService):
     def construct_sold_out_block() -> list[str]:
         return ["Товар распродан"]
 
+    @staticmethod
+    def construct_appear_block() -> list[str]:
+        return ["❗️ Товар появился в продаже"]
+
     def construct_no_personal_sale_block(self) -> list[str]:
         return [f"{self.Token.NO_PERSONAL_SALE} Скидка постоянного покупателя отсутствует"]
 
@@ -293,7 +297,7 @@ class NotifierMixin(BotService):
         for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
             for notification in notification_batch:
                 try:
-                    if not notification.sold_out and not notification.no_personal_sale:
+                    if not notification.new.sold_out and notification.new.personal_sale is not None:
                         text = [
                             *self.construct_start_block(notification),
                             # todo: return
@@ -306,13 +310,21 @@ class NotifierMixin(BotService):
                             "",
                             *self.construct_final_block()
                         ]
-                    elif notification.sold_out:
+                    elif notification.new.sold_out and not notification.old.sold_out:
                         text = [
                             *self.construct_start_block(notification),
                             "",
                             *self.construct_sold_out_block()
                         ]
-                    elif notification.no_personal_sale:
+                    elif notification.old.sold_out and not notification.new.sold_out:
+                        text = [
+                            *self.construct_start_block(notification),
+                            "",
+                            *self.construct_final_price_block(notification),
+                            "",
+                            *self.construct_appear_block()
+                        ]
+                    elif notification.new.personal_sale is None:
                         text = [
                             *self.construct_start_block(notification),
                             # todo: return
