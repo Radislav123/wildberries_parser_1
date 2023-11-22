@@ -47,27 +47,28 @@ class Price(ParserPriceModel):
     price = models.FloatField("Цена до СПП", null = True)
     final_price = models.FloatField("Финальная цена", null = True)
     personal_sale = models.PositiveIntegerField("СПП", null = True)
+    sold_out = models.BooleanField("Распродано")
 
     @classmethod
     def get_last_by_item_date(cls, item: Item, date: datetime.date) -> Self:
         obj = cls.objects.filter(
             item = item,
             parsing__date = date
-            # parsing__time -> id потому что у разработчика время на машине отличается от того,
-            # на которой происходит парсинг
+            # parsing__time -> id потому что у разработчика часовой пояс на машине отличается от того,
+            # при котором происходит парсинг
         ).order_by("id").last()
         return obj
 
     @classmethod
-    def get_notifications(cls, new_prices: list["Price"]) -> list["Notification"]:
+    def get_notifications_old(cls, new_prices: list["Price"]) -> list["Notification"]:
         notifications: list[Notification] = []
 
         for new_price in new_prices:
-            new_sold_oud = new_price.price is None and new_price.final_price is None and new_price.personal_sale is None
+            new_sold_out = new_price.price is None and new_price.final_price is None and new_price.personal_sale is None
             new_no_personal_sale = new_price.personal_sale is None
 
-            # parsing__time -> id потому что у разработчика время на машине отличается от того,
-            # на которой происходит парсинг
+            # parsing__time -> id потому что у разработчика часовой пояс на машине отличается от того,
+            # при котором происходит парсинг
             old_price = cls.objects.filter(item = new_price.item).exclude(id = new_price.id).order_by("id").last()
             old_sold_oud = old_price.price is None and old_price.final_price is None and old_price.personal_sale is None
             old_no_personal_sale = old_price.personal_sale is None
@@ -83,16 +84,44 @@ class Price(ParserPriceModel):
                 else:
                     personal_sale_changing = 0
 
-                if (price_changing != 0 or personal_sale_changing != 0 or new_sold_oud != old_sold_oud
+                if (price_changing != 0 or personal_sale_changing != 0 or new_sold_out != old_sold_oud
                         or new_no_personal_sale != old_no_personal_sale):
                     notifications.append(
                         Notification(
                             new = new_price,
                             old = old_price,
-                            sold_out = new_sold_oud,
+                            sold_out = new_sold_out,
                             no_personal_sale = new_no_personal_sale
                         )
                     )
+        Notification.objects.bulk_create(notifications)
+
+        return notifications
+
+    # todo: временная замена, пока нет парсинга price и personal_sale
+    @classmethod
+    def get_notifications(cls, news: list["Price"]) -> list["Notification"]:
+        notifications: list[Notification] = []
+
+        for new in news:
+            old: Price = cls.objects.filter(item = new.item).exclude(id = new.id).order_by("id").last()
+            if old is not None:
+                if new.final_price is not None and old.final_price is not None:
+                    final_price_changing = new.final_price - old.final_price
+                else:
+                    final_price_changing = 0
+
+                if final_price_changing != 0 or new.sold_out != old.sold_out:
+                    notifications.append(
+                        Notification(
+                            new = new,
+                            old = old,
+                            sold_out = new.sold_out,
+                            # todo: это заглушка
+                            no_personal_sale = new.personal_sale is not None
+                        )
+                    )
+
         Notification.objects.bulk_create(notifications)
 
         return notifications
@@ -135,8 +164,8 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
     @classmethod
     def prepare(cls, items: list[Item]) -> None:
         new_objects: dict[Item, Self] = {
-            # parsing__time -> id потому что у разработчика время на машине отличается от того,
-            # на которой происходит парсинг
+            # parsing__time -> id потому что у разработчика часовой пояс на машине отличается от того,
+            # при котором происходит парсинг
             item: cls(price = Price.objects.filter(item = item).order_by("id").last()) for item in items
         }
 

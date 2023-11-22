@@ -42,7 +42,6 @@ def parse_prices(
                     "price": price,
                     "final_price": final_price,
                     "personal_sale": personal_sale,
-                    # todo: add sold_out to model
                     "sold_out": sold_out,
                     "reviews_amount": reviews_amount,
                     "category_name": category_name,

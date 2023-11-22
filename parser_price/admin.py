@@ -144,6 +144,7 @@ class PriceAdmin(ParserPriceAdmin):
 
 class NotificationAdmin(ParserPriceAdmin):
     model = parser_price_models.Notification
+    list_filter = ("sold_out", "no_personal_sale", "delivered", "new__item")
     extra_list_display = {"new__parsing__time": "new"}
 
     @staticmethod
