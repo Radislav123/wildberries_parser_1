@@ -31,7 +31,8 @@ class Parser(parser_core.Parser):
                 reviews_amount = price["reviews_amount"],
                 price = price["price"],
                 final_price = price["final_price"],
-                personal_sale = price["personal_sale"]
+                personal_sale = price["personal_sale"],
+                sold_out = price["sold_out"]
             )
             price_objects.append(price_object)
             items_dict[vendor_code].category = models.Category.objects.get_or_create(name = price["category_name"])[0]
@@ -42,7 +43,7 @@ class Parser(parser_core.Parser):
         return price_objects, errors
 
     @classmethod
-    def get_price_parser_item_dicts(cls) -> list[dict[str, Any]]:
+    def get_price_parser_item_dicts(cls, divisor: int, remainder: int) -> list[dict[str, Any]]:
         book = openpyxl.load_workbook(cls.settings.PARSER_PRICE_DATA_PATH)
         sheet = book.active
         items = {}
@@ -54,11 +55,11 @@ class Parser(parser_core.Parser):
             }
             items[item["vendor_code"]] = item
             row += 1
-        return list(items.values())
+        return [x for x in items.values() if x["vendor_code"] % divisor == remainder]
 
     @classmethod
-    def get_price_parser_items(cls) -> list[models.Item]:
-        item_dicts = cls.get_price_parser_item_dicts()
+    def get_price_parser_items(cls, divisor: int, remainder: int) -> list[models.Item]:
+        item_dicts = cls.get_price_parser_item_dicts(divisor, remainder)
         items = []
 
         # todo: переписать с использованием bulk_create
@@ -74,13 +75,12 @@ class Parser(parser_core.Parser):
         return items
 
     def run_customer(self, division_remainder: int) -> None:
-        items = [x for x in self.get_price_parser_items()
-                 if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+        items = self.get_price_parser_items(self.settings.PYTEST_XDIST_WORKER_COUNT, division_remainder)
         self.run(items, True)
 
     def run_other(self, division_remainder: int) -> None:
         items = [x for x in models.Item.objects.exclude(user = core_models.ParserUser.get_customer())
-                 if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+                 if x.vendor_code % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
         self.run(items, False)
 
     def run(self, items: list[models.Item], prepare_table: bool) -> None:

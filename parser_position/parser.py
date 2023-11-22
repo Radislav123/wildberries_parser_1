@@ -43,7 +43,7 @@ class Parser(parser_core.Parser):
         return position_objects, errors
 
     @classmethod
-    def get_position_parser_item_dicts(cls) -> list[dict[str, str | int]]:
+    def get_position_parser_item_dicts(cls, divisor: int, remainder: int) -> list[dict[str, str | int]]:
         book = openpyxl.load_workbook(cls.settings.PARSER_POSITION_DATA_PATH)
         sheet = book.active
         items = {}
@@ -57,12 +57,12 @@ class Parser(parser_core.Parser):
             items[f"{item['vendor_code']}_{item['keyword']}"] = item
             row += 1
 
-        return list(items.values())
+        return [x for x in items.values() if x["vendor_code"] % divisor == remainder]
 
     @classmethod
-    def get_position_parser_keywords(cls) -> list[models.Keyword]:
+    def get_position_parser_keywords(cls, divisor: int, remainder: int) -> list[models.Keyword]:
         customer = core_models.ParserUser.get_customer()
-        item_dicts = cls.get_position_parser_item_dicts()
+        item_dicts = cls.get_position_parser_item_dicts(divisor, remainder)
         # создание отсутствующих товаров в БД
         items = {
             x["vendor_code"]: models.Item.objects.get_or_create(
@@ -84,8 +84,7 @@ class Parser(parser_core.Parser):
         return keywords
 
     def run_customer(self, division_remainder: int) -> None:
-        keywords = [x for x in self.get_position_parser_keywords()
-                    if x.id % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+        keywords = self.get_position_parser_keywords(self.settings.PYTEST_XDIST_WORKER_COUNT, division_remainder)
         # todo: оставить только Москву - временное решение
         for city_dict in [self.settings.MOSCOW_CITY_DICT]:
             self.run(keywords, city_dict, True)
