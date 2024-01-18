@@ -116,12 +116,12 @@ def parse_position(vendor_code: int, keyword: str, dest: str) -> dict[str, int |
             # noinspection SpellCheckingInspection
             url = (f"https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub&dest={dest}&page={page}"
                    f"&query={keyword}&resultset=catalog&sort=popular&spp=0&suppressSpellcheck=false")
-            response = requests.get(url)
             try_number = 0
             try_success = False
             while try_number < settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT and not try_success:
                 try_number += 1
                 try:
+                    response = requests.get(url)
                     response_json = response.json()
                     products = response_json["data"]["products"]
                     page_vendor_codes = [x["id"] for x in products]
