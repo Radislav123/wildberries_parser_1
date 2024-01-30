@@ -7,7 +7,7 @@ import xlsxwriter
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db import models as django_models
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 
 from . import models as core_models
 from .settings import Settings
@@ -25,12 +25,7 @@ def register_models(model_admins: list[Type["CoreAdmin"]]) -> None:
         admin.site.register(model_admin.model, model_admin)
 
 
-# noinspection PyUnusedLocal
-def download_parser_users_excel(
-        admin_model: "ParserUserAdmin",
-        request: HttpRequest,
-        queryset: django_models.QuerySet
-) -> HttpResponse:
+def download_parser_users_excel(admin_model: "ParserUserAdmin", _, queryset: django_models.QuerySet) -> HttpResponse:
     model_name = f"{admin_model.model.__name__}"
     stream = BytesIO()
     book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
@@ -45,7 +40,6 @@ def download_parser_users_excel(
         sheet.write(0, row_number, column_name)
 
     # запись таблицы
-    dynamic_fields_number = len(admin_model.settings.DYNAMIC_FIELDS_ORDER)
     for row_number, data in enumerate(queryset, 1):
         data: admin_model.model
         sheet.write(row_number, 0, data.id)
