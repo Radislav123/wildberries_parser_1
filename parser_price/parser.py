@@ -6,6 +6,7 @@ from selenium.webdriver import Chrome
 from bot_telegram import bot
 from core import models as core_models, parser as parser_core
 from core.service import parsing
+from parser_seller_api import models as seller_api_models
 from . import models, settings
 
 
@@ -20,11 +21,29 @@ class Parser(parser_core.Parser):
             items: list[models.Item],
             dest: str
     ) -> tuple[list[models.Price], dict[models.Item, Exception]]:
+        seller_api_items: dict[int, seller_api_models.Item] = {
+            x.vendor_code: x for x in
+            seller_api_models.Item.objects.filter(vendor_code__in = (x.vendor_code for x in items))
+        }
+
         items_dict = {x.vendor_code: x for x in items}
         prices, errors = parsing.parse_prices(list(items_dict), dest)
         errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
         price_objects = []
         for vendor_code, price in prices.items():
+            category = models.Category.objects.get_or_create(name = price["category_name"])[0]
+
+            if vendor_code in seller_api_items:
+                seller_api_item = seller_api_items[vendor_code]
+                price["price"] = seller_api_item.real_price
+                price["personal_sale"] = int(1 - price["final_price"] / price["price"])
+            else:
+                price["personal_sale"] = category.personal_sale
+                if price["personal_sale"] is None:
+                    price["price"] = None
+                else:
+                    price["price"] = price["final_price"] / (1 - price["personal_sale"])
+
             price_object = models.Price(
                 item = items_dict[vendor_code],
                 parsing = self.parsing,
@@ -34,8 +53,9 @@ class Parser(parser_core.Parser):
                 personal_sale = price["personal_sale"],
                 sold_out = price["sold_out"]
             )
+
             price_objects.append(price_object)
-            items_dict[vendor_code].category = models.Category.objects.get_or_create(name = price["category_name"])[0]
+            items_dict[vendor_code].category = category
 
         models.Price.objects.bulk_create(price_objects)
         models.Item.objects.bulk_update(items_dict.values(), ["category"])
@@ -89,6 +109,7 @@ class Parser(parser_core.Parser):
         prices, errors = self.parse_items(items, dest)
         self.parsing.not_parsed_items = errors
 
+        models.Category.update_personal_sales(prices)
         notifications = models.Price.get_notifications(prices)
         self.bot_telegram.notify(notifications)
 

@@ -1,4 +1,5 @@
 import datetime
+from collections import defaultdict
 from typing import Self
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -18,15 +19,29 @@ class ParserPriceModel(core_models.CoreModel):
     settings = settings
 
 
-# todo: убрать и заменить на parser_seller_api.models.Category?
 class Category(ParserPriceModel):
     class Meta:
         verbose_name_plural = "Categories"
 
     name = models.CharField("Предмет")
+    personal_sale = models.PositiveIntegerField("СПП", null = True)
 
     def __str__(self) -> str:
         return str(self.name)
+
+    @classmethod
+    def update_personal_sales(cls, prices: list["Price"]) -> None:
+        prices_by_categories = defaultdict(list)
+        for price in prices:
+            prices_by_categories[price.item.category].append(price)
+
+        for category, prices in prices_by_categories.items():
+            personal_sales = [x.personal_sale for x in prices if x.personal_sale]
+            if personal_sales:
+                category.personal_sale = max(personal_sales)
+
+        if prices_by_categories:
+            cls.objects.bulk_update(prices_by_categories.keys(), ["personal_sale"])
 
 
 class Item(ParserPriceModel, core_models.Item):

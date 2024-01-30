@@ -33,15 +33,13 @@ def parse_prices(
         for vendor_code in vendor_codes_chunk:
             try:
                 item_dict: dict = item_dicts[vendor_code]
-                price, final_price, personal_sale, sold_out = get_price(item_dict)
+                final_price, sold_out = get_price(item_dict)
                 reviews_amount = int(item_dict["feedbacks"])
                 category_name = get_category_name(vendor_code)
                 name_site = f"{item_dict['brand']} / {item_dict['name']}"
 
                 prices[vendor_code] = {
-                    "price": price,
                     "final_price": final_price,
-                    "personal_sale": personal_sale,
                     "sold_out": sold_out,
                     "reviews_amount": reviews_amount,
                     "category_name": category_name,
@@ -53,44 +51,21 @@ def parse_prices(
     return prices, errors
 
 
-def get_price(item_dict: dict) -> tuple[float, float, int, bool]:
+def get_price(item_dict: dict) -> tuple[float, bool]:
     sold_out = True
     for size in item_dict["sizes"]:
         if len(size["stocks"]) > 0:
             sold_out = False
             break
-    if sold_out:
-        price = None
-        final_price = None
-        personal_sale = None
-    else:
-        if False:
-            # todo: remove it?
-            if "basicPriceU" in item_dict["extended"]:
-                price = item_dict["extended"]["basicPriceU"]
-            else:
-                price = item_dict["priceU"]
-            final_price = item_dict["salePriceU"]
-            if price == final_price:
-                personal_sale = None
-            else:
-                personal_sale = int(item_dict["extended"]["clientSale"])
-        else:
-            # todo: rewrite
-            price = None
-            final_price = item_dict["salePriceU"]
-            # todo: rewrite
-            personal_sale = None
-        # price = int(price) / 100
-        final_price = int(final_price) / 100
-    return price, final_price, personal_sale, sold_out
+    final_price = int(item_dict["salePriceU"]) / 100
+    return final_price, sold_out
 
 
 def get_category_name(vendor_code: int) -> str:
     part = vendor_code // 1000
     vol = part // 100
     for basket in range(1, 99):
-        # todo: сделать запросы асинхронными (ThreadPoolExecutor)
+        # todo: сделать запросы асинхронными (ThreadPoolExecutor)?
         category_url = (f"https://basket-{str(basket).rjust(2, '0')}.wb.ru/vol{vol}"
                         f"/part{part}/{vendor_code}/info/ru/card.json")
         category_response = requests.get(category_url)
