@@ -81,6 +81,7 @@ class CoreModel(models.Model):
 class ParserUser(CoreModel, auth_models.AbstractUser):
     telegram_user_id = models.BigIntegerField("Telegram user_id", null = True)
     telegram_chat_id = models.BigIntegerField("Telegram chat_id", null = True)
+    seller_api_token = models.CharField(null = True)
     _customer: "ParserUser" = None
     _developer: "ParserUser" = None
 

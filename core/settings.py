@@ -17,6 +17,7 @@ class Settings:
         # Данные для парсинга
         self.COMMAND_PRICE = "prices"
         self.COMMAND_POSITION = "positions"
+        self.COMMAND_SELLER_API = "seller_api"
 
         self.PARSING_DATA_FOLDER = "parsing_data"
 

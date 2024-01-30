@@ -11,10 +11,12 @@ from core import models as core_models
 from core.service import parsing
 from parser_price import models as parser_price_models
 from . import models as bot_telegram_models, settings
+from parser_seller_api.parser import Parser as ParserSellerApi, RequestException
 
 
 Subscriptions = dict[int, tuple[str, str]]
 
+SELLER_API_TEXT = "Чтобы использовать эту команду, введите токен продавца, используя команду /update_seller_api_token."
 SUBSCRIPTION_TEXT = "Чтобы пользоваться ботом, подпишитесь на каналы."
 
 
@@ -395,7 +397,11 @@ class Bot(NotifierMixin, telebot.TeleBot):
         types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
         types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
         types.BotCommand("get_all_items", "Получить список всех отслеживаемых товаров"),
-        types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
+        # todo: return line
+        # types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
+        types.BotCommand("check_seller_api_token", "Проверить действительность токена API продавца"),
+        # todo: return line
+        # types.BotCommand("update_seller_api_token", "Обновить токен продавца.")
     ]
     # команды для заказчика
     customer_commands = [
@@ -430,6 +436,10 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.message_handler(commands = ["remove_item"])(self.remove_item)
         self.message_handler(commands = ["get_all_items"])(self.get_all_items)
         self.message_handler(commands = ["check_subscriptions"])(self.check_subscriptions)
+        # todo: return line
+        # self.message_handler(commands = ["check_seller_api_token"])(self.check_seller_api_token)
+        # todo: return line
+        # self.message_handler(commands = ["update_seller_api_token"])(self.update_seller_api_token)
 
         # команды для заказчика
         self.message_handler(commands = ["send_to_users"])(self.send_to_users)
@@ -516,6 +526,26 @@ class Bot(NotifierMixin, telebot.TeleBot):
             reply_markup = reply_markup
         )
 
+    # todo: добавить этот фильтр в использование
+    # todo: добавить механизм проверки срока годности существующих токенов
+    # todo: test it
+    @staticmethod
+    def seller_api_token_filter(function: Callable) -> Callable:
+        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
+            user = self.get_parser_user(message.from_user)
+
+            if (user != core_models.ParserUser.get_customer()
+                    and not user.seller_api_token):
+                self.send_message(
+                    user.telegram_chat_id,
+                    self.Formatter.join([SELLER_API_TEXT]),
+                    self.ParseMode.MARKDOWN
+                )
+            else:
+                return function(self, message, *args, **kwargs)
+
+        return wrapper
+
     @staticmethod
     def subscription_filter(function: Callable) -> Callable:
         def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
@@ -567,6 +597,43 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 return function(self, message, *args, **kwargs)
 
         return wrapper
+
+    @subscription_filter
+    def update_seller_api_token(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.register_next_step_handler(message, self.update_seller_api_token_update_step, user)
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(
+                [
+                    "Введите токен продавца.",
+                    "Достаточно прав только на чтение.",
+                    f"{self.Formatter.link('Инструкция', 'https://openapi.wildberries.ru/general/authorization/ru/')}"
+                    f" по генерации токена."
+                ]
+            ),
+            self.ParseMode.MARKDOWN
+        )
+
+    def update_seller_api_token_update_step(self, message: types.Message, user: core_models.ParserUser) -> None:
+        new_token = message.text
+        user.seller_api_token = new_token
+
+        try:
+            ParserSellerApi.make_request(user)
+        except RequestException:
+            self.send_message(
+                user.telegram_chat_id,
+                "Токен не валиден."
+            )
+        else:
+            user.save()
+            self.send_message(
+                user.telegram_chat_id,
+                "Вы успешно обновили токен продавца."
+            )
+        finally:
+            self.delete_message(user.telegram_chat_id, message.message_id)
 
     @subscription_filter
     def get_chat_id(self, message: types.Message) -> None:
@@ -877,5 +944,14 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.send_message(
             user.telegram_chat_id,
             self.Formatter.join(["Вы подписаны на все необходимые каналы."]),
+            self.ParseMode.MARKDOWN
+        )
+
+    @seller_api_token_filter
+    def check_seller_api_token(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(["Ваш токен действителен."]),
             self.ParseMode.MARKDOWN
         )

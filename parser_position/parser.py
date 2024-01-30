@@ -21,7 +21,9 @@ class Parser(parser_core.Parser):
         keywords_dict = {(x.item.vendor_code, x.value): x for x in keywords}
         items_dict = {x.vendor_code: x for x in set(keyword.item for keyword in keywords)}
         positions, errors = parsing.parse_positions(
-            [x.item.vendor_code for x in keywords], [x.value for x in keywords], dest
+            [x.item.vendor_code for x in keywords],
+            [x.value for x in keywords],
+            dest
         )
         errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
         position_objects = [

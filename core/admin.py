@@ -141,7 +141,16 @@ class ParsingAdmin(CoreAdmin):
 class ParserUserAdmin(CoreAdmin, UserAdmin):
     model = core_models.ParserUser
     hidden_fields = ("password",)
-    _fieldsets = (("Telegram", {"fields": ("telegram_user_id", "telegram_chat_id")}),)
+    _fieldsets = (
+        (
+            "Telegram",
+            {"fields": ("telegram_user_id", "telegram_chat_id")}
+        ),
+        (
+            "Wildberries",
+            {"fields": ("seller_api_token",)}
+        )
+    )
     actions = (download_parser_users_excel,)
 
 

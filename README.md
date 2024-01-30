@@ -60,11 +60,13 @@
         1) `python parse.py positions true|false`
     2) запуск парсера цен - [*start/run_parser_price_customer.bat*](start/run_parser_price_customer.bat)
         1) `python parse.py prices true|false`
-    3) последний аргумент, принимающий значения `true|false`, отвечает за запуск парсера для заказчика или остальых пользователей
+    3) запуск парсера API Wilbderries - [*start/run_parser_seller_api_customer.bat*](start/run_parser_seller_api_customer.bat)
+        1) `python parse.py seller_api true|false`
+    4) последний аргумент, принимающий значения `true|false`, отвечает за запуск парсера для заказчика или остальых пользователей
         1) `true` - для заказчика
         2) `false` - для остальных пользователей
-    4) чтобы только проверить, что выбираются нужные тесты - `python parse.py prices true --collect-only`
-    5) в конце команды можно добавлять любые аргументы `pytest`
+    5) чтобы только проверить, что выбираются нужные тесты - `python parse.py prices true --collect-only`
+    6) в конце команды можно добавлять любые аргументы `pytest`
         1) они перезапишут те, что определены в `PYTEST_ARGS`
            [*parser_price/settings.py*](parser_price/settings.py) или [*parser_position/settings.py*](parser_position/settings.py)
         2) пример - `python parse.py prices true --collect-only`

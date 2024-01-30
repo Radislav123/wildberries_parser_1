@@ -6,6 +6,7 @@ import pytest
 from core import settings as core_settings
 from parser_position import settings as parser_position_settings
 from parser_price import settings as parser_price_settings
+from parser_seller_api import settings as parser_seller_api_setting
 
 
 class UnknownParserOption(Exception):
@@ -25,6 +26,8 @@ class Runner:
             self.settings = parser_position_settings.Settings()
         elif command == self.settings.COMMAND_PRICE:
             self.settings = parser_price_settings.Settings()
+        elif command == self.settings.COMMAND_SELLER_API:
+            self.settings = parser_seller_api_setting.Settings()
         else:
             raise UnknownParserOption(command)
         if customer.lower() == "true":

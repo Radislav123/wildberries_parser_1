@@ -1,0 +1,66 @@
+import requests
+
+from core import models as core_models, parser as parser_core
+from . import models, settings
+
+
+class RequestException(Exception):
+    pass
+
+
+class Parser(parser_core.Parser):
+    settings = settings.Settings()
+    parsing_type = "seller_api"
+
+    @staticmethod
+    def make_request(user: core_models.ParserUser) -> list[dict[str, int]]:
+        scheme = "https"
+        domain = "suppliers-api.wildberries.ru"
+        path = "public/api/v1/info"
+        url = f"{scheme}://{domain}/{path}"
+
+        headers = {"Authorization": user.seller_api_token}
+        response = requests.get(url, headers = headers)
+        if response.status_code != 200:
+            raise RequestException(response.text)
+        return response.json()
+
+    def parse_user(self, user: core_models.ParserUser) -> None:
+        item_dicts = [
+            models.Item(
+                vendor_code = x["nmId"],
+                user = user,
+                price = x["price"],
+                sale = x["discount"]
+            ) for x in self.make_request(user)
+        ]
+        models.Item.objects.bulk_create(
+            item_dicts,
+            update_conflicts = True,
+            update_fields = ["user", "price", "sale"],
+            unique_fields = ["vendor_code"]
+        )
+
+    def run_customer(self) -> None:
+        users = [core_models.ParserUser.get_customer()]
+        self.run(users)
+
+    def run_other(self) -> None:
+        users = core_models.ParserUser.objects.exclude(id = core_models.ParserUser.get_customer().id)
+        self.run(users)
+
+    def run(self, users: list[core_models.ParserUser]) -> None:
+        not_parsed = {}
+        for user in users:
+            try:
+                if user.seller_api_token:
+                    self.parse_user(user)
+                else:
+                    not_parsed[user] = None
+            except Exception as error:
+                not_parsed[user] = error
+
+        if len(not_parsed) == 1:
+            self.logger.info("There is 1 not parsed user.")
+        elif len(not_parsed) > 1:
+            self.logger.info(f"There are {len(not_parsed)} not parsed users.")

@@ -18,6 +18,7 @@ class ParserPriceModel(core_models.CoreModel):
     settings = settings
 
 
+# todo: убрать и заменить на parser_seller_api.models.Category?
 class Category(ParserPriceModel):
     class Meta:
         verbose_name_plural = "Categories"
@@ -59,6 +60,7 @@ class Price(ParserPriceModel):
         ).order_by("id").last()
         return obj
 
+    # todo: remove method?
     @classmethod
     def get_notifications_old(cls, new_prices: list["Price"]) -> list["Notification"]:
         notifications: list[Notification] = []
@@ -124,7 +126,7 @@ class Price(ParserPriceModel):
         return notifications
 
 
-# todo: добавить удаление объектов через месяц после хранения (переписать clear_user_history)
+# todo: добавить удаление объектов через месяц после добавления (переписать clear_user_history)
 class Notification(ParserPriceModel):
     new = models.ForeignKey(Price, models.PROTECT, related_name = "notification_set_new")
     old = models.ForeignKey(Price, models.PROTECT, related_name = "notification_set_old")
