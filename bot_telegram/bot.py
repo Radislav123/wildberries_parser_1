@@ -10,14 +10,23 @@ import logger
 from core import models as core_models
 from core.service import parsing
 from parser_price import models as parser_price_models
-from . import models as bot_telegram_models, settings
 from parser_seller_api.parser import Parser as ParserSellerApi, RequestException
+from . import models as bot_telegram_models, settings
 
 
 Subscriptions = dict[int, tuple[str, str]]
 
 SELLER_API_TEXT = "Чтобы использовать эту команду, введите токен продавца, используя команду /update_seller_api_token."
 SUBSCRIPTION_TEXT = "Чтобы пользоваться ботом, подпишитесь на каналы."
+
+
+class CallbackData:
+    DELIMITER = ":"
+    # xxx_yy
+    # xxx - идентификатор обратного вызова
+    # yy - идентификатор команды обратного вызова
+    SEND_TO_USERS_SEND = "000_00"
+    SEND_TO_USERS_CANCEL = "000_01"
 
 
 class BotTelegramException(Exception):
@@ -397,11 +406,9 @@ class Bot(NotifierMixin, telebot.TeleBot):
         types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
         types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
         types.BotCommand("get_all_items", "Получить список всех отслеживаемых товаров"),
-        # todo: return line
-        # types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
+        types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
         types.BotCommand("check_seller_api_token", "Проверить действительность токена API продавца"),
-        # todo: return line
-        # types.BotCommand("update_seller_api_token", "Обновить токен продавца.")
+        types.BotCommand("update_seller_api_token", "Обновить токен продавца.")
     ]
     # команды для заказчика
     customer_commands = [
@@ -427,33 +434,26 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
     def register_handlers(self) -> None:
         # общие команды
-        self.message_handler(commands = ["parse_item"])(self.parse_item)
-        self.message_handler(commands = ["get_chat_id"])(self.get_chat_id)
+        for bot_command in self.common_commands:
+            self.message_handler(commands = [bot_command.command])(getattr(self, bot_command.command))
 
         # команды для пользователей
-        self.message_handler(commands = ["start"])(self.start)
-        self.message_handler(commands = ["add_item"])(self.add_item)
-        self.message_handler(commands = ["remove_item"])(self.remove_item)
-        self.message_handler(commands = ["get_all_items"])(self.get_all_items)
-        self.message_handler(commands = ["check_subscriptions"])(self.check_subscriptions)
-        # todo: return line
-        # self.message_handler(commands = ["check_seller_api_token"])(self.check_seller_api_token)
-        # todo: return line
-        # self.message_handler(commands = ["update_seller_api_token"])(self.update_seller_api_token)
+        for bot_command in self.user_commands:
+            self.message_handler(commands = [bot_command.command])(getattr(self, bot_command.command))
 
         # команды для заказчика
-        self.message_handler(commands = ["send_to_users"])(self.send_to_users)
+        for bot_command in self.customer_commands:
+            self.message_handler(commands = [bot_command.command])(getattr(self, bot_command.command))
         self.callback_query_handler(
-            lambda callback: callback.data.startswith("send_to_users")
+            lambda callback: callback.data.startswith(CallbackData.SEND_TO_USERS_SEND)
         )(self.send_to_users_callback_send)
         self.callback_query_handler(
-            lambda callback: callback.data.startswith("cancel_send_to_users")
+            lambda callback: callback.data.startswith(CallbackData.SEND_TO_USERS_CANCEL)
         )(self.send_to_users_callback_cancel)
 
         # команды для разработчика
-        self.message_handler(commands = ["register_as_developer"])(self.register_as_developer)
-        self.message_handler(commands = ["remove_user"])(self.remove_user)
-        self.message_handler(commands = ["reset_command_list"])(self.reset_command_list)
+        for bot_command in self.developer_commands:
+            self.message_handler(commands = [bot_command.command])(getattr(self, bot_command.command))
 
         # проверка отписки от каналов
         self.chat_member_handler()(self.notify_unsubscriber)
@@ -886,10 +886,13 @@ class Bot(NotifierMixin, telebot.TeleBot):
             message_to_send.telegram_message_id
         )
 
-        send_button = types.InlineKeyboardButton("Разослать", callback_data = f"send_to_users:{message_to_send.id}")
+        send_button = types.InlineKeyboardButton(
+            "Разослать",
+            callback_data = f"{CallbackData.SEND_TO_USERS_SEND}:{message_to_send.id}"
+        )
         cancel_button = types.InlineKeyboardButton(
             "Отменить рассылку",
-            callback_data = f"cancel_send_to_users:{message_to_send.id}"
+            callback_data = f"{CallbackData.SEND_TO_USERS_CANCEL}:{message_to_send.id}"
         )
         reply_markup = types.InlineKeyboardMarkup([[send_button, cancel_button]])
         self.send_message(
@@ -899,7 +902,9 @@ class Bot(NotifierMixin, telebot.TeleBot):
         )
 
     def send_to_users_callback_send(self, callback: types.CallbackQuery) -> None:
-        message_to_send = bot_telegram_models.SendToUsers.objects.get(id = callback.data.split(':')[-1])
+        message_to_send = bot_telegram_models.SendToUsers.objects.get(
+            id = callback.data.split(CallbackData.DELIMITER)[-1]
+        )
 
         users = list(core_models.ParserUser.objects.exclude(username = message_to_send.user))
         if platform.node() != self.settings.secrets.developer.pc_name:
@@ -928,7 +933,9 @@ class Bot(NotifierMixin, telebot.TeleBot):
         self.send_message(message_to_send.user.telegram_chat_id, "Сообщение разослано пользователям.")
 
     def send_to_users_callback_cancel(self, callback: types.CallbackQuery) -> None:
-        message_to_send = bot_telegram_models.SendToUsers.objects.get(id = callback.data.split(':')[-1])
+        message_to_send = bot_telegram_models.SendToUsers.objects.get(
+            id = callback.data.split(CallbackData.DELIMITER)[-1]
+        )
         message_to_send.sent = False
         message_to_send.save()
 
