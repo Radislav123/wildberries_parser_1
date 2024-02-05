@@ -16,8 +16,8 @@ from . import models as bot_telegram_models, settings
 
 Subscriptions = dict[int, tuple[str, str]]
 
-SELLER_API_TEXT = "Чтобы использовать эту команду, введите токен продавца, используя команду /update_seller_api_token."
 SUBSCRIPTION_TEXT = "Чтобы пользоваться ботом, подпишитесь на каналы."
+SELLER_API_TEXT = "Чтобы использовать эту команду, введите токен продавца, используя команду /update_seller_api_token."
 
 
 class CallbackData:
@@ -406,9 +406,9 @@ class Bot(NotifierMixin, telebot.TeleBot):
         types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
         types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
         types.BotCommand("get_all_items", "Получить список всех отслеживаемых товаров"),
+        types.BotCommand("update_seller_api_token", "Обновить токен продавца."),
         types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
         types.BotCommand("check_seller_api_token", "Проверить действительность токена API продавца"),
-        types.BotCommand("update_seller_api_token", "Обновить токен продавца.")
     ]
     # команды для заказчика
     customer_commands = [
@@ -495,76 +495,43 @@ class Bot(NotifierMixin, telebot.TeleBot):
             user = None
         return user
 
-    def start(self, message: types.Message) -> None:
-        try:
-            user = core_models.ParserUser.objects.get(
-                telegram_user_id = message.from_user.id,
-                telegram_chat_id = message.chat.id
-            )
-            text = ["Вы уже были зарегистрированы. Повторная регистрация невозможна."]
-            reply_markup = []
-        except core_models.ParserUser.DoesNotExist:
-            user = core_models.ParserUser(
-                telegram_user_id = message.from_user.id,
-                telegram_chat_id = message.chat.id
-            )
-            user.save()
-            text = [
-                SUBSCRIPTION_TEXT,
-                "",
-                "После того, как подпишитесь, сможете отслеживать изменения цен и СПП.",
-                "",
-                f"На данный момент вы можете отслеживать до {self.settings.MAX_USER_ITEMS} товаров."
-            ]
+    def notify_unsubscriber(self, update: types.ChatMemberUpdated) -> None:
+        if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES \
+                and (user := self.get_parser_user(update.from_user)) is not None:
+            text = [SUBSCRIPTION_TEXT]
             not_subscribed = self.get_needed_subscriptions(user)
             reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
-
-        self.send_message(
-            user.telegram_chat_id,
-            self.Formatter.join(text),
-            self.ParseMode.MARKDOWN,
-            reply_markup = reply_markup
-        )
-
-    # todo: добавить этот фильтр в использование
-    # todo: добавить механизм проверки срока годности существующих токенов
-    # todo: test it
-    @staticmethod
-    def seller_api_token_filter(function: Callable) -> Callable:
-        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
-            user = self.get_parser_user(message.from_user)
-
-            if (user != core_models.ParserUser.get_customer()
-                    and not user.seller_api_token):
+            if platform.node() != self.settings.secrets.developer.pc_name:
                 self.send_message(
                     user.telegram_chat_id,
-                    self.Formatter.join([SELLER_API_TEXT]),
-                    self.ParseMode.MARKDOWN
-                )
-            else:
-                return function(self, message, *args, **kwargs)
-
-        return wrapper
-
-    @staticmethod
-    def subscription_filter(function: Callable) -> Callable:
-        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
-            user = self.get_parser_user(message.from_user)
-            not_subscribed = self.get_needed_subscriptions(user)
-            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
-
-            if (user != core_models.ParserUser.get_customer() and user != core_models.ParserUser.get_developer()
-                    and len(not_subscribed) > 0):
-                self.send_message(
-                    user.telegram_chat_id,
-                    self.Formatter.join([SUBSCRIPTION_TEXT]),
+                    self.Formatter.join(text),
                     self.ParseMode.MARKDOWN,
                     reply_markup = reply_markup
                 )
-            else:
-                return function(self, message, *args, **kwargs)
 
-        return wrapper
+    # чтобы бот мог корректно проверять подписки, он должен быть администратором канала
+    # https://core.telegram.org/bots/api#getchatmember
+    def get_needed_subscriptions(self, user: core_models.ParserUser) -> Subscriptions:
+        not_subscribed = {}
+        for chat_id, data in self.settings.NEEDED_SUBSCRIPTIONS.items():
+            subscribed = False
+            try:
+                telegram_user = self.get_chat_member(chat_id, user.telegram_user_id)
+                if telegram_user.status in self.settings.CHANNEL_SUBSCRIPTION_STATUSES:
+                    subscribed = True
+            except ApiTelegramException:
+                pass
+
+            if not subscribed:
+                not_subscribed[chat_id] = data
+        return not_subscribed
+
+    @staticmethod
+    def construct_subscription_buttons(not_subscribed: Subscriptions) -> list[types.InlineKeyboardButton]:
+        buttons = []
+        for _, data in not_subscribed.items():
+            buttons.append(types.InlineKeyboardButton(data[1], url = data[0]))
+        return buttons
 
     @staticmethod
     def customer_filter(function: Callable) -> Callable:
@@ -598,119 +565,43 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
         return wrapper
 
-    @subscription_filter
-    def update_seller_api_token(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
-        self.register_next_step_handler(message, self.update_seller_api_token_update_step, user)
-        self.send_message(
-            user.telegram_chat_id,
-            self.Formatter.join(
-                [
-                    "Введите токен продавца.",
-                    "Достаточно прав только на чтение.",
-                    f"{self.Formatter.link('Инструкция', 'https://openapi.wildberries.ru/general/authorization/ru/')}"
-                    f" по генерации токена."
-                ]
-            ),
-            self.ParseMode.MARKDOWN
-        )
-
-    def update_seller_api_token_update_step(self, message: types.Message, user: core_models.ParserUser) -> None:
-        new_token = message.text
-        user.seller_api_token = new_token
-
-        try:
-            ParserSellerApi.make_request(user)
-        except RequestException:
-            self.send_message(
-                user.telegram_chat_id,
-                "Токен не валиден."
-            )
-        else:
-            user.save()
-            self.send_message(
-                user.telegram_chat_id,
-                "Вы успешно обновили токен продавца."
-            )
-        finally:
-            self.delete_message(user.telegram_chat_id, message.message_id)
-
-    @subscription_filter
-    def get_chat_id(self, message: types.Message) -> None:
-        self.send_message(
-            message.chat.id,
-            self.Formatter.join([self.Formatter.copyable(message.chat.id)]),
-            self.ParseMode.MARKDOWN
-        )
-
-    @developer_filter
-    def remove_user(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
-        items = parser_price_models.Item.objects.filter(user = user)
-        item_ids = list(items.values_list("id", flat = True))
-        prices = parser_price_models.Price.objects.filter(item_id__in = item_ids)
-        prices.delete()
-        items.delete()
-        user.delete()
-
-        self.send_message(message.chat.id, "Вы были удалены из БД бота.")
-
-    # todo: переписать, чтобы регистрировал после добавления в БД
-    def register_as_developer(self, message: types.Message) -> None:
-        developer = core_models.ParserUser.get_developer()
-        developer.telegram_user_id = message.from_user.id
-        developer.telegram_chat_id = message.chat.id
-        developer.save()
-        self.set_command_list_developer()
-        self.send_message(
-            developer.telegram_chat_id,
-            "Вы зарегистрированы как разработчик"
-        )
-
-    @developer_filter
-    def reset_command_list(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
-        scope = types.BotCommandScopeChat(user.telegram_chat_id)
-        self.delete_my_commands(scope)
-        self.send_message(user.telegram_chat_id, "Ваш список команд сброшен.")
-
-    # чтобы бот мог корректно проверять подписки, он должен быть администратором канала
-    # https://core.telegram.org/bots/api#getchatmember
-    def get_needed_subscriptions(self, user: core_models.ParserUser) -> Subscriptions:
-        not_subscribed = {}
-        for chat_id, data in self.settings.NEEDED_SUBSCRIPTIONS.items():
-            subscribed = False
-            try:
-                telegram_user = self.get_chat_member(chat_id, user.telegram_user_id)
-                if telegram_user.status in self.settings.CHANNEL_SUBSCRIPTION_STATUSES:
-                    subscribed = True
-            except ApiTelegramException:
-                pass
-
-            if not subscribed:
-                not_subscribed[chat_id] = data
-        return not_subscribed
-
-    def notify_unsubscriber(self, update: types.ChatMemberUpdated) -> None:
-        if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES \
-                and (user := self.get_parser_user(update.from_user)) is not None:
-            text = [SUBSCRIPTION_TEXT]
+    @staticmethod
+    def subscription_filter(function: Callable) -> Callable:
+        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
+            user = self.get_parser_user(message.from_user)
             not_subscribed = self.get_needed_subscriptions(user)
             reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
-            if platform.node() != self.settings.secrets.developer.pc_name:
+
+            if (user != core_models.ParserUser.get_customer() and user != core_models.ParserUser.get_developer()
+                    and len(not_subscribed) > 0):
                 self.send_message(
                     user.telegram_chat_id,
-                    self.Formatter.join(text),
+                    self.Formatter.join([SUBSCRIPTION_TEXT]),
                     self.ParseMode.MARKDOWN,
                     reply_markup = reply_markup
                 )
+            else:
+                return function(self, message, *args, **kwargs)
 
+        return wrapper
+
+    # todo: добавить механизм проверки срока годности существующих токенов
     @staticmethod
-    def construct_subscription_buttons(not_subscribed: Subscriptions) -> list[types.InlineKeyboardButton]:
-        buttons = []
-        for _, data in not_subscribed.items():
-            buttons.append(types.InlineKeyboardButton(data[1], url = data[0]))
-        return buttons
+    def seller_api_token_filter(function: Callable) -> Callable:
+        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
+            user = self.get_parser_user(message.from_user)
+
+            if (user != core_models.ParserUser.get_customer()
+                    and not user.seller_api_token):
+                self.send_message(
+                    user.telegram_chat_id,
+                    self.Formatter.join([SELLER_API_TEXT]),
+                    self.ParseMode.MARKDOWN
+                )
+            else:
+                return function(self, message, *args, **kwargs)
+
+        return wrapper
 
     @subscription_filter
     def parse_item(self, message: types.Message) -> None:
@@ -770,6 +661,46 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 self.ParseMode.MARKDOWN
             )
             raise error
+
+    def get_chat_id(self, message: types.Message) -> None:
+        self.send_message(
+            message.chat.id,
+            self.Formatter.join([self.Formatter.copyable(message.chat.id)]),
+            self.ParseMode.MARKDOWN
+        )
+
+    def start(self, message: types.Message) -> None:
+        try:
+            user = core_models.ParserUser.objects.get(
+                telegram_user_id = message.from_user.id,
+                telegram_chat_id = message.chat.id
+            )
+            text = ["Вы уже были зарегистрированы. Повторная регистрация невозможна."]
+            reply_markup = []
+        except core_models.ParserUser.DoesNotExist:
+            user = core_models.ParserUser(
+                telegram_user_id = message.from_user.id,
+                telegram_chat_id = message.chat.id
+            )
+            user.save()
+            text = [
+                SUBSCRIPTION_TEXT,
+                "",
+                "После того, как подпишитесь, сможете отслеживать изменения цен.",
+                "",
+                f"На данный момент вы можете отслеживать товары в количестве {self.settings.MAX_USER_ITEMS}.",
+                "",
+                "После ввода токена продавца (/update_seller_api_token) сможете отслеживать изменения СПП."
+            ]
+            not_subscribed = self.get_needed_subscriptions(user)
+            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
+
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(text),
+            self.ParseMode.MARKDOWN,
+            reply_markup = reply_markup
+        )
 
     @subscription_filter
     def add_item(self, message: types.Message) -> None:
@@ -867,6 +798,61 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 disable_web_page_preview = True
             )
 
+    @subscription_filter
+    def update_seller_api_token(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.register_next_step_handler(message, self.update_seller_api_token_update_step, user)
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(
+                [
+                    "Введите токен продавца.",
+                    "Достаточно прав только на чтение.",
+                    f"{self.Formatter.link('Инструкция', 'https://openapi.wildberries.ru/general/authorization/ru/')}"
+                    f" по генерации токена."
+                ]
+            ),
+            self.ParseMode.MARKDOWN
+        )
+
+    def update_seller_api_token_update_step(self, message: types.Message, user: core_models.ParserUser) -> None:
+        new_token = message.text
+        user.seller_api_token = new_token
+
+        try:
+            ParserSellerApi.make_request(user)
+        except RequestException:
+            self.send_message(
+                user.telegram_chat_id,
+                "Токен не валиден."
+            )
+        else:
+            user.save()
+            self.send_message(
+                user.telegram_chat_id,
+                "Вы успешно обновили токен продавца."
+            )
+        finally:
+            self.delete_message(user.telegram_chat_id, message.message_id)
+
+    @subscription_filter
+    def check_subscriptions(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(["Вы подписаны на все необходимые каналы."]),
+            self.ParseMode.MARKDOWN
+        )
+
+    @seller_api_token_filter
+    def check_seller_api_token(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        self.send_message(
+            user.telegram_chat_id,
+            self.Formatter.join(["Ваш токен действителен."]),
+            self.ParseMode.MARKDOWN
+        )
+
     @customer_filter
     def send_to_users(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
@@ -945,20 +931,33 @@ class Bot(NotifierMixin, telebot.TeleBot):
         )
         self.send_message(message_to_send.user.telegram_chat_id, "Сообщение не будет разослано пользователям.")
 
-    @subscription_filter
-    def check_subscriptions(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
+    # todo: переписать, чтобы регистрировал после добавления в БД
+    def register_as_developer(self, message: types.Message) -> None:
+        developer = core_models.ParserUser.get_developer()
+        developer.telegram_user_id = message.from_user.id
+        developer.telegram_chat_id = message.chat.id
+        developer.save()
+        self.set_command_list_developer()
         self.send_message(
-            user.telegram_chat_id,
-            self.Formatter.join(["Вы подписаны на все необходимые каналы."]),
-            self.ParseMode.MARKDOWN
+            developer.telegram_chat_id,
+            "Вы зарегистрированы как разработчик"
         )
 
-    @seller_api_token_filter
-    def check_seller_api_token(self, message: types.Message) -> None:
+    @developer_filter
+    def remove_user(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
-        self.send_message(
-            user.telegram_chat_id,
-            self.Formatter.join(["Ваш токен действителен."]),
-            self.ParseMode.MARKDOWN
-        )
+        items = parser_price_models.Item.objects.filter(user = user)
+        item_ids = list(items.values_list("id", flat = True))
+        prices = parser_price_models.Price.objects.filter(item_id__in = item_ids)
+        prices.delete()
+        items.delete()
+        user.delete()
+
+        self.send_message(message.chat.id, "Вы были удалены из БД бота.")
+
+    @developer_filter
+    def reset_command_list(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        scope = types.BotCommandScopeChat(user.telegram_chat_id)
+        self.delete_my_commands(scope)
+        self.send_message(user.telegram_chat_id, "Ваш список команд сброшен.")
