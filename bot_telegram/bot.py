@@ -306,13 +306,13 @@ class NotifierMixin(BotService):
         return ["❗️ Товар появился в продаже"]
 
     def construct_no_personal_sale_block(self) -> list[str]:
-        return [f"{self.Token.NO_PERSONAL_SALE} Не удалось получить скидку постоянного покупателя"]
+        return [f"{self.Token.NO_PERSONAL_SALE} Не удалось получить СПП"]
 
     @staticmethod
     def construct_no_seller_api_token_block() -> list[str]:
         return [
             "Токен продавца отсутствует.",
-            f"Чтобы видеть скидку постоянного покупателя необходимо ввести токен продавца ({UPDATE_SELLER_API_TOKEN})."
+            f"Чтобы видеть СПП необходимо ввести токен продавца ({UPDATE_SELLER_API_TOKEN})."
         ]
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
@@ -637,44 +637,55 @@ class Bot(NotifierMixin, telebot.TeleBot):
             if vendor_code in errors:
                 raise errors[vendor_code]
 
-            if price["personal_sale"] is None:
-                price["personal_sale"] = 0
-
             block = self.construct_header(
-                price["category_name"],
+                price["category"].name,
                 vendor_code,
                 price["name_site"],
                 None,
                 parser_price_models.Item(vendor_code = vendor_code).link
             )
+            block.append("")
+
             if price["sold_out"]:
-                block.append("")
                 block.extend(self.construct_sold_out_block())
             elif validators.validate_seller_api_token(user):
+                if price["price"] is not None:
+                    block.append(
+                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
+                        f" {price['price']}"
+                    )
+
+                if price["personal_sale"] is not None:
+                    block.extend(
+                        [
+                            "",
+                            (f"{self.Token.NO_CHANGES} "
+                             f"{parser_price_models.Price.get_field_verbose_name('personal_sale')}: "
+                             f"{price['personal_sale']}")
+                        ]
+                    )
+                else:
+                    block.extend(["", *self.construct_no_personal_sale_block(), ])
+
                 block.extend(
                     [
                         "",
-                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
-                        f" {price['price']}",
-                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
-                        f" {price['final_price']}",
-                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
-                        f" {price['personal_sale']}",
-                        ""
+                        (f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
+                         f" {price['final_price']}"),
+                        "", *self.construct_final_block(),
                     ]
                 )
             else:
                 block.extend(
                     [
+                        *self.construct_no_seller_api_token_block(),
                         "",
-                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
-                        f" {price['final_price']}",
-                        f"Чтобы иметь возможность видеть цену без скидки, а также СПП,"
-                        f" необходимо ввести токен продавца ({UPDATE_SELLER_API_TOKEN}).",
-                        ""
+                        (f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
+                         f" {price['final_price']}"),
+                        "", *self.construct_final_block(),
                     ]
                 )
-                block.extend(self.construct_final_block())
+
             self.send_message(
                 user.telegram_chat_id,
                 self.Formatter.join(block),

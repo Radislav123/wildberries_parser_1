@@ -5,6 +5,8 @@ from requests import JSONDecodeError
 
 from core.settings import Settings
 from logger import Logger
+from parser_price import models as price_models
+from parser_seller_api import models as seller_api_models
 
 
 settings = Settings()
@@ -14,13 +16,17 @@ logger = Logger(f"{settings.APP_NAME}_service")
 def parse_prices(
         vendor_codes: list[int],
         dest: str,
-) -> tuple[dict[int, dict[str, int | float | str]], dict[int, Exception]]:
+) -> tuple[dict[int, dict[str, int | float | str | None | price_models.Category]], dict[int, Exception]]:
     # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
     request_personal_sale = 99
     chunk_size = 100
     chunks = [vendor_codes[x: x + chunk_size] for x in range(0, len(vendor_codes), chunk_size)]
     prices = {}
     errors = {}
+    seller_api_items: dict[int, seller_api_models.Item] = {
+        x.vendor_code: x for x in
+        seller_api_models.Item.objects.filter(vendor_code__in = (x for x in vendor_codes))
+    }
 
     for vendor_codes_chunk in chunks:
         # todo: сделать запросы асинхронными (ThreadPoolExecutor)
@@ -37,12 +43,26 @@ def parse_prices(
                 reviews_amount = int(item_dict["feedbacks"])
                 category_name = get_category_name(vendor_code)
                 name_site = f"{item_dict['brand']} / {item_dict['name']}"
+                category = price_models.Category.objects.get_or_create(name = category_name)[0]
+
+                if vendor_code in seller_api_items:
+                    seller_api_item = seller_api_items[vendor_code]
+                    price = seller_api_item.real_price
+                    personal_sale = int((1 - final_price / price) * 100)
+                else:
+                    personal_sale = category.personal_sale
+                    if personal_sale is None:
+                        price = None
+                    else:
+                        price = int(final_price / (100 - personal_sale))
 
                 prices[vendor_code] = {
+                    "price": price,
+                    "personal_sale": personal_sale,
                     "final_price": final_price,
                     "sold_out": sold_out,
                     "reviews_amount": reviews_amount,
-                    "category_name": category_name,
+                    "category": category,
                     "name_site": name_site
                 }
             except Exception as error:
