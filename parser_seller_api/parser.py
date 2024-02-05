@@ -51,6 +51,7 @@ class Parser(parser_core.Parser):
 
     def run(self, users: list[core_models.ParserUser]) -> None:
         not_parsed = {}
+        not_valid_token_users = []
         for user in users:
             try:
                 if user.seller_api_token:
@@ -59,6 +60,13 @@ class Parser(parser_core.Parser):
                     not_parsed[user] = None
             except Exception as error:
                 not_parsed[user] = error
+                if isinstance(error, RequestException):
+                    # todo: удалять товары из БД как неактуальные?
+                    user.seller_api_token = None
+                    not_valid_token_users.append(user)
+
+        if not_valid_token_users:
+            core_models.ParserUser.objects.bulk_update(not_valid_token_users, ["seller_api_token"])
 
         if len(not_parsed) == 1:
             self.logger.info("There is 1 not parsed user.")

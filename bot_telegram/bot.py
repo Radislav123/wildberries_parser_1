@@ -18,7 +18,8 @@ Subscriptions = dict[int, tuple[str, str]]
 
 SUBSCRIPTION_TEXT = "Чтобы пользоваться ботом, подпишитесь на каналы."
 UPDATE_SELLER_API_TOKEN = "/update_seller_api_token"
-SELLER_API_TEXT = f"Чтобы использовать эту команду, введите токен продавца, используя команду {UPDATE_SELLER_API_TOKEN}."
+SELLER_API_TEXT = (f"Чтобы использовать эту команду,"
+                   f" введите токен продавца, используя команду {UPDATE_SELLER_API_TOKEN}.")
 
 
 class CallbackData:
@@ -604,7 +605,6 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
         return wrapper
 
-    # todo: добавить механизм проверки срока годности существующих токенов
     @staticmethod
     def seller_api_token_filter(function: Callable) -> Callable:
         def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
@@ -915,28 +915,32 @@ class Bot(NotifierMixin, telebot.TeleBot):
             reply_markup = reply_markup
         )
 
+    # todo: добавить сохранение ошибки при неуспешном отправлении
     def send_to_users_callback_send(self, callback: types.CallbackQuery) -> None:
         message_to_send = bot_telegram_models.SendToUsers.objects.get(
             id = callback.data.split(CallbackData.DELIMITER)[-1]
         )
 
-        users = list(core_models.ParserUser.objects.exclude(username = message_to_send.user))
-        if platform.node() != self.settings.secrets.developer.pc_name:
-            for user_batch in [users[x:x + self.settings.API_MESSAGES_PER_SECOND_LIMIT]
-                               for x in range(0, len(users), self.settings.API_MESSAGES_PER_SECOND_LIMIT)]:
-                for user in user_batch:
-                    try:
-                        self.copy_message(
-                            user.telegram_chat_id,
-                            message_to_send.user.telegram_chat_id,
-                            message_to_send.telegram_message_id
-                        )
-                    except ApiTelegramException as error:
-                        if error.error_code == 403 and "bot was blocked by the user" in error.description:
-                            self.logger.info("bot was blocked")
-                        else:
-                            self.logger.info(error.description)
-                time.sleep(1)
+        if platform.node() == self.settings.secrets.developer.pc_name:
+            users = [core_models.ParserUser.get_developer()]
+        else:
+            users = list(core_models.ParserUser.objects.exclude(username = message_to_send.user))
+
+        for user_batch in [users[x:x + self.settings.API_MESSAGES_PER_SECOND_LIMIT]
+                           for x in range(0, len(users), self.settings.API_MESSAGES_PER_SECOND_LIMIT)]:
+            for user in user_batch:
+                try:
+                    self.copy_message(
+                        user.telegram_chat_id,
+                        message_to_send.user.telegram_chat_id,
+                        message_to_send.telegram_message_id
+                    )
+                except ApiTelegramException as error:
+                    if error.error_code == 403 and "bot was blocked by the user" in error.description:
+                        self.logger.info("bot was blocked")
+                    else:
+                        self.logger.info(error.description)
+            time.sleep(1)
         message_to_send.sent = True
         message_to_send.save()
 
