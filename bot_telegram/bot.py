@@ -17,7 +17,8 @@ from . import models as bot_telegram_models, settings
 Subscriptions = dict[int, tuple[str, str]]
 
 SUBSCRIPTION_TEXT = "Чтобы пользоваться ботом, подпишитесь на каналы."
-SELLER_API_TEXT = "Чтобы использовать эту команду, введите токен продавца, используя команду /update_seller_api_token."
+UPDATE_SELLER_API_TOKEN = "/update_seller_api_token"
+SELLER_API_TEXT = f"Чтобы использовать эту команду, введите токен продавца, используя команду {UPDATE_SELLER_API_TOKEN}."
 
 
 class CallbackData:
@@ -145,14 +146,20 @@ class BotService:
 class NotifierMixin(BotService):
     @staticmethod
     def check_ownership(price: parser_price_models.Price) -> bool:
-        own_labels = ["мои", "мое", "моё", "мой"]
-        name = price.item.name.lower()
         ownership = False
-        for label in own_labels:
-            if label in name:
-                ownership = True
-                break
+        if price.item.user == core_models.ParserUser.get_customer():
+            own_labels = ["мои", "мое", "моё", "мой"]
+            name = price.item.name.lower()
+            for label in own_labels:
+                if label in name:
+                    ownership = True
+                    break
         return ownership
+
+    @staticmethod
+    def verify_seller_api_token(user: core_models.ParserUser) -> bool:
+        return (user == core_models.ParserUser.get_customer() or user == core_models.ParserUser.get_developer()
+                or user.seller_api_token)
 
     def construct_header(
             self,
@@ -301,57 +308,68 @@ class NotifierMixin(BotService):
         return ["❗️ Товар появился в продаже"]
 
     def construct_no_personal_sale_block(self) -> list[str]:
-        return [f"{self.Token.NO_PERSONAL_SALE} Скидка постоянного покупателя отсутствует"]
+        return [f"{self.Token.NO_PERSONAL_SALE} Не удалось получить скидку постоянного покупателя"]
+
+    @staticmethod
+    def construct_no_seller_api_token_block() -> list[str]:
+        return [
+            "Токен продавца отсутствует.",
+            f"Чтобы видеть скидку постоянного покупателя необходимо ввести токен продавца ({UPDATE_SELLER_API_TOKEN})."
+        ]
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
         limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
         for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
             for notification in notification_batch:
                 try:
+                    text = [*self.construct_start_block(notification), ]
+                    # обычное оповещение
                     if not notification.new.sold_out and notification.new.personal_sale is not None:
-                        text = [
-                            *self.construct_start_block(notification),
-                            # todo: return
-                            # "",
-                            # *self.construct_price_block(notification),
-                            # "",
-                            # *self.construct_personal_sale_block(notification),
-                            "",
-                            *self.construct_final_price_block(notification),
-                            "",
-                            *self.construct_final_block()
-                        ]
+                        if self.verify_seller_api_token(notification.new.item.user):
+                            text.extend(
+                                [
+                                    "", *self.construct_price_block(notification),
+                                    "", *self.construct_personal_sale_block(notification),
+                                ]
+                            )
+                        else:
+                            text.extend(["", *self.construct_no_seller_api_token_block(), ])
+                        text.extend(
+                            [
+                                "", *self.construct_final_price_block(notification),
+                                "", *self.construct_final_block(),
+                            ]
+                        )
+                    # товар распродан
                     elif notification.new.sold_out and not notification.old.sold_out:
-                        text = [
-                            *self.construct_start_block(notification),
-                            "",
-                            *self.construct_sold_out_block()
-                        ]
+                        text.extend(["", *self.construct_sold_out_block(), ])
+                    # товар появился в продаже
                     elif notification.old.sold_out and not notification.new.sold_out:
-                        text = [
-                            *self.construct_start_block(notification),
-                            "",
-                            *self.construct_final_price_block(notification),
-                            "",
-                            *self.construct_appear_block()
-                        ]
+                        text.extend(
+                            [
+                                "", *self.construct_final_price_block(notification),
+                                "", *self.construct_appear_block(),
+                            ]
+                        )
+                    # СПП отсутствует
                     elif notification.new.personal_sale is None:
-                        text = [
-                            *self.construct_start_block(notification),
-                            # todo: return
-                            # "",
-                            # *self.construct_price_block(notification),
-                            # "",
-                            # *self.construct_no_personal_sale_block(),
-                            "",
-                            *self.construct_final_price_block(notification),
-                            "",
-                            *self.construct_final_block()
-                        ]
+                        if self.verify_seller_api_token(notification.new.item.user):
+                            if notification.new.price is not None:
+                                text.extend(["", *self.construct_price_block(notification), ])
+                            text.extend(["", *self.construct_no_personal_sale_block(), ])
+                        else:
+                            text.extend(["", *self.construct_no_seller_api_token_block(), ])
+                        text.extend(
+                            [
+                                "", *self.construct_final_price_block(notification),
+                                "", *self.construct_final_block(),
+                            ]
+                        )
                     else:
                         raise WrongNotificationTypeException()
 
                     text = self.Formatter.join(text)
+                    # отправка оповещения разработчику, если бот запущен на машине разработчика
                     if (platform.node() == self.settings.secrets.developer.pc_name and
                             notification.new.item.user == core_models.ParserUser.get_customer()):
                         notification.new.item.user = core_models.ParserUser.get_developer()
@@ -367,6 +385,7 @@ class NotifierMixin(BotService):
                             # дублируется сообщение для другого пользователя по просьбе заказчика
                             if notification.new.item.user == core_models.ParserUser.get_customer():
                                 self.send_message(
+                                    # todo: перенести в секреты
                                     5250931949,
                                     text,
                                     self.ParseMode.MARKDOWN,
@@ -591,8 +610,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
             user = self.get_parser_user(message.from_user)
 
-            if (user != core_models.ParserUser.get_customer()
-                    and not user.seller_api_token):
+            if not self.verify_seller_api_token(user):
                 self.send_message(
                     user.telegram_chat_id,
                     self.Formatter.join([SELLER_API_TEXT]),
@@ -633,18 +651,27 @@ class Bot(NotifierMixin, telebot.TeleBot):
             if price["sold_out"]:
                 block.append("")
                 block.extend(self.construct_sold_out_block())
+            elif self.verify_seller_api_token(user):
+                block.extend(
+                    [
+                        "",
+                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
+                        f" {price['price']}",
+                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
+                        f" {price['final_price']}",
+                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
+                        f" {price['personal_sale']}",
+                        ""
+                    ]
+                )
             else:
                 block.extend(
                     [
                         "",
-                        # todo: return
-                        # f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
-                        # f" {price['price']}",
                         f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
                         f" {price['final_price']}",
-                        # todo: return
-                        # f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('personal_sale')}:"
-                        # f" {price['personal_sale']}",
+                        f"Чтобы иметь возможность видеть цену без скидки, а также СПП,"
+                        f" необходимо ввести токен продавца ({UPDATE_SELLER_API_TOKEN}).",
                         ""
                     ]
                 )
@@ -690,7 +717,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 "",
                 f"На данный момент вы можете отслеживать товары в количестве {self.settings.MAX_USER_ITEMS}.",
                 "",
-                "После ввода токена продавца (/update_seller_api_token) сможете отслеживать изменения СПП."
+                f"После ввода токена продавца ({UPDATE_SELLER_API_TOKEN}) сможете отслеживать изменения СПП."
             ]
             not_subscribed = self.get_needed_subscriptions(user)
             reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
@@ -807,6 +834,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             self.Formatter.join(
                 [
                     "Введите токен продавца.",
+                    "",
                     "Достаточно прав только на чтение.",
                     f"{self.Formatter.link('Инструкция', 'https://openapi.wildberries.ru/general/authorization/ru/')}"
                     f" по генерации токена."
@@ -824,7 +852,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         except RequestException:
             self.send_message(
                 user.telegram_chat_id,
-                "Токен не валиден."
+                "Токен не обновлен, потому что не валиден."
             )
         else:
             user.save()

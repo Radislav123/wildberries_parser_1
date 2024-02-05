@@ -3,12 +3,14 @@ import sys
 from io import BytesIO
 from typing import Callable, Type
 
+import django.forms.models
 import xlsxwriter
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db import models as django_models
 from django.http import HttpResponse
 
+import logger
 from . import models as core_models
 from .settings import Settings
 
@@ -72,8 +74,11 @@ class CoreAdmin(admin.ModelAdmin):
     # {вставляемое_поле: поле_после_которого_вставляется}
     # {field: None} - вставится последним
     extra_list_display: dict[str, str] = {}
+    not_required_fields = ()
 
     def __init__(self, model, admin_site):
+        self.logger = logger.Logger(self.__class__.__name__)
+
         self.list_display = [field for field in self._list_display if field not in self.hidden_fields]
         for field, before_field in self.extra_list_display.items():
             if before_field is None:
@@ -87,6 +92,12 @@ class CoreAdmin(admin.ModelAdmin):
             self.fieldsets = self._fieldsets
 
         super().__init__(model, admin_site)
+
+    def get_form(self, request, obj = None, **kwargs) -> django.forms.models.ModelFormMetaclass:
+        form = super().get_form(request, obj, **kwargs)
+        for field_name in self.not_required_fields:
+            form.base_fields[field_name].required = False
+        return form
 
     @property
     def _list_display(self) -> tuple:
@@ -135,6 +146,7 @@ class ParsingAdmin(CoreAdmin):
 class ParserUserAdmin(CoreAdmin, UserAdmin):
     model = core_models.ParserUser
     hidden_fields = ("password",)
+    not_required_fields = ("seller_api_token",)
     _fieldsets = (
         (
             "Telegram",

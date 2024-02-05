@@ -75,47 +75,6 @@ class Price(ParserPriceModel):
         ).order_by("id").last()
         return obj
 
-    # todo: remove method?
-    @classmethod
-    def get_notifications_old(cls, new_prices: list["Price"]) -> list["Notification"]:
-        notifications: list[Notification] = []
-
-        for new_price in new_prices:
-            new_sold_out = new_price.price is None and new_price.final_price is None and new_price.personal_sale is None
-            new_no_personal_sale = new_price.personal_sale is None
-
-            # parsing__time -> id потому что у разработчика часовой пояс на машине отличается от того,
-            # при котором происходит парсинг
-            old_price = cls.objects.filter(item = new_price.item).exclude(id = new_price.id).order_by("id").last()
-            old_sold_oud = old_price.price is None and old_price.final_price is None and old_price.personal_sale is None
-            old_no_personal_sale = old_price.personal_sale is None
-
-            if old_price is not None:
-                if new_price.price is not None and old_price.price is not None:
-                    price_changing = new_price.price - old_price.price
-                else:
-                    price_changing = 0
-
-                if new_price.personal_sale is not None and old_price.personal_sale is not None:
-                    personal_sale_changing = new_price.personal_sale - old_price.personal_sale
-                else:
-                    personal_sale_changing = 0
-
-                if (price_changing != 0 or personal_sale_changing != 0 or new_sold_out != old_sold_oud
-                        or new_no_personal_sale != old_no_personal_sale):
-                    notifications.append(
-                        Notification(
-                            new = new_price,
-                            old = old_price,
-                            sold_out = new_sold_out,
-                            no_personal_sale = new_no_personal_sale
-                        )
-                    )
-        Notification.objects.bulk_create(notifications)
-
-        return notifications
-
-    # todo: временная замена, пока нет парсинга price и personal_sale
     @classmethod
     def get_notifications(cls, news: list["Price"]) -> list["Notification"]:
         notifications: list[Notification] = []
@@ -123,18 +82,23 @@ class Price(ParserPriceModel):
         for new in news:
             old: Price = cls.objects.filter(item = new.item).exclude(id = new.id).order_by("id").last()
             if old is not None:
+                if new.price is not None and old.price is not None:
+                    price_changing = new.price - old.price
+                else:
+                    price_changing = 0
+
+                if new.personal_sale is not None and old.personal_sale is not None:
+                    personal_sale_changing = new.personal_sale - old.personal_sale
+                else:
+                    personal_sale_changing = 0
+
                 if new.final_price is not None and old.final_price is not None:
                     final_price_changing = new.final_price - old.final_price
                 else:
                     final_price_changing = 0
 
-                if final_price_changing != 0 or new.sold_out != old.sold_out:
-                    notifications.append(
-                        Notification(
-                            new = new,
-                            old = old
-                        )
-                    )
+                if new.sold_out != old.sold_out or price_changing or personal_sale_changing or final_price_changing:
+                    notifications.append(Notification(new = new, old = old))
 
         Notification.objects.bulk_create(notifications)
 

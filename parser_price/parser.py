@@ -36,13 +36,14 @@ class Parser(parser_core.Parser):
             if vendor_code in seller_api_items:
                 seller_api_item = seller_api_items[vendor_code]
                 price["price"] = seller_api_item.real_price
-                price["personal_sale"] = int(1 - price["final_price"] / price["price"])
+                price["personal_sale"] = int((1 - price["final_price"] / price["price"]) * 100)
             else:
                 price["personal_sale"] = category.personal_sale
                 if price["personal_sale"] is None:
+                    # noinspection PyTypeChecker
                     price["price"] = None
                 else:
-                    price["price"] = price["final_price"] / (1 - price["personal_sale"])
+                    price["price"] = int(price["final_price"] / (100 - price["personal_sale"]))
 
             price_object = models.Price(
                 item = items_dict[vendor_code],
