@@ -11,7 +11,7 @@ class Settings(settings.Settings):
         super().__init__()
 
         # каналы на которые пользователь должен быть подписан, чтобы использовать бота
-        # todo: перенести в БД?
+        # todo: перенести в БД или секреты?
         self.NEEDED_SUBSCRIPTIONS = {
             -1001922384556: ("https://t.me/mpwbfair", "канал 1"),
             -1001638911900: ("https://t.me/ivan_shkitin", "канал 2")

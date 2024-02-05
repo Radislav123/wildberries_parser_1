@@ -3,7 +3,7 @@ import datetime
 import functools
 import json
 import traceback
-from typing import Any, Self
+from typing import Any, Self, TYPE_CHECKING
 
 from django.contrib.auth import models as auth_models
 from django.core.serializers.json import DjangoJSONEncoder
@@ -12,6 +12,9 @@ from django.db import models
 import logger
 from .settings import Settings
 
+
+if TYPE_CHECKING:
+    from bot_telegram.bot import Subscriptions
 
 settings = Settings()
 
@@ -82,6 +85,7 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
     telegram_user_id = models.BigIntegerField("Telegram user_id", null = True)
     telegram_chat_id = models.BigIntegerField("Telegram chat_id", null = True)
     seller_api_token = models.CharField(null = True)
+    subscribed = models.BooleanField()
     _customer: "ParserUser" = None
     _developer: "ParserUser" = None
 
@@ -99,6 +103,10 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
 
     def get_default_username(self) -> str:
         return f"user_{self.id}"
+
+    def update_subscriptions_info(self, not_subscribed: "Subscriptions") -> None:
+        self.subscribed = len(not_subscribed) == 0
+        self.save()
 
     def save(self, *args, **kwargs) -> None:
         super().save(*args, **kwargs)

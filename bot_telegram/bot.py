@@ -8,7 +8,7 @@ from telebot.apihelper import ApiTelegramException
 
 import logger
 from core import models as core_models
-from core.service import parsing
+from core.service import parsing, validators
 from parser_price import models as parser_price_models
 from parser_seller_api.parser import Parser as ParserSellerApi, RequestException
 from . import models as bot_telegram_models, settings
@@ -16,7 +16,9 @@ from . import models as bot_telegram_models, settings
 
 Subscriptions = dict[int, tuple[str, str]]
 
-SUBSCRIPTION_TEXT = "Чтобы пользоваться ботом, подпишитесь на каналы."
+UPDATE_SUBSCRIPTIONS = "/update_subscriptions"
+SUBSCRIPTION_TEXT = (f"Чтобы пользоваться ботом, подпишитесь на каналы,"
+                     f" а потом используйте команду {UPDATE_SUBSCRIPTIONS} для обновления информации в боте.")
 UPDATE_SELLER_API_TOKEN = "/update_seller_api_token"
 SELLER_API_TEXT = (f"Чтобы использовать эту команду,"
                    f" введите токен продавца, используя команду {UPDATE_SELLER_API_TOKEN}.")
@@ -156,11 +158,6 @@ class NotifierMixin(BotService):
                     ownership = True
                     break
         return ownership
-
-    @staticmethod
-    def verify_seller_api_token(user: core_models.ParserUser) -> bool:
-        return (user == core_models.ParserUser.get_customer() or user == core_models.ParserUser.get_developer()
-                or user.seller_api_token)
 
     def construct_header(
             self,
@@ -326,7 +323,7 @@ class NotifierMixin(BotService):
                     text = [*self.construct_start_block(notification), ]
                     # обычное оповещение
                     if not notification.new.sold_out and notification.new.personal_sale is not None:
-                        if self.verify_seller_api_token(notification.new.item.user):
+                        if validators.validate_seller_api_token(notification.new.item.user):
                             text.extend(
                                 [
                                     "", *self.construct_price_block(notification),
@@ -354,7 +351,7 @@ class NotifierMixin(BotService):
                         )
                     # СПП отсутствует
                     elif notification.new.personal_sale is None:
-                        if self.verify_seller_api_token(notification.new.item.user):
+                        if validators.validate_seller_api_token(notification.new.item.user):
                             if notification.new.price is not None:
                                 text.extend(["", *self.construct_price_block(notification), ])
                             text.extend(["", *self.construct_no_personal_sale_block(), ])
@@ -426,6 +423,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
         types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
         types.BotCommand("get_all_items", "Получить список всех отслеживаемых товаров"),
+        types.BotCommand("update_subscriptions", "Обновить информацию по подпискам в боте."),
         types.BotCommand("update_seller_api_token", "Обновить токен продавца."),
         types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
         types.BotCommand("check_seller_api_token", "Проверить действительность токена API продавца"),
@@ -529,6 +527,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
                     reply_markup = reply_markup
                 )
 
+            user.update_subscriptions_info(not_subscribed)
+
     # чтобы бот мог корректно проверять подписки, он должен быть администратором канала
     # https://core.telegram.org/bots/api#getchatmember
     def get_needed_subscriptions(self, user: core_models.ParserUser) -> Subscriptions:
@@ -589,11 +589,10 @@ class Bot(NotifierMixin, telebot.TeleBot):
     def subscription_filter(function: Callable) -> Callable:
         def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
             user = self.get_parser_user(message.from_user)
-            not_subscribed = self.get_needed_subscriptions(user)
-            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
 
-            if (user != core_models.ParserUser.get_customer() and user != core_models.ParserUser.get_developer()
-                    and len(not_subscribed) > 0):
+            if not validators.validate_subscriptions(user):
+                not_subscribed = self.get_needed_subscriptions(user)
+                reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
                 self.send_message(
                     user.telegram_chat_id,
                     self.Formatter.join([SUBSCRIPTION_TEXT]),
@@ -610,7 +609,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
             user = self.get_parser_user(message.from_user)
 
-            if not self.verify_seller_api_token(user):
+            if not validators.validate_seller_api_token(user):
                 self.send_message(
                     user.telegram_chat_id,
                     self.Formatter.join([SELLER_API_TEXT]),
@@ -651,7 +650,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             if price["sold_out"]:
                 block.append("")
                 block.extend(self.construct_sold_out_block())
-            elif self.verify_seller_api_token(user):
+            elif validators.validate_seller_api_token(user):
                 block.extend(
                     [
                         "",
@@ -707,7 +706,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
         except core_models.ParserUser.DoesNotExist:
             user = core_models.ParserUser(
                 telegram_user_id = message.from_user.id,
-                telegram_chat_id = message.chat.id
+                telegram_chat_id = message.chat.id,
+                subscribed = False
             )
             user.save()
             text = [
@@ -823,6 +823,26 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 text_chunk,
                 self.ParseMode.MARKDOWN,
                 disable_web_page_preview = True
+            )
+
+    def update_subscriptions(self, message: types.Message) -> None:
+        user = self.get_parser_user(message.from_user)
+        not_subscribed = self.get_needed_subscriptions(user)
+        user.update_subscriptions_info(not_subscribed)
+
+        if not validators.validate_subscriptions(user):
+            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
+            self.send_message(
+                user.telegram_chat_id,
+                self.Formatter.join([SUBSCRIPTION_TEXT]),
+                self.ParseMode.MARKDOWN,
+                reply_markup = reply_markup
+            )
+        else:
+            self.send_message(
+                user.telegram_chat_id,
+                self.Formatter.join(["Вы подписаны на все необходимые каналы. Информация в боте обновлена."]),
+                self.ParseMode.MARKDOWN
             )
 
     @subscription_filter

@@ -150,7 +150,7 @@ class ParserUserAdmin(CoreAdmin, UserAdmin):
     _fieldsets = (
         (
             "Telegram",
-            {"fields": ("telegram_user_id", "telegram_chat_id")}
+            {"fields": ("telegram_user_id", "telegram_chat_id", "subscribed")}
         ),
         (
             "Wildberries",

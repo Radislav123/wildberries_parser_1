@@ -5,7 +5,7 @@ from selenium.webdriver import Chrome
 
 from bot_telegram import bot
 from core import models as core_models, parser as parser_core
-from core.service import parsing
+from core.service import parsing, validators
 from parser_seller_api import models as seller_api_models
 from . import models, settings
 
@@ -26,7 +26,7 @@ class Parser(parser_core.Parser):
             seller_api_models.Item.objects.filter(vendor_code__in = (x.vendor_code for x in items))
         }
 
-        items_dict = {x.vendor_code: x for x in items}
+        items_dict = {x.vendor_code: x for x in items if validators.validate_subscriptions(x.user)}
         prices, errors = parsing.parse_prices(list(items_dict), dest)
         errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
         price_objects = []
@@ -100,8 +100,8 @@ class Parser(parser_core.Parser):
         self.run(items, True)
 
     def run_other(self, division_remainder: int) -> None:
-        items = [x for x in models.Item.objects.exclude(user = core_models.ParserUser.get_customer())
-                 if x.vendor_code % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
+        all_items = models.Item.objects.exclude(user = core_models.ParserUser.get_customer()).prefetch_related("user")
+        items = [x for x in all_items if x.vendor_code % self.settings.PYTEST_XDIST_WORKER_COUNT == division_remainder]
         self.run(items, False)
 
     def run(self, items: list[models.Item], prepare_table: bool) -> None:
