@@ -130,11 +130,12 @@ class ParserPriceAdmin(core_admin.CoreAdmin):
 
 class CategoryAdmin(ParserPriceAdmin):
     model = parser_price_models.Category
+    search_fields = ("name",)
 
 
 class ItemAdmin(ParserPriceAdmin):
     model = parser_price_models.Item
-    list_filter = ("user", "vendor_code")
+    list_filter = ("category", "user", "vendor_code")
 
 
 class PriceAdmin(ParserPriceAdmin):

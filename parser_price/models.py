@@ -22,6 +22,7 @@ class ParserPriceModel(core_models.CoreModel):
 class Category(ParserPriceModel):
     class Meta:
         verbose_name_plural = "Categories"
+        ordering = ["name"]
 
     name = models.CharField("Предмет")
     personal_sale = models.PositiveIntegerField("СПП", null = True)

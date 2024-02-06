@@ -54,7 +54,7 @@ def parse_prices(
                     if personal_sale is None:
                         price = None
                     else:
-                        price = int(final_price / (100 - personal_sale))
+                        price = int(final_price / (100 - personal_sale) * 100)
 
                 prices[vendor_code] = {
                     "price": price,

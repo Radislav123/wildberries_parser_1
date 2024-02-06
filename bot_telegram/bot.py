@@ -324,12 +324,9 @@ class NotifierMixin(BotService):
                     # обычное оповещение
                     if not notification.new.sold_out and notification.new.personal_sale is not None:
                         if validators.validate_seller_api_token(notification.new.item.user):
-                            text.extend(
-                                [
-                                    "", *self.construct_price_block(notification),
-                                    "", *self.construct_personal_sale_block(notification),
-                                ]
-                            )
+                            if notification.new.price is not None:
+                                text.extend(["", *self.construct_price_block(notification), ])
+                            text.extend(["", *self.construct_personal_sale_block(notification), ])
                         else:
                             text.extend(["", *self.construct_no_seller_api_token_block(), ])
                         text.extend(
