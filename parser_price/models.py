@@ -32,8 +32,6 @@ class Category(ParserPriceModel):
 
     @classmethod
     def update_personal_sales(cls, prices: list["Price"]) -> None:
-        # todo: remove log
-        cls.logger.debug("updating")
         prices_by_categories = defaultdict(list)
         for price in prices:
             prices_by_categories[price.item.category].append(price)
@@ -44,7 +42,11 @@ class Category(ParserPriceModel):
                 category.personal_sale = max(personal_sales)
 
         # todo: remove log
-        cls.logger.debug(list(prices_by_categories.keys()))
+        temp = [y for x, y in prices_by_categories.items() if x.id == 11]
+        if temp:
+            for price in temp[0]:
+                cls.logger.debug(price.item)
+                cls.logger.debug(price.item.name)
         if prices_by_categories:
             cls.objects.bulk_update(prices_by_categories.keys(), ["personal_sale"])
 
