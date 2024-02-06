@@ -755,24 +755,11 @@ class Bot(NotifierMixin, telebot.TeleBot):
             )
         else:
             new_item = parser_price_models.Item(user = user)
-            self.register_next_step_handler(message, self.add_item_step_name, user, new_item)
+            self.register_next_step_handler(message, self.add_item_step_vendor_code, user, new_item)
             self.send_message(
                 user.telegram_chat_id,
-                "Введите свое название для товара."
+                "Введите артикул товара."
             )
-
-    def add_item_step_name(
-            self,
-            message: types.Message,
-            user: core_models.ParserUser,
-            item: parser_price_models.Item
-    ) -> None:
-        item.name = message.text
-        self.register_next_step_handler(message, self.add_item_step_vendor_code, user, item)
-        self.send_message(
-            user.telegram_chat_id,
-            "Введите артикул товара."
-        )
 
     def add_item_step_vendor_code(
             self,
@@ -822,7 +809,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
         if len(items) == 0:
             text = ["У Вас еще нет отслеживаемых товаров."]
         else:
-            text = [f"{self.Formatter.link(item.name, item.link)}: {item.vendor_code}" for item in items]
+            text = [f"{self.Formatter.link(item.name_site, item.link)}: {item.vendor_code}" for item in items]
 
         text_chunks = telebot.util.smart_split(self.Formatter.join(text))
         for text_chunk in text_chunks:
