@@ -42,13 +42,26 @@ class Category(ParserPriceModel):
                 category.personal_sale = max(personal_sales)
 
         # todo: remove log
-        temp = [y for x, y in prices_by_categories.items() if x.id == 11]
+        temp = {x: y for x, y in prices_by_categories.items() if x.id == 11}
         if temp:
-            for price in temp[0]:
+            cls.logger.debug("=====================")
+            category = list(temp)[0]
+            cls.logger.debug(category)
+            cls.logger.debug(category.id)
+            cls.logger.debug(category.personal_sale)
+            for price in temp[category]:
+                cls.logger.debug("---------------------")
                 cls.logger.debug(price.item)
                 cls.logger.debug(price.item.name)
+                cls.logger.debug("---------------------")
         if prices_by_categories:
             cls.objects.bulk_update(prices_by_categories.keys(), ["personal_sale"])
+        if temp:
+            category = list(temp)[0]
+            cls.logger.debug(category)
+            cls.logger.debug(category.id)
+            cls.logger.debug(category.personal_sale)
+            cls.logger.debug("=====================")
 
 
 class Item(ParserPriceModel, core_models.Item):
