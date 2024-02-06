@@ -163,7 +163,7 @@ class NotifierMixin(BotService):
             self,
             category_name: str | None,
             vendor_code: int,
-            name_site: str,
+            name_site: str | None,
             name: str | None,
             link: str
     ) -> list[str]:
@@ -754,7 +754,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 self.ParseMode.MARKDOWN
             )
         else:
-            new_item = parser_price_models.Item(user = user)
+            new_item = parser_price_models.Item(user = user, name_site = "Название появится после ближайшего парсинга")
             self.register_next_step_handler(message, self.add_item_step_vendor_code, user, new_item)
             self.send_message(
                 user.telegram_chat_id,
@@ -789,13 +789,12 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
     def remove_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
         vendor_code = int(message.text)
-        item = parser_price_models.Item.objects.get(user = user, vendor_code = vendor_code)
-        text = [
-            f"{self.Formatter.link(item.vendor_code, item.link)} убран из отслеживаемых."
-        ]
+        items = parser_price_models.Item.objects.filter(user = user, vendor_code = vendor_code)
+        text = [f"{self.Formatter.link(item.vendor_code, item.link)} убран из отслеживаемых."
+                for item in items]
         prices = parser_price_models.Price.objects.filter(item__vendor_code = vendor_code, item__user = user)
         prices.delete()
-        item.delete()
+        items.delete()
         self.send_message(
             user.telegram_chat_id,
             self.Formatter.join(text),
