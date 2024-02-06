@@ -37,9 +37,10 @@ class Parser(parser_core.Parser):
 
             price_objects.append(price_object)
             items_dict[vendor_code].category = price["category"]
+            items_dict[vendor_code].name_site = price["name_site"]
 
         models.Price.objects.bulk_create(price_objects)
-        models.Item.objects.bulk_update(items_dict.values(), ["category"])
+        models.Item.objects.bulk_update(items_dict.values(), ["category", "name_site"])
 
         return price_objects, errors
 
