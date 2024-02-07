@@ -14,7 +14,7 @@ class Settings(settings.Settings):
         # todo: перенести в БД или секреты?
         self.NEEDED_SUBSCRIPTIONS = {
             -1001922384556: ("https://t.me/mpwbfair", "канал 1"),
-            -1001638911900: ("https://t.me/ivan_shkitin", "канал 2")
+            -1001638911900: ("https://t.me/+gukqwJCmpm1jMGUy", "канал 2")
         }
         self.CHANNEL_SUBSCRIPTION_STATUSES = ["creator", "administrator", "member"]
         self.CHANNEL_NON_SUBSCRIPTION_STATUSES = ["left"]

@@ -2,7 +2,7 @@ import argparse
 import random
 
 from core import models as core_models
-from parser_price import models
+from parser_price import models as parser_price_models
 from parser_price.management.commands import parser_price_command
 from ...bot import Bot
 
@@ -15,10 +15,10 @@ class Command(parser_price_command.ParserPriceCommand):
         parser.add_argument("--customer", action = argparse.BooleanOptionalAction)
 
     @staticmethod
-    def construct_price(user: core_models.ParserUser) -> models.Price:
-        item = models.Item.objects.filter(user = user).first()
+    def construct_price(user: core_models.ParserUser) -> parser_price_models.Price:
+        item = parser_price_models.Item.objects.filter(user = user).first()
         parsing = core_models.Parsing.objects.first()
-        price = models.Price(
+        price = parser_price_models.Price(
             item = item,
             parsing = parsing,
             reviews_amount = random.randint(0, 100),
@@ -36,7 +36,7 @@ class Command(parser_price_command.ParserPriceCommand):
         else:
             raise ValueError("Set --customer or --developer option")
         notifications = [
-            models.Notification(
+            parser_price_models.Notification(
                 new = self.construct_price(user),
                 old = self.construct_price(user)
             )
