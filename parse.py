@@ -17,7 +17,7 @@ class UnknownParserOption(Exception):
 class Runner:
     settings = core_settings.Settings()
 
-    def run(self):
+    def run(self) -> None:
         """Разбирает поступающую из командной строки команду и выполняет заданные операции."""
 
         command = sys.argv[1]
@@ -41,15 +41,15 @@ class Runner:
         pytest_options = sys.argv[3:]
         self.before_pytest()
         self.pytest(pytest_options)
-        self.after_pytest(command)
+        self.after_pytest()
 
-    def before_pytest(self):
+    def before_pytest(self) -> None:
         pass
 
-    def after_pytest(self, command):
+    def after_pytest(self) -> None:
         pass
 
-    def pytest(self, args):
+    def pytest(self, args) -> None:
         pytest_args = copy.deepcopy(self.settings.PYTEST_ARGS)
         pytest_args.extend(args)
         pytest.main(pytest_args)

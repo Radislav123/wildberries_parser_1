@@ -48,13 +48,13 @@ def parse_prices(
                 if vendor_code in seller_api_items:
                     seller_api_item = seller_api_items[vendor_code]
                     price = seller_api_item.real_price
-                    personal_sale = int((1 - final_price / price) * 100)
+                    personal_sale = round((1 - final_price / price) * 100)
                 else:
                     personal_sale = category.personal_sale
                     if personal_sale is None:
                         price = None
                     else:
-                        price = int(final_price / (100 - personal_sale) * 100)
+                        price = round(final_price / (100 - personal_sale) * 100)
 
                 prices[vendor_code] = {
                     "price": price,

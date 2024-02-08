@@ -92,7 +92,6 @@ class Parser(parser_core.Parser):
         prices, errors = self.parse_items(items, dest)
         self.parsing.not_parsed_items = errors
 
-        models.Category.update_personal_sales(prices)
         notifications = models.Price.get_notifications(prices)
         self.bot_telegram.notify(notifications)
 

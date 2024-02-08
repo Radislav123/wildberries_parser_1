@@ -31,7 +31,17 @@ class Category(ParserPriceModel):
         return str(self.name)
 
     @classmethod
-    def update_personal_sales(cls, prices: list["Price"]) -> None:
+    def update_personal_sales(cls) -> None:
+        items = Item.objects.all()
+        prices = []
+        for item in items:
+            try:
+                price = Price.objects.filter(item = item).latest("id")
+                if price:
+                    prices.append(price)
+            except Price.DoesNotExist:
+                pass
+
         prices_by_categories = defaultdict(list)
         updating_categories = []
         for price in prices:

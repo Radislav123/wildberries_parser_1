@@ -4,9 +4,12 @@ from io import BytesIO
 from typing import Callable
 
 import xlsxwriter
+from django.contrib.admin import DateFieldListFilter
 from django.db import models as django_models
 from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.utils.html import format_html
 
 from core import admin as core_admin
 from . import models as parser_price_models, parser
@@ -140,17 +143,34 @@ class ItemAdmin(ParserPriceAdmin):
 
 class PriceAdmin(ParserPriceAdmin):
     model = parser_price_models.Price
-    list_filter = ("item__user", "item")
+    list_filter = (("parsing__date", DateFieldListFilter), "item__user", "item", "item__category")
 
 
 class NotificationAdmin(ParserPriceAdmin):
     model = parser_price_models.Notification
     list_filter = ("delivered", "new__item")
-    extra_list_display = {"new__parsing__time": "new"}
+    extra_list_display = {"new__parsing__time": "delivered", "new__id": "delivered", "old__id": "delivered"}
+    not_show_list = ("new", "old")
 
     @staticmethod
     def new__parsing__time(obj: model) -> datetime.datetime:
         return obj.new.parsing.time
+
+    @staticmethod
+    def new__id(obj: model) -> str:
+        return format_html(
+            "<a href='{url}'>{id}</a>",
+            url = reverse("admin:parser_price_price_change", args = (obj.new_id,)),
+            id = obj.new_id
+        )
+
+    @staticmethod
+    def old__id(obj: model) -> str:
+        return format_html(
+            "<a href='{url}'>{id}</a>",
+            url = reverse("admin:parser_price_price_change", args = (obj.old_id,)),
+            id = obj.old_id
+        )
 
 
 class PreparedPriceAdmin(core_admin.DynamicFieldAdminMixin, ParserPriceAdmin):

@@ -71,10 +71,11 @@ class CoreAdmin(admin.ModelAdmin):
     settings = settings
     hidden_fields = ()
     _fieldsets = ()
-    # {вставляемое_поле: поле_после_которого_вставляется}
+    # {вставляемое_поле: поле_перед_которым_вставляется}
     # {field: None} - вставится последним
     extra_list_display: dict[str, str] = {}
     not_required_fields = ()
+    not_show_list = ()
 
     def __init__(self, model, admin_site):
         self.logger = logger.Logger(self.__class__.__name__)
@@ -85,7 +86,7 @@ class CoreAdmin(admin.ModelAdmin):
                 self.list_display.append(field)
             else:
                 self.list_display.insert(self.list_display.index(before_field), field)
-        self.list_display = tuple(self.list_display)
+        self.list_display = tuple(x for x in self.list_display if x not in self.not_show_list)
         if self.fieldsets is not None:
             self.fieldsets += self._fieldsets
         else:
