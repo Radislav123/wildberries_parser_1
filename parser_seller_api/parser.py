@@ -26,7 +26,7 @@ class Parser(parser_core.Parser):
         return response.json()
 
     def parse_user(self, user: core_models.ParserUser) -> None:
-        item_dicts = [
+        items = [
             models.Item(
                 vendor_code = x["nmId"],
                 user = user,
@@ -35,7 +35,7 @@ class Parser(parser_core.Parser):
             ) for x in self.make_request(user)
         ]
         models.Item.objects.bulk_create(
-            item_dicts,
+            items,
             update_conflicts = True,
             update_fields = ["user", "price", "sale"],
             unique_fields = ["vendor_code"]

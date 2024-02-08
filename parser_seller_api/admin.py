@@ -50,12 +50,13 @@ class ItemAdmin(ParserSellerApiAdmin):
     @staticmethod
     def personal_sale(obj: model) -> int | None:
         items = parser_price_models.Item.objects.filter(vendor_code = obj.vendor_code)
+        personal_sale = None
         if items:
             item = items[0]
-            price = parser_price_models.Price.objects.filter(item = item).order_by("-id")[0]
-            personal_sale = price.personal_sale
-        else:
-            personal_sale = None
+            prices = parser_price_models.Price.objects.filter(item = item).order_by("-id")
+            if prices:
+                price = prices[0]
+                personal_sale = price.personal_sale
         return personal_sale
 
 
