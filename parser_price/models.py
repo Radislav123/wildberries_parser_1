@@ -36,7 +36,7 @@ class Category(ParserPriceModel):
         prices = []
         for item in items:
             try:
-                price = Price.objects.filter(item = item).latest("id")
+                price = Price.objects.filter(item = item).prefetch_related("item", "item__category").latest("id")
                 if price:
                     prices.append(price)
             except Price.DoesNotExist:
