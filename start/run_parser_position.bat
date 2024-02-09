@@ -1,4 +1,4 @@
 cd ..
 CALL venv\Scripts\activate.bat
-python parse.py positions true
+python parse.py positions
 pause

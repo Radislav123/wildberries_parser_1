@@ -1,5 +1,5 @@
 import datetime
-from typing import Self
+from typing import Iterable, Self
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -125,12 +125,12 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
     }
 
     @classmethod
-    def prepare(cls, keywords: list[Keyword], city: str) -> None:
+    def prepare(cls, keywords: Iterable[Keyword]) -> None:
         new_objects: dict[Keyword, PreparedPosition] = {
             keyword: cls(
                 # parsing__time -> id потому что у разработчика время на машине отличается от того,
                 # на которой происходит парсинг
-                position = Position.objects.filter(keyword = keyword, city = city).order_by("id").last()
+                position = Position.objects.filter(keyword = keyword).order_by("id").last()
             ) for keyword in keywords
         }
 
@@ -163,7 +163,7 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
             objects_to_save.append(obj)
 
         cls.objects.bulk_create(objects_to_save)
-        objects_to_delete = (cls.objects.filter(position__keyword__in = keywords, position__city = city).
+        objects_to_delete = (cls.objects.filter(position__keyword__in = keywords).
                              exclude(id__in = (x.id for x in objects_to_save)).values_list("id", flat = True))
         cls.objects.filter(id__in = objects_to_delete).delete()
 

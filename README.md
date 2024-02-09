@@ -17,8 +17,8 @@
            python manage.py migrate
            ```
         4) запустить парсер вручную первый раз (первые полученные данные могут быть неверными)
-            1) [*start/position_parser_customer.bat*](start/run_parser_position_customer.bat)
-            2) [*start/price_parser_customer.bat*](start/run_parser_price_customer.bat)
+            1) [*start/position_parser_customer.bat*](start/run_parser_position.bat)
+            2) [*start/price_parser_customer.bat*](start/run_parser_price.bat)
         5) [*настроить периодический запуск парсера*](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10)
             1) программа - `python` (19 пункт)
             2) аргументы - `run.py positions true` (20 пункт)
@@ -56,17 +56,14 @@
 
 1) запуск сервера [*start/runserver.bat*](start/runserver.bat)
 2) запуск парсера
-    1) запуск парсера позиций - [*start/run_parser_position_customer.bat*](start/run_parser_position_customer.bat)
-        1) `python parse.py positions true|false`
-    2) запуск парсера цен - [*start/run_parser_price_customer.bat*](start/run_parser_price_customer.bat)
-        1) `python parse.py prices true|false`
-    3) запуск парсера API Wilbderries - [*start/run_parser_seller_api_customer.bat*](start/run_parser_seller_api_customer.bat)
-        1) `python parse.py seller_api true|false`
-    4) последний аргумент, принимающий значения `true|false`, отвечает за запуск парсера для заказчика или остальых пользователей
-        1) `true` - для заказчика
-        2) `false` - для остальных пользователей
-    5) чтобы только проверить, что выбираются нужные тесты - `python parse.py prices true --collect-only`
-    6) в конце команды можно добавлять любые аргументы `pytest`
+    1) запуск парсера позиций - [*start/run_parser_position_customer.bat*](start/run_parser_position.bat)
+        1) `python parse.py positions
+    2) запуск парсера цен - [*start/run_parser_price_customer.bat*](start/run_parser_price.bat)
+        1) `python parse.py prices
+    3) запуск парсера API Wilbderries - [*start/run_parser_seller_api_customer.bat*](start/run_parser_seller_api.bat)
+        1) `python parse.py seller_api
+    4) чтобы только проверить, что выбираются нужные тесты - `python parse.py prices true --collect-only`
+    5) в конце команды можно добавлять любые аргументы `pytest`
         1) они перезапишут те, что определены в `PYTEST_ARGS`
            [*parser_price/settings.py*](parser_price/settings.py) или [*parser_position/settings.py*](parser_position/settings.py)
         2) пример - `python parse.py prices true --collect-only`

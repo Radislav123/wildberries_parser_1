@@ -1,6 +1,6 @@
 import datetime
 from collections import defaultdict
-from typing import Self
+from typing import Iterable, Self
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -151,7 +151,7 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
     }
 
     @classmethod
-    def prepare(cls, items: list[Item]) -> None:
+    def prepare(cls, items: Iterable[Item]) -> None:
         new_objects: dict[Item, Self] = {
             # parsing__time -> id потому что у разработчика часовой пояс на машине отличается от того,
             # при котором происходит парсинг

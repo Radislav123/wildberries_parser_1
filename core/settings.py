@@ -90,8 +90,7 @@ class Settings:
             # соглашение об именовании тестов
             "-o", "python_files=parser.py",
             "-o", "python_classes=Parser*",
-            # задается в parse.py
-            # "-o", "python_functions=run",
+            "-o", "python_functions=run",
 
             # вывод логов в командную строку
             "-o", "log_cli=true",

@@ -41,17 +41,11 @@ class Parser(parser_core.Parser):
             unique_fields = ["vendor_code"]
         )
 
-    def run_customer(self) -> None:
-        users = [core_models.ParserUser.get_customer()]
-        self.run(users)
-
-    def run_other(self) -> None:
-        users = core_models.ParserUser.objects.exclude(id = core_models.ParserUser.get_customer().id)
-        self.run(users)
-
-    def run(self, users: list[core_models.ParserUser]) -> None:
+    def run(self) -> None:
+        users = core_models.ParserUser.objects.all()
         not_parsed = {}
         not_valid_token_users = []
+
         for user in users:
             try:
                 if user.seller_api_token:

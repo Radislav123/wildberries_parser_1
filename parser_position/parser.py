@@ -85,20 +85,23 @@ class Parser(parser_core.Parser):
         ]
         return keywords
 
-    def run_customer(self, division_remainder: int) -> None:
-        keywords = self.get_position_parser_keywords(self.settings.PYTEST_XDIST_WORKER_COUNT, division_remainder)
+    def run(self, division_remainder: int) -> None:
+        keywords_customer = self.get_position_parser_keywords(
+            self.settings.PYTEST_XDIST_WORKER_COUNT,
+            division_remainder
+        )
+        keywords = models.Keyword.objects.filter(id__in = (x.id for x in keywords_customer)).prefetch_related(
+            "item",
+            "item__user"
+        )
+
         # todo: оставить только Москву - временное решение
         for city_dict in [self.settings.MOSCOW_CITY_DICT]:
-            self.run(keywords, city_dict, True)
+            city = city_dict["name"]
+            dest = city_dict["dest"]
+            _, errors = self.parse_positions(keywords, dest, city)
+            self.parsing.not_parsed_items = errors
 
-    def run_other(self, division_remainder: int) -> None:
-        raise NotImplementedError()
-
-    def run(self, keywords: list[models.Keyword], city_dict: City, prepare_table: bool) -> None:
-        city = city_dict["name"]
-        dest = city_dict["dest"]
-        _, errors = self.parse_positions(keywords, dest, city)
-        self.parsing.not_parsed_items = errors
-
-        if prepare_table:
-            models.PreparedPosition.prepare([x for x in keywords if x.item not in errors], city)
+        keywords_to_prepare = (x for x in keywords
+                               if x.item not in errors and x.item.user == core_models.ParserUser.get_customer())
+        models.PreparedPosition.prepare(keywords_to_prepare)
