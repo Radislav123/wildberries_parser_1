@@ -381,7 +381,7 @@ class NotifierMixin(BotService):
                             if notification.new.item.user == core_models.ParserUser.get_customer():
                                 self.send_message(
                                     # todo: перенести в секреты
-                                    5250931949,
+                                    6528892715,
                                     text,
                                     self.ParseMode.MARKDOWN,
                                     disable_web_page_preview = True
