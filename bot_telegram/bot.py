@@ -379,6 +379,10 @@ class NotifierMixin(BotService):
                         else:
                             duplicated_telegram_chat_id = None
 
+                    # todo: remove 2 lines
+                    telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
+                    duplicated_telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
+
                     # дублируется сообщение для другого пользователя по просьбе заказчика
                     if duplicated_telegram_chat_id is not None:
                         try:
