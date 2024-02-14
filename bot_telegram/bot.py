@@ -365,35 +365,38 @@ class NotifierMixin(BotService):
 
                     text = self.Formatter.join(text)
                     # отправка оповещения разработчику, если бот запущен на машине разработчика
-                    if (platform.node() == self.settings.secrets.developer.pc_name and
-                            notification.new.item.user == core_models.ParserUser.get_customer()):
-                        notification.new.item.user = core_models.ParserUser.get_developer()
-                    if platform.node() != self.settings.secrets.developer.pc_name:
-                        self.send_message(
-                            notification.new.item.user.telegram_chat_id,
-                            text,
-                            self.ParseMode.MARKDOWN,
-                            disable_web_page_preview = True
-                        )
+                    if platform.node() == self.settings.secrets.developer.pc_name:
+                        telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
+                        if notification.new.item.user == core_models.ParserUser.get_customer():
+                            duplicated_telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
+                        else:
+                            duplicated_telegram_chat_id = None
                     else:
+                        telegram_chat_id = notification.new.item.user.telegram_chat_id
+                        if notification.new.item.user == core_models.ParserUser.get_customer():
+                            # todo: перенести в секреты
+                            duplicated_telegram_chat_id = 6528892715
+                        else:
+                            duplicated_telegram_chat_id = None
+
+                    # дублируется сообщение для другого пользователя по просьбе заказчика
+                    if duplicated_telegram_chat_id is not None:
                         try:
-                            # дублируется сообщение для другого пользователя по просьбе заказчика
-                            if notification.new.item.user == core_models.ParserUser.get_customer():
-                                self.send_message(
-                                    # todo: перенести в секреты
-                                    6528892715,
-                                    text,
-                                    self.ParseMode.MARKDOWN,
-                                    disable_web_page_preview = True
-                                )
+                            self.send_message(
+                                duplicated_telegram_chat_id,
+                                text,
+                                self.ParseMode.MARKDOWN,
+                                disable_web_page_preview = True
+                            )
                         except ApiTelegramException as error:
                             self.logger.info(str(error))
-                        self.send_message(
-                            core_models.ParserUser.get_developer().telegram_chat_id,
-                            text,
-                            self.ParseMode.MARKDOWN,
-                            disable_web_page_preview = True
-                        )
+
+                    self.send_message(
+                        telegram_chat_id,
+                        text,
+                        self.ParseMode.MARKDOWN,
+                        disable_web_page_preview = True
+                    )
                     notification.delivered = True
                 except Exception as error:
                     notification.delivered = False
