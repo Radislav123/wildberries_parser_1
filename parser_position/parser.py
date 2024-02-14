@@ -100,8 +100,10 @@ class Parser(parser_core.Parser):
             city = city_dict["name"]
             dest = city_dict["dest"]
             _, errors = self.parse_positions(keywords, dest, city)
-            self.parsing.not_parsed_items = errors
+            self.parsing.not_parsed_items.update(errors)
 
-        keywords_to_prepare = (x for x in keywords
-                               if x.item not in errors and x.item.user == core_models.ParserUser.get_customer())
+        keywords_to_prepare = tuple(
+            x for x in keywords if x.item not in self.parsing.not_parsed_items
+            and x.item.user == core_models.ParserUser.get_customer()
+        )
         models.PreparedPosition.prepare(keywords_to_prepare)

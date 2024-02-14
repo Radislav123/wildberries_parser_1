@@ -95,5 +95,7 @@ class Parser(parser_core.Parser):
         notifications = models.Price.get_notifications(prices)
         self.bot_telegram.notify(notifications)
 
-        items_to_prepare = (x for x in items if x not in errors and x.user == core_models.ParserUser.get_customer())
+        items_to_prepare = tuple(
+            x for x in items if x not in errors and x.user == core_models.ParserUser.get_customer()
+        )
         models.PreparedPrice.prepare(items_to_prepare)

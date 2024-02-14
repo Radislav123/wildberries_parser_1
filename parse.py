@@ -31,7 +31,7 @@ class Runner:
             raise UnknownParserOption(command)
 
         # опции командной строки, которые будут переданы в pytest
-        pytest_options = sys.argv[3:]
+        pytest_options = sys.argv[2:]
         self.before_pytest()
         self.pytest(pytest_options)
         self.after_pytest()
