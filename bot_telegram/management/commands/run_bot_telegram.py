@@ -3,7 +3,7 @@ from ...bot import Bot
 
 
 class Command(parser_price_command.ParserPriceCommand):
-    help = "Запускает бота для возможности авторизоваться администратора"
+    help = "Запускает бота"
 
     def handle(self, *args, **options):
         bot = Bot()

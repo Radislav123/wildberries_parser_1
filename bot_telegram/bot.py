@@ -5,6 +5,8 @@ from typing import Any, Callable
 import telebot
 from telebot import types
 from telebot.apihelper import ApiTelegramException
+from telebot.handler_backends import State
+from telebot.storage.base_storage import StateStorageBase
 
 import logger
 from core import models as core_models
@@ -15,6 +17,7 @@ from . import models as bot_telegram_models, settings
 
 
 Subscriptions = dict[int, tuple[str, str]]
+StateType = int | str | State
 
 UPDATE_SUBSCRIPTIONS = "/update_subscriptions"
 SUBSCRIPTION_TEXT = (f"Чтобы пользоваться ботом, подпишитесь на каналы,"
@@ -140,7 +143,7 @@ class BotService:
 
     settings = settings.Settings()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.logger = logger.Logger(self.settings.APP_NAME)
         self.wildberries = self.Wildberries(self)
@@ -386,7 +389,7 @@ class NotifierMixin(BotService):
                                 duplicated_telegram_chat_id,
                                 text,
                                 self.ParseMode.MARKDOWN,
-                                disable_web_page_preview = True
+                                link_preview_options = types.LinkPreviewOptions(True)
                             )
                         except ApiTelegramException as error:
                             self.logger.info(str(error))
@@ -395,7 +398,7 @@ class NotifierMixin(BotService):
                         telegram_chat_id,
                         text,
                         self.ParseMode.MARKDOWN,
-                        disable_web_page_preview = True
+                        link_preview_options = types.LinkPreviewOptions(True)
                     )
                     notification.delivered = True
                 except Exception as error:
@@ -410,8 +413,21 @@ class NotifierMixin(BotService):
     send_message = telebot.TeleBot.send_message
 
 
+class UserStateMixin:
+    current_state: StateStorageBase
+
+    def set_state(self, user: core_models.ParserUser, state: StateType) -> bool:
+        return self.current_state.set_state(user.telegram_chat_id, user.telegram_user_id, state)
+
+    def get_state(self, user: core_models.ParserUser) -> StateType:
+        return self.current_state.get_state(user.telegram_chat_id, user.telegram_user_id)
+
+    def delete_state(self, user: core_models.ParserUser) -> bool:
+        return self.current_state.delete_state(user.telegram_chat_id, user.telegram_user_id)
+
+
 # todo: перейти с поллинга на вебхук
-class Bot(NotifierMixin, telebot.TeleBot):
+class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     # общие команды
     common_commands = [
         types.BotCommand("parse_item", "Получить цену товара"),
@@ -449,6 +465,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
             token = self.settings.secrets.bot_telegram.token
 
         super().__init__(token)
+        self.enable_saving_states()
 
     def register_handlers(self) -> None:
         # общие команды
@@ -819,7 +836,7 @@ class Bot(NotifierMixin, telebot.TeleBot):
                 user.telegram_chat_id,
                 text_chunk,
                 self.ParseMode.MARKDOWN,
-                disable_web_page_preview = True
+                link_preview_options = types.LinkPreviewOptions(True)
             )
 
     def update_subscriptions(self, message: types.Message) -> None:
@@ -963,7 +980,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
         self.edit_message_reply_markup(
             message_to_send.user.telegram_chat_id,
-            callback.message.message_id
+            callback.message.message_id,
+            reply_markup = types.InlineKeyboardMarkup()
         )
         self.send_message(message_to_send.user.telegram_chat_id, "Сообщение разослано пользователям.")
 
@@ -976,7 +994,8 @@ class Bot(NotifierMixin, telebot.TeleBot):
 
         self.edit_message_reply_markup(
             message_to_send.user.telegram_chat_id,
-            callback.message.message_id
+            callback.message.message_id,
+            reply_markup = types.InlineKeyboardMarkup()
         )
         self.send_message(message_to_send.user.telegram_chat_id, "Сообщение не будет разослано пользователям.")
 

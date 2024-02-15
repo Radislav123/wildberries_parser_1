@@ -21,3 +21,6 @@ venv/
 
 # доступ к рабочей машине
 remote_desctop/
+
+# данные бота
+.state-save/
