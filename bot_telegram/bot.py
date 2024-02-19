@@ -5,19 +5,20 @@ from typing import Any, Callable
 import telebot
 from telebot import types
 from telebot.apihelper import ApiTelegramException
-from telebot.handler_backends import State
+from telebot.handler_backends import State, StatesGroup
 from telebot.storage.base_storage import StateStorageBase
 
 import logger
+from bot_telegram.actions import BaseAction, ParseItemAction
+from bot_telegram.callback_data import CallbackData
 from core import models as core_models
 from core.service import parsing, validators
 from parser_price import models as parser_price_models
 from parser_seller_api.parser import Parser as ParserSellerApi, RequestException
-from . import models as bot_telegram_models, settings
+from . import models, settings
 
 
 Subscriptions = dict[int, tuple[str, str]]
-StateType = int | str | State
 
 UPDATE_SUBSCRIPTIONS = "/update_subscriptions"
 SUBSCRIPTION_TEXT = (f"Чтобы пользоваться ботом, подпишитесь на каналы,"
@@ -27,13 +28,12 @@ SELLER_API_TEXT = (f"Чтобы использовать эту команду,"
                    f" введите токен продавца, используя команду {UPDATE_SELLER_API_TOKEN}.")
 
 
-class CallbackData:
-    DELIMITER = ":"
-    # xxx_yy
-    # xxx - идентификатор обратного вызова
-    # yy - идентификатор команды обратного вызова
-    SEND_TO_USERS_SEND = "000_00"
-    SEND_TO_USERS_CANCEL = "000_01"
+class UserState(State):
+    pass
+
+
+class UserStatesGroup(StatesGroup):
+    MENU = UserState()
 
 
 class BotTelegramException(Exception):
@@ -414,16 +414,19 @@ class NotifierMixin(BotService):
 
 
 class UserStateMixin:
-    current_state: StateStorageBase
+    current_states: StateStorageBase
 
-    def set_state(self, user: core_models.ParserUser, state: StateType) -> bool:
-        return self.current_state.set_state(user.telegram_chat_id, user.telegram_user_id, state)
+    def set_state(self, user: core_models.ParserUser, state: UserState) -> bool:
+        return self.current_states.set_state(user.telegram_chat_id, user.telegram_user_id, state)
 
-    def get_state(self, user: core_models.ParserUser) -> StateType:
-        return self.current_state.get_state(user.telegram_chat_id, user.telegram_user_id)
+    def get_state(self, user: core_models.ParserUser) -> UserState:
+        return self.current_states.get_state(user.telegram_chat_id, user.telegram_user_id)
+
+    def reset_state(self, user: core_models.ParserUser) -> bool:
+        return self.delete_state(user)
 
     def delete_state(self, user: core_models.ParserUser) -> bool:
-        return self.current_state.delete_state(user.telegram_chat_id, user.telegram_user_id)
+        return self.current_states.delete_state(user.telegram_chat_id, user.telegram_user_id)
 
 
 # todo: перейти с поллинга на вебхук
@@ -432,6 +435,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     common_commands = [
         types.BotCommand("parse_item", "Получить цену товара"),
         types.BotCommand("get_chat_id", "Получить chat.id"),
+        types.BotCommand("menu", "Открыть меню бота"),
     ]
     # команды для пользователей
     user_commands = [
@@ -459,6 +463,12 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     user_commands.extend(common_commands)
     customer_commands.extend(common_commands)
     developer_commands.extend(common_commands)
+
+    # действия
+    actions = (
+        ParseItemAction,
+    )
+    callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for x in actions}
 
     def __init__(self, token: str = None):
         if token is None:
@@ -492,6 +502,11 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
         # проверка отписки от каналов
         self.chat_member_handler()(self.notify_unsubscriber)
+
+        # действия из меню
+        self.callback_query_handler(
+            lambda callback: callback.data.startswith(CallbackData.ACTION)
+        )(self.action_resolver)
 
     def set_command_list_user(self) -> None:
         user_scope = types.BotCommandScopeAllPrivateChats()
@@ -723,6 +738,18 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             self.ParseMode.MARKDOWN
         )
 
+    def menu(self, message: types.Message) -> None:
+        reply_markup = types.InlineKeyboardMarkup(
+            (
+                (ParseItemAction.get_button(),),
+            )
+        )
+        self.send_message(
+            message.chat.id,
+            "Меню бота",
+            reply_markup = reply_markup
+        )
+
     def start(self, message: types.Message) -> None:
         try:
             user = core_models.ParserUser.objects.get(
@@ -925,7 +952,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         self.register_next_step_handler(message, self.send_to_users_step_message, user)
 
     def send_to_users_step_message(self, message: types.Message, user: core_models.ParserUser) -> None:
-        message_to_send = bot_telegram_models.SendToUsers(user = user, telegram_message_id = message.id)
+        message_to_send = models.SendToUsers(user = user, telegram_message_id = message.id)
         message_to_send.save()
 
         self.copy_message(
@@ -951,7 +978,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
     # todo: добавить сохранение ошибки при неуспешном отправлении
     def send_to_users_callback_send(self, callback: types.CallbackQuery) -> None:
-        message_to_send = bot_telegram_models.SendToUsers.objects.get(
+        message_to_send = models.SendToUsers.objects.get(
             id = callback.data.split(CallbackData.DELIMITER)[-1]
         )
 
@@ -986,7 +1013,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         self.send_message(message_to_send.user.telegram_chat_id, "Сообщение разослано пользователям.")
 
     def send_to_users_callback_cancel(self, callback: types.CallbackQuery) -> None:
-        message_to_send = bot_telegram_models.SendToUsers.objects.get(
+        message_to_send = models.SendToUsers.objects.get(
             id = callback.data.split(CallbackData.DELIMITER)[-1]
         )
         message_to_send.sent = False
@@ -1029,3 +1056,6 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         scope = types.BotCommandScopeChat(user.telegram_chat_id)
         self.delete_my_commands(scope)
         self.send_message(user.telegram_chat_id, "Ваш список команд сброшен.")
+
+    def action_resolver(self, callback: types.CallbackQuery) -> None:
+        self.callback_to_action[callback.data].execute(callback, self)

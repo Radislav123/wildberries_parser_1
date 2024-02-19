@@ -6,6 +6,7 @@ temp*
 *template*
 !templates/
 !templatetags/
+*.drawio.bkp
 
 # логи
 logs/
