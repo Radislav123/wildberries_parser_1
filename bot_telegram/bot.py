@@ -9,7 +9,7 @@ from telebot.handler_backends import State, StatesGroup
 from telebot.storage.base_storage import StateStorageBase
 
 import logger
-from bot_telegram.actions import AddItemAction, BaseAction, ParseItemAction
+from bot_telegram.actions import *
 from bot_telegram.callback_data import CallbackData
 from bot_telegram.filters import SUBSCRIPTION_TEXT, UPDATE_SELLER_API_TOKEN, customer_filter, developer_filter, \
     seller_api_token_filter, subscription_filter
@@ -434,8 +434,6 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     # команды для пользователей
     user_commands = [
         types.BotCommand("start", "Регистрация"),
-        types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
-        types.BotCommand("get_all_items", "Получить список всех отслеживаемых товаров"),
         types.BotCommand("update_subscriptions", "Обновить информацию по подпискам в боте."),
         types.BotCommand("update_seller_api_token", "Обновить токен продавца."),
         types.BotCommand("check_subscriptions", "Проверить необходимые подписки"),
@@ -459,8 +457,8 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
     # действия
     menu_actions = (
-        (ParseItemAction,),
-        (AddItemAction,),
+        (ParseItemAction, GetAllItemsAction),
+        (AddItemAction, RemoveItemAction),
     )
     callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for actions in menu_actions for x in actions}
 
@@ -628,47 +626,6 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             self.ParseMode.MARKDOWN,
             reply_markup = reply_markup
         )
-
-    @subscription_filter
-    def remove_item(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
-        self.send_message(
-            user.telegram_chat_id,
-            "Введите артикул товара."
-        )
-        self.register_next_step_handler(message, self.remove_item_step_vendor_code, user)
-
-    def remove_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
-        vendor_code = int(message.text)
-        items = parser_price_models.Item.objects.filter(user = user, vendor_code = vendor_code)
-        text = [f"{self.Formatter.link(item.vendor_code, item.link)} убран из отслеживаемых."
-                for item in items]
-        prices = parser_price_models.Price.objects.filter(item__vendor_code = vendor_code, item__user = user)
-        prices.delete()
-        items.delete()
-        self.send_message(
-            user.telegram_chat_id,
-            self.Formatter.join(text),
-            self.ParseMode.MARKDOWN
-        )
-
-    @subscription_filter
-    def get_all_items(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
-        items = parser_price_models.Item.objects.filter(user = user)
-        if len(items) == 0:
-            text = ["У Вас еще нет отслеживаемых товаров."]
-        else:
-            text = [f"{self.Formatter.link(item.name_site, item.link)}: {item.vendor_code}" for item in items]
-
-        text_chunks = telebot.util.smart_split(self.Formatter.join(text))
-        for text_chunk in text_chunks:
-            self.send_message(
-                user.telegram_chat_id,
-                text_chunk,
-                self.ParseMode.MARKDOWN,
-                link_preview_options = types.LinkPreviewOptions(True)
-            )
 
     def update_subscriptions(self, message: types.Message) -> None:
         user = self.get_parser_user(message.from_user)
