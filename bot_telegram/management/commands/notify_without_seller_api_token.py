@@ -11,7 +11,7 @@ class Command(telegram_bot_command.TelegramBotCommand):
 
     def handle(self, *args, **options):
         bot = Bot()
-        without_token = core_models.ParserUser.objects.filter(seller_api_token__isnull = True)
+        without_token = core_models.ParserUser.objects.filter(subscribed = True, seller_api_token__isnull = True)
 
         for user_batch in [without_token[x:x + self.settings.API_MESSAGES_PER_SECOND_LIMIT]
                            for x in range(0, len(without_token), self.settings.API_MESSAGES_PER_SECOND_LIMIT)]:
