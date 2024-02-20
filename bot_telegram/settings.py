@@ -1,3 +1,5 @@
+import platform
+
 from core import settings
 
 from .apps import BotTelegramConfig
@@ -25,4 +27,4 @@ class Settings(settings.Settings):
         self.MAX_USER_ITEMS = 10
 
         # максимальное количество сообщений от бота в секунду
-        self.API_MESSAGES_PER_SECOND_LIMIT = 10
+        self.API_MESSAGES_PER_SECOND_LIMIT = 10 if platform.node() != self.secrets.developer.pc_name else 30

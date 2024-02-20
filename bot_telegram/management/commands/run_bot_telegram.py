@@ -1,8 +1,8 @@
-from parser_price.management.commands import parser_price_command
+from bot_telegram.management.commands import telegram_bot_command
 from ...bot import Bot
 
 
-class Command(parser_price_command.ParserPriceCommand):
+class Command(telegram_bot_command.TelegramBotCommand):
     help = "Запускает бота"
 
     def handle(self, *args, **options):

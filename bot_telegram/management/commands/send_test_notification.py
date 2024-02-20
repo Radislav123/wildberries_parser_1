@@ -3,11 +3,11 @@ import random
 
 from core import models as core_models
 from parser_price import models as parser_price_models
-from parser_price.management.commands import parser_price_command
+from bot_telegram.management.commands import telegram_bot_command
 from ...bot import Bot
 
 
-class Command(parser_price_command.ParserPriceCommand):
+class Command(telegram_bot_command.TelegramBotCommand):
     help = "Отправляет тестовое оповещение"
 
     def add_arguments(self, parser: argparse.ArgumentParser):

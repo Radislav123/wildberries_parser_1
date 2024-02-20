@@ -1,8 +1,8 @@
+from bot_telegram.management.commands import telegram_bot_command
 from core import models as core_models
-from parser_price.management.commands import parser_price_command
 
 
-class Command(parser_price_command.ParserPriceCommand):
+class Command(telegram_bot_command.TelegramBotCommand):
     help = "Сбрасывает подписка пользователей"
 
     def handle(self, *args, **options) -> None:

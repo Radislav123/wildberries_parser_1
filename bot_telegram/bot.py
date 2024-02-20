@@ -1,6 +1,6 @@
 import platform
 import time
-from typing import Any, Callable
+from typing import Any
 
 import telebot
 from telebot import types
@@ -541,18 +541,21 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     def notify_unsubscriber(self, update: types.ChatMemberUpdated) -> None:
         if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES \
                 and (user := self.get_parser_user(update.from_user)) is not None:
-            text = [SUBSCRIPTION_TEXT]
-            not_subscribed = self.get_needed_subscriptions(user)
-            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
-            if platform.node() != self.settings.secrets.developer.pc_name:
-                self.send_message(
-                    user.telegram_chat_id,
-                    self.Formatter.join(text),
-                    self.ParseMode.MARKDOWN,
-                    reply_markup = reply_markup
-                )
+            self.notify_not_subscribed(user)
 
-            user.update_subscriptions_info(not_subscribed)
+    def notify_not_subscribed(self, user: core_models.ParserUser) -> None:
+        text = [SUBSCRIPTION_TEXT]
+        not_subscribed = self.get_needed_subscriptions(user)
+        reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
+        if platform.node() != self.settings.secrets.developer.pc_name or user == core_models.ParserUser.get_developer():
+            self.send_message(
+                user.telegram_chat_id,
+                self.Formatter.join(text),
+                self.ParseMode.MARKDOWN,
+                reply_markup = reply_markup
+            )
+
+        user.update_subscriptions_info(not_subscribed)
 
     # todo: перенести в filters
     # чтобы бот мог корректно проверять подписки, он должен быть администратором канала

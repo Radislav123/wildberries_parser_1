@@ -105,8 +105,10 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
         return f"user_{self.id}"
 
     def update_subscriptions_info(self, not_subscribed: "Subscriptions") -> None:
-        self.subscribed = len(not_subscribed) == 0
-        self.save()
+        subscribed = len(not_subscribed) == 0
+        if self.subscribed != subscribed:
+            self.subscribed = subscribed
+            self.save()
 
     def save(self, *args, **kwargs) -> None:
         super().save(*args, **kwargs)
