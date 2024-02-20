@@ -1,6 +1,6 @@
 import platform
 import time
-from typing import Any, Callable
+from typing import Any
 
 import telebot
 from telebot import types
@@ -9,23 +9,18 @@ from telebot.handler_backends import State, StatesGroup
 from telebot.storage.base_storage import StateStorageBase
 
 import logger
-from bot_telegram.actions import BaseAction, ParseItemAction
+from bot_telegram.actions import AddItemAction, BaseAction, ParseItemAction
 from bot_telegram.callback_data import CallbackData
+from bot_telegram.filters import SUBSCRIPTION_TEXT, UPDATE_SELLER_API_TOKEN, customer_filter, developer_filter, \
+    seller_api_token_filter, subscription_filter
 from core import models as core_models
-from core.service import parsing, validators
+from core.service import validators
 from parser_price import models as parser_price_models
 from parser_seller_api.parser import Parser as ParserSellerApi, RequestException
 from . import models, settings
 
 
 Subscriptions = dict[int, tuple[str, str]]
-
-UPDATE_SUBSCRIPTIONS = "/update_subscriptions"
-SUBSCRIPTION_TEXT = (f"Чтобы пользоваться ботом, подпишитесь на каналы,"
-                     f" а потом используйте команду {UPDATE_SUBSCRIPTIONS} для обновления информации в боте.")
-UPDATE_SELLER_API_TOKEN = "/update_seller_api_token"
-SELLER_API_TEXT = (f"Чтобы использовать эту команду,"
-                   f" введите токен продавца, используя команду {UPDATE_SELLER_API_TOKEN}.")
 
 
 class UserState(State):
@@ -433,14 +428,12 @@ class UserStateMixin:
 class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     # общие команды
     common_commands = [
-        types.BotCommand("parse_item", "Получить цену товара"),
         types.BotCommand("get_chat_id", "Получить chat.id"),
         types.BotCommand("menu", "Открыть меню бота"),
     ]
     # команды для пользователей
     user_commands = [
         types.BotCommand("start", "Регистрация"),
-        types.BotCommand("add_item", "Добавить товар в отслеживаемые"),
         types.BotCommand("remove_item", "Убрать товар из отслеживаемых"),
         types.BotCommand("get_all_items", "Получить список всех отслеживаемых товаров"),
         types.BotCommand("update_subscriptions", "Обновить информацию по подпискам в боте."),
@@ -465,10 +458,11 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     developer_commands.extend(common_commands)
 
     # действия
-    actions = (
-        ParseItemAction,
+    menu_actions = (
+        (ParseItemAction,),
+        (AddItemAction,),
     )
-    callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for x in actions}
+    callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for actions in menu_actions for x in actions}
 
     def __init__(self, token: str = None):
         if token is None:
@@ -561,6 +555,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
             user.update_subscriptions_info(not_subscribed)
 
+    # todo: перенести в filters
     # чтобы бот мог корректно проверять подписки, он должен быть администратором канала
     # https://core.telegram.org/bots/api#getchatmember
     def get_needed_subscriptions(self, user: core_models.ParserUser) -> Subscriptions:
@@ -585,152 +580,6 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             buttons.append(types.InlineKeyboardButton(data[1], url = data[0]))
         return buttons
 
-    @staticmethod
-    def customer_filter(function: Callable) -> Callable:
-        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
-            user = self.get_parser_user(message.from_user)
-
-            if user != core_models.ParserUser.get_customer() and user != core_models.ParserUser.get_developer():
-                self.send_message(
-                    user.telegram_chat_id,
-                    self.Formatter.join(["Только заказчик может пользоваться данной командой."]),
-                    self.ParseMode.MARKDOWN
-                )
-            else:
-                return function(self, message, *args, **kwargs)
-
-        return wrapper
-
-    @staticmethod
-    def developer_filter(function: Callable) -> Callable:
-        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
-            user = self.get_parser_user(message.from_user)
-
-            if user != core_models.ParserUser.get_developer():
-                self.send_message(
-                    user.telegram_chat_id,
-                    self.Formatter.join(["Только разработчик может пользоваться данной командой."]),
-                    self.ParseMode.MARKDOWN
-                )
-            else:
-                return function(self, message, *args, **kwargs)
-
-        return wrapper
-
-    @staticmethod
-    def subscription_filter(function: Callable) -> Callable:
-        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
-            user = self.get_parser_user(message.from_user)
-
-            if not validators.validate_subscriptions(user):
-                not_subscribed = self.get_needed_subscriptions(user)
-                reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
-                self.send_message(
-                    user.telegram_chat_id,
-                    self.Formatter.join([SUBSCRIPTION_TEXT]),
-                    self.ParseMode.MARKDOWN,
-                    reply_markup = reply_markup
-                )
-            else:
-                return function(self, message, *args, **kwargs)
-
-        return wrapper
-
-    @staticmethod
-    def seller_api_token_filter(function: Callable) -> Callable:
-        def wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
-            user = self.get_parser_user(message.from_user)
-
-            if not validators.validate_seller_api_token(user):
-                self.send_message(
-                    user.telegram_chat_id,
-                    self.Formatter.join([SELLER_API_TEXT]),
-                    self.ParseMode.MARKDOWN
-                )
-            else:
-                return function(self, message, *args, **kwargs)
-
-        return wrapper
-
-    @subscription_filter
-    def parse_item(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
-        self.register_next_step_handler(message, self.parse_item_step_vendor_code, user)
-        self.send_message(
-            user.telegram_chat_id,
-            "Введите артикул товара."
-        )
-
-    def parse_item_step_vendor_code(self, message: types.Message, user: core_models.ParserUser) -> None:
-        try:
-            vendor_code = int(message.text)
-            prices, errors = parsing.parse_prices([vendor_code], self.wildberries.dest)
-            price = prices[vendor_code]
-            if vendor_code in errors:
-                raise errors[vendor_code]
-
-            block = self.construct_header(
-                price["category"].name,
-                vendor_code,
-                price["name_site"],
-                None,
-                parser_price_models.Item(vendor_code = vendor_code).link
-            )
-            block.append("")
-
-            if price["sold_out"]:
-                block.extend(self.construct_sold_out_block())
-            elif validators.validate_seller_api_token(user):
-                if price["price"] is not None:
-                    block.append(
-                        f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
-                        f" {price['price']}"
-                    )
-
-                if price["personal_sale"] is not None:
-                    block.extend(
-                        [
-                            "",
-                            (f"{self.Token.NO_CHANGES} "
-                             f"{parser_price_models.Price.get_field_verbose_name('personal_sale')}: "
-                             f"{price['personal_sale']}")
-                        ]
-                    )
-                else:
-                    block.extend(["", *self.construct_no_personal_sale_block(), ])
-
-                block.extend(
-                    [
-                        "",
-                        (f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
-                         f" {price['final_price']}"),
-                        "", *self.construct_final_block(),
-                    ]
-                )
-            else:
-                block.extend(
-                    [
-                        *self.construct_no_seller_api_token_block(),
-                        "",
-                        (f"{self.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('final_price')}:"
-                         f" {price['final_price']}"),
-                        "", *self.construct_final_block(),
-                    ]
-                )
-
-            self.send_message(
-                user.telegram_chat_id,
-                self.Formatter.join(block),
-                self.ParseMode.MARKDOWN
-            )
-        except Exception as error:
-            self.send_message(
-                user.telegram_chat_id,
-                self.Formatter.join(["Произошла ошибка. Попробуйте еще раз чуть позже."]),
-                self.ParseMode.MARKDOWN
-            )
-            raise error
-
     def get_chat_id(self, message: types.Message) -> None:
         self.send_message(
             message.chat.id,
@@ -739,11 +588,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         )
 
     def menu(self, message: types.Message) -> None:
-        reply_markup = types.InlineKeyboardMarkup(
-            (
-                (ParseItemAction.get_button(),),
-            )
-        )
+        reply_markup = types.InlineKeyboardMarkup(((x.get_button() for x in actions) for actions in self.menu_actions))
         self.send_message(
             message.chat.id,
             "Меню бота",
@@ -782,47 +627,6 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             self.Formatter.join(text),
             self.ParseMode.MARKDOWN,
             reply_markup = reply_markup
-        )
-
-    @subscription_filter
-    def add_item(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
-
-        current_items = parser_price_models.Item.objects.filter(user = user)
-        if len(current_items) > self.settings.MAX_USER_ITEMS:
-            self.send_message(
-                user.telegram_chat_id,
-                self.Formatter.join(
-                    [
-                        f"У Вас уже отслеживается товаров: {len(current_items)}.",
-                        "Удалите лишние товары, чтобы добавить новый."
-                    ]
-                ),
-                self.ParseMode.MARKDOWN
-            )
-        else:
-            new_item = parser_price_models.Item(user = user, name_site = "Название появится после ближайшего парсинга")
-            self.register_next_step_handler(message, self.add_item_step_vendor_code, user, new_item)
-            self.send_message(
-                user.telegram_chat_id,
-                "Введите артикул товара."
-            )
-
-    def add_item_step_vendor_code(
-            self,
-            message: types.Message,
-            user: core_models.ParserUser,
-            item: parser_price_models.Item
-    ) -> None:
-        item.vendor_code = int(message.text)
-        item.save()
-        text = [
-            f"{self.Formatter.link(item.vendor_code, item.link)} добавлен для отслеживания."
-        ]
-        self.send_message(
-            user.telegram_chat_id,
-            self.Formatter.join(text),
-            self.ParseMode.MARKDOWN
         )
 
     @subscription_filter
@@ -1058,4 +862,6 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         self.send_message(user.telegram_chat_id, "Ваш список команд сброшен.")
 
     def action_resolver(self, callback: types.CallbackQuery) -> None:
-        self.callback_to_action[callback.data].execute(callback, self)
+        user = self.get_parser_user(callback.from_user)
+        self.delete_message(user.telegram_chat_id, callback.message.message_id)
+        self.callback_to_action[callback.data].execute(self, user, callback)

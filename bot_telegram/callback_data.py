@@ -14,3 +14,10 @@ class CallbackData:
     # a - action - действие
     # xx - идентификатор действия
     PARSE_ITEM = f"{ACTION}_00"
+    ADD_ITEM = f"{ACTION}_01"
+    REMOVE_ITEM = f"{ACTION}_02"
+    GET_ALL_ITEMS = f"{ACTION}_03"
+    UPDATE_SUBSCRIPTIONS = f"{ACTION}_04"
+    CHECK_SUBSCRIPTIONS = f"{ACTION}_05"
+    UPDATE_SELLER_API_TOKEN = f"{ACTION}_06"
+    CHECK_SELLER_API_TOKEN = f"{ACTION}_07"

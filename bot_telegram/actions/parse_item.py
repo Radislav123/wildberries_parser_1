@@ -14,12 +14,13 @@ if TYPE_CHECKING:
 
 
 class ParseItemAction(base.BaseAction):
-    button_text = "parse_item"
+    command = "parse_item"
+    description = "Получить цену товара"
+    button_text = command
     callback_id = CallbackData.PARSE_ITEM
 
     @classmethod
-    def execute(cls, callback: types.CallbackQuery, bot: "Bot") -> None:
-        user = bot.get_parser_user(callback.from_user)
+    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
         bot.register_next_step_handler(callback.message, cls.step_vendor_code, bot, user)
         bot.send_message(user.telegram_chat_id, "Введите артикул товара.")
 
