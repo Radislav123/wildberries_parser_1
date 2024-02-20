@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2024-02-20T11:48:48.617Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.0.2 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="VIweU3M9Ft8R_aAKoEb9" version="23.0.2" type="device">
+<mxfile host="Electron" modified="2024-02-20T14:48:16.195Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.0.2 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="Xu2ld7N-yKuTw1rxbCLO" version="23.0.2" type="device">
   <diagram name="Страница — 1" id="DFWGktqJgHIYRi53ePkB">
     <mxGraphModel dx="1034" dy="844" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
@@ -50,10 +50,10 @@
           <mxGeometry x="1240" y="600" width="80" height="80" as="geometry" />
         </mxCell>
         <mxCell id="-GmY6Ik8zZqOJJ65Zvdc-23" value="UPDATE_SUBSCRIPTIONS" style="rounded=1;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
-          <mxGeometry x="1400" y="800" width="160" height="80" as="geometry" />
+          <mxGeometry x="1720" y="800" width="160" height="80" as="geometry" />
         </mxCell>
         <mxCell id="-GmY6Ik8zZqOJJ65Zvdc-25" value="UPDATE_SELLER_API_TOKEN" style="rounded=1;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
-          <mxGeometry x="1360" y="920" width="200" height="80" as="geometry" />
+          <mxGeometry x="1720" y="920" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="-GmY6Ik8zZqOJJ65Zvdc-35" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;endArrow=classic;html=1;curved=0;rounded=0;endSize=8;startSize=8;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="7-lvfncZTAuzGyOIpEJx-28" target="7-lvfncZTAuzGyOIpEJx-31" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
@@ -62,10 +62,10 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="-GmY6Ik8zZqOJJ65Zvdc-44" value="CHECK_SUBSCRIPTIONS" style="rounded=1;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
-          <mxGeometry x="1720" y="800" width="160" height="80" as="geometry" />
+          <mxGeometry x="1400" y="800" width="160" height="80" as="geometry" />
         </mxCell>
         <mxCell id="-GmY6Ik8zZqOJJ65Zvdc-45" value="CHECK_SELLER_API_TOKEN" style="rounded=1;whiteSpace=wrap;html=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
-          <mxGeometry x="1720" y="920" width="200" height="80" as="geometry" />
+          <mxGeometry x="1360" y="920" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="-GmY6Ik8zZqOJJ65Zvdc-48" value="update_subscriptions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
           <mxGeometry x="1520" y="680" width="120" height="40" as="geometry" />

@@ -22,7 +22,7 @@ class UpdateSellerApiTokenAction(base.BaseAction):
     @classmethod
     @subscription_filter
     def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
-        bot.register_next_step_handler(callback.message, cls.step_update_token, user)
+        bot.register_next_step_handler(callback.message, cls.step_update_token, bot, user)
         bot.send_message(
             user.telegram_chat_id,
             bot.Formatter.join(

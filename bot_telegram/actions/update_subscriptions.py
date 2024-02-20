@@ -4,7 +4,7 @@ from telebot import types
 
 from bot_telegram.actions import base
 from bot_telegram.callback_data import CallbackData
-from bot_telegram.filters import SUBSCRIPTION_TEXT
+from bot_telegram.filters import seller_api_token_filter
 from core import models as core_models
 from core.service import validators
 
@@ -25,10 +25,10 @@ class UpdateSubscriptionsAction(base.BaseAction):
         user.update_subscriptions_info(not_subscribed)
 
         if not validators.validate_subscriptions(user):
-            reply_markup = types.InlineKeyboardMarkup([bot.construct_subscription_buttons(not_subscribed)])
+            reply_markup = types.InlineKeyboardMarkup([bot.get_subscription_buttons(not_subscribed)])
             bot.send_message(
                 user.telegram_chat_id,
-                bot.Formatter.join([SUBSCRIPTION_TEXT]),
+                bot.Formatter.join([bot.SUBSCRIPTION_TEXT]),
                 bot.ParseMode.MARKDOWN,
                 reply_markup = reply_markup
             )
@@ -38,3 +38,4 @@ class UpdateSubscriptionsAction(base.BaseAction):
                 bot.Formatter.join(["Вы подписаны на все необходимые каналы. Информация в боте обновлена."]),
                 bot.ParseMode.MARKDOWN
             )
+            seller_api_token_filter(lambda *args: None)(cls, bot, user, callback)

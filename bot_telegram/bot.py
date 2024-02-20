@@ -11,7 +11,7 @@ from telebot.storage.base_storage import StateStorageBase
 import logger
 from bot_telegram.actions import *
 from bot_telegram.callback_data import CallbackData
-from bot_telegram.filters import SUBSCRIPTION_TEXT, UPDATE_SELLER_API_TOKEN, customer_filter, developer_filter
+from bot_telegram.filters import customer_filter, developer_filter, subscription_filter
 from core import models as core_models
 from core.service import validators
 from parser_price import models as parser_price_models
@@ -143,6 +143,12 @@ class BotService:
 
 
 class NotifierMixin(BotService):
+    SUBSCRIPTION_TEXT = (f"Чтобы пользоваться ботом, подпишитесь на каналы,"
+                         f" а потом используйте опцию меню {UpdateSubscriptionsAction.button_text}"
+                         f" для обновления информации в боте.")
+    SELLER_API_TEXT = (f"Чтобы пользоваться расширенным функционалом,"
+                       f" введите токен продавца, используя опцию меню {UpdateSellerApiTokenAction.button_text}.")
+
     @staticmethod
     def check_ownership(price: parser_price_models.Price) -> bool:
         ownership = False
@@ -313,7 +319,7 @@ class NotifierMixin(BotService):
     def construct_no_seller_api_token_block() -> list[str]:
         return [
             "Токен продавца отсутствует.",
-            f"Чтобы видеть СПП необходимо ввести токен продавца ({UPDATE_SELLER_API_TOKEN})."
+            f"Чтобы видеть СПП необходимо ввести токен продавца ({UpdateSellerApiTokenAction.button_text})."
         ]
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
@@ -458,8 +464,8 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     menu_actions = (
         (ParseItemAction, GetAllItemsAction),
         (AddItemAction, RemoveItemAction),
-        (UpdateSubscriptionsAction, CheckSubscriptionsAction),
-        (UpdateSellerApiTokenAction, CheckSellerApiTokenAction),
+        (CheckSubscriptionsAction, UpdateSubscriptionsAction),
+        (CheckSellerApiTokenAction, UpdateSellerApiTokenAction),
     )
     callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for actions in menu_actions for x in actions}
 
@@ -469,6 +475,11 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
         super().__init__(token)
         self.enable_saving_states()
+
+    # добавлена, чтобы избежать цикличного импорта
+    @staticmethod
+    def get_update_seller_api_token_button() -> types.InlineKeyboardButton:
+        return UpdateSellerApiTokenAction.get_button()
 
     def register_handlers(self) -> None:
         # общие команды
@@ -493,8 +504,8 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         for bot_command in self.developer_commands:
             self.message_handler(commands = [bot_command.command])(getattr(self, bot_command.command))
 
-        # проверка отписки от каналов
-        self.chat_member_handler()(self.notify_unsubscriber)
+        # проверка изменения статуса пользователя в канале
+        self.chat_member_handler()(self.check_user_status_change)
 
         # действия из меню
         self.callback_query_handler(
@@ -538,24 +549,21 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             user = None
         return user
 
-    def notify_unsubscriber(self, update: types.ChatMemberUpdated) -> None:
-        if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES \
-                and (user := self.get_parser_user(update.from_user)) is not None:
-            self.notify_not_subscribed(user)
+    def check_pc(self, user: core_models.ParserUser) -> bool:
+        on_developer_pc = (platform.node() == self.settings.secrets.developer.pc_name and
+                           user == core_models.ParserUser.get_developer())
+        not_on_developer_pc = (platform.node() != self.settings.secrets.developer.pc_name and
+                               user != user == core_models.ParserUser.get_customer() and
+                               user != user == core_models.ParserUser.get_developer())
+        return on_developer_pc or not_on_developer_pc
 
-    def notify_not_subscribed(self, user: core_models.ParserUser) -> None:
-        text = [SUBSCRIPTION_TEXT]
-        not_subscribed = self.get_needed_subscriptions(user)
-        reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
-        if platform.node() != self.settings.secrets.developer.pc_name or user == core_models.ParserUser.get_developer():
-            self.send_message(
-                user.telegram_chat_id,
-                self.Formatter.join(text),
-                self.ParseMode.MARKDOWN,
-                reply_markup = reply_markup
-            )
+    def check_user_status_change(self, update: types.ChatMemberUpdated) -> None:
+        user = self.get_parser_user(update.from_user)
+        if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES and user is not None:
+            subscription_filter(lambda *args: None)(None, self, user, None)
 
-        user.update_subscriptions_info(not_subscribed)
+            not_subscribed = self.get_needed_subscriptions(user)
+            user.update_subscriptions_info(not_subscribed)
 
     # todo: перенести в filters
     # чтобы бот мог корректно проверять подписки, он должен быть администратором канала
@@ -576,7 +584,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         return not_subscribed
 
     @staticmethod
-    def construct_subscription_buttons(not_subscribed: Subscriptions) -> list[types.InlineKeyboardButton]:
+    def get_subscription_buttons(not_subscribed: Subscriptions) -> list[types.InlineKeyboardButton]:
         buttons = []
         for _, data in not_subscribed.items():
             buttons.append(types.InlineKeyboardButton(data[1], url = data[0]))
@@ -598,16 +606,16 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             )
             user.save()
             text = [
-                SUBSCRIPTION_TEXT,
+                self.SUBSCRIPTION_TEXT,
                 "",
                 "После того, как подпишитесь, сможете отслеживать изменения цен.",
                 "",
                 f"На данный момент вы можете отслеживать товары в количестве {self.settings.MAX_USER_ITEMS}.",
                 "",
-                f"После ввода токена продавца ({UPDATE_SELLER_API_TOKEN}) сможете отслеживать изменения СПП."
+                f"После ввода токена продавца ({UpdateSellerApiTokenAction.button_text}) сможете отслеживать изменения СПП."
             ]
             not_subscribed = self.get_needed_subscriptions(user)
-            reply_markup = types.InlineKeyboardMarkup([self.construct_subscription_buttons(not_subscribed)])
+            reply_markup = types.InlineKeyboardMarkup([self.get_subscription_buttons(not_subscribed)])
 
         self.send_message(
             user.telegram_chat_id,
