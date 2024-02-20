@@ -1,6 +1,6 @@
 import platform
 import time
-from typing import Any
+from typing import Any, Callable
 
 import telebot
 from telebot import types
@@ -182,10 +182,15 @@ class NotifierMixin(BotService):
         return block
 
     def construct_start_block(self, notification: parser_price_models.Notification) -> list[str]:
+        bot_username = self.get_me().username
+        bot_link = f"https://t.me/{bot_username}"
+        block = [
+            f"Данное сообщение сгенерировано {self.Formatter.link('ботом', bot_link)} (@{bot_username}).",
+            "",
+        ]
+
         if self.check_ownership(notification.new):
-            block = [self.Token.OWNERSHIP]
-        else:
-            block = []
+            block.append(self.Token.OWNERSHIP)
 
         if notification.new.item.category is not None:
             category_name = notification.new.item.category.name
@@ -404,6 +409,7 @@ class NotifierMixin(BotService):
             time.sleep(1)
 
     send_message = telebot.TeleBot.send_message
+    get_me = telebot.TeleBot.get_me
 
 
 class UserStateMixin:
