@@ -16,12 +16,11 @@ if TYPE_CHECKING:
 class UpdateSellerApiTokenAction(base.BaseAction):
     command = "update_seller_api_token"
     description = "Обновить токен продавца"
-    button_text = command
     callback_id = CallbackData.UPDATE_SELLER_API_TOKEN
 
     @classmethod
     @subscription_filter
-    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
+    def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.register_next_step_handler(callback.message, cls.step_update_token, bot, user)
         bot.send_message(
             user.telegram_chat_id,
@@ -38,6 +37,7 @@ class UpdateSellerApiTokenAction(base.BaseAction):
         )
 
     @classmethod
+    @base.BaseAction.open_menu_after_action
     def step_update_token(cls, message: types.Message, bot: "Bot", user: core_models.ParserUser) -> None:
         new_token = message.text
         user.seller_api_token = new_token

@@ -16,15 +16,15 @@ if TYPE_CHECKING:
 class ParseItemAction(base.BaseAction):
     command = "parse_item"
     description = "Получить цену товара"
-    button_text = command
     callback_id = CallbackData.PARSE_ITEM
 
     @classmethod
-    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
+    def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.register_next_step_handler(callback.message, cls.step_vendor_code, bot, user)
         bot.send_message(user.telegram_chat_id, "Введите артикул товара.")
 
     @classmethod
+    @base.BaseAction.open_menu_after_action
     def step_vendor_code(cls, message: types.Message, bot: "Bot", user: core_models.ParserUser) -> None:
         try:
             vendor_code = int(message.text)

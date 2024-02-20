@@ -15,12 +15,12 @@ if TYPE_CHECKING:
 class CheckSubscriptionsAction(base.BaseAction):
     command = "check_subscriptions"
     description = "Проверить необходимые подписки"
-    button_text = command
     callback_id = CallbackData.CHECK_SUBSCRIPTIONS
 
     @classmethod
+    @base.BaseAction.open_menu_after_action
     @subscription_filter
-    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
+    def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.send_message(
             user.telegram_chat_id,
             bot.Formatter.join(["Вы подписаны на все необходимые каналы."]),

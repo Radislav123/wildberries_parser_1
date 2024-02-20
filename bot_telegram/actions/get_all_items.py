@@ -17,12 +17,12 @@ if TYPE_CHECKING:
 class GetAllItemsAction(base.BaseAction):
     command = "get_all_items"
     description = "Получить список всех отслеживаемых товаров"
-    button_text = command
     callback_id = CallbackData.GET_ALL_ITEMS
 
     @classmethod
+    @base.BaseAction.open_menu_after_action
     @subscription_filter
-    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
+    def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         items = parser_price_models.Item.objects.filter(user = user)
         if len(items) == 0:
             text = ["У Вас еще нет отслеживаемых товаров."]

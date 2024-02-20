@@ -16,12 +16,11 @@ if TYPE_CHECKING:
 class AddItemAction(base.BaseAction):
     command = "add_item"
     description = "Добавить товар в отслеживаемые"
-    button_text = command
     callback_id = CallbackData.ADD_ITEM
 
     @classmethod
     @subscription_filter
-    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
+    def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         current_items = parser_price_models.Item.objects.filter(user = user)
         if len(current_items) > cls.settings.MAX_USER_ITEMS:
             bot.send_message(
@@ -43,6 +42,7 @@ class AddItemAction(base.BaseAction):
             )
 
     @classmethod
+    @base.BaseAction.open_menu_after_action
     def step_vendor_code(
             cls,
             message: types.Message,

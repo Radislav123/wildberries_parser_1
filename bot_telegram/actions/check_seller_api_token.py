@@ -15,12 +15,12 @@ if TYPE_CHECKING:
 class CheckSellerApiTokenAction(base.BaseAction):
     command = "check_seller_api_token"
     description = "Проверить действительность токена API продавца"
-    button_text = command
     callback_id = CallbackData.CHECK_SELLER_API_TOKEN
 
     @classmethod
+    @base.BaseAction.open_menu_after_action
     @seller_api_token_filter
-    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
+    def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.send_message(
             user.telegram_chat_id,
             bot.Formatter.join(["Ваш токен действителен."]),

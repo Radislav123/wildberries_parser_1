@@ -16,11 +16,11 @@ if TYPE_CHECKING:
 class UpdateSubscriptionsAction(base.BaseAction):
     command = "update_subscriptions"
     description = "Обновить информацию по подпискам в боте"
-    button_text = command
     callback_id = CallbackData.UPDATE_SUBSCRIPTIONS
 
     @classmethod
-    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
+    @base.BaseAction.open_menu_after_action
+    def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         not_subscribed = bot.get_needed_subscriptions(user)
         user.update_subscriptions_info(not_subscribed)
 

@@ -16,12 +16,11 @@ if TYPE_CHECKING:
 class RemoveItemAction(base.BaseAction):
     command = "remove_item"
     description = "Убрать товар из отслеживаемых"
-    button_text = command
     callback_id = CallbackData.REMOVE_ITEM
 
     @classmethod
     @subscription_filter
-    def execute(cls, bot: "Bot", user: core_models.ParserUser, callback: types.CallbackQuery) -> None:
+    def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.send_message(
             user.telegram_chat_id,
             "Введите артикул товара."
@@ -29,6 +28,7 @@ class RemoveItemAction(base.BaseAction):
         bot.register_next_step_handler(callback.message, cls.step_vendor_code, bot, user)
 
     @classmethod
+    @base.BaseAction.open_menu_after_action
     def step_vendor_code(cls, message: types.Message, bot: "Bot", user: core_models.ParserUser) -> None:
         vendor_code = int(message.text)
         items = parser_price_models.Item.objects.filter(user = user, vendor_code = vendor_code)

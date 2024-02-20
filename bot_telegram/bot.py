@@ -462,12 +462,17 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
     # действия
     menu_actions = (
-        (ParseItemAction, GetAllItemsAction),
-        (AddItemAction, RemoveItemAction),
-        (CheckSubscriptionsAction, UpdateSubscriptionsAction),
-        (CheckSellerApiTokenAction, UpdateSellerApiTokenAction),
+        (ParseItemAction,),
+        (GetAllItemsAction,),
+        (AddItemAction,),
+        (RemoveItemAction,),
+        (CheckSubscriptionsAction,),
+        (UpdateSubscriptionsAction,),
+        (CheckSellerApiTokenAction,),
+        (UpdateSellerApiTokenAction,),
     )
     callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for actions in menu_actions for x in actions}
+    menu_keyboard = types.InlineKeyboardMarkup([[x.get_button() for x in actions] for actions in menu_actions])
 
     def __init__(self, token: str = None):
         if token is None:
@@ -624,13 +629,13 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             reply_markup = reply_markup
         )
 
-    def menu(self, message: types.Message) -> None:
-        reply_markup = types.InlineKeyboardMarkup(((x.get_button() for x in actions) for actions in self.menu_actions))
-        self.delete_message(message.chat.id, message.id)
+    def menu(self, message: types.Message, delete_message = True) -> None:
+        if delete_message:
+            self.delete_message(message.chat.id, message.id)
         self.send_message(
             message.chat.id,
             "Меню бота",
-            reply_markup = reply_markup
+            reply_markup = self.menu_keyboard
         )
 
     def get_chat_id(self, message: types.Message) -> None:
@@ -758,4 +763,4 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     def action_resolver(self, callback: types.CallbackQuery) -> None:
         user = self.get_parser_user(callback.from_user)
         self.delete_message(user.telegram_chat_id, callback.message.message_id)
-        self.callback_to_action[callback.data].execute(self, user, callback)
+        self.callback_to_action[callback.data].execute(callback, self, user)

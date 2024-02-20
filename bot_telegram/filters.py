@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 def customer_filter(function: Callable) -> Callable:
     def wrapper(
             cls: type[BaseAction],
+            callback: types.CallbackQuery,
             bot: "Bot",
             user: core_models.ParserUser,
-            callback: types.CallbackQuery,
             *args,
             **kwargs
     ) -> Any:
@@ -27,7 +27,7 @@ def customer_filter(function: Callable) -> Callable:
                 bot.ParseMode.MARKDOWN
             )
         else:
-            return function(cls, bot, user, callback, *args, **kwargs)
+            return function(cls, callback, bot, user, *args, **kwargs)
 
     return wrapper
 
@@ -35,9 +35,9 @@ def customer_filter(function: Callable) -> Callable:
 def developer_filter(function: Callable) -> Callable:
     def wrapper(
             cls: type[BaseAction],
+            callback: types.CallbackQuery,
             bot: "Bot",
             user: core_models.ParserUser,
-            callback: types.CallbackQuery,
             *args,
             **kwargs
     ) -> Any:
@@ -48,7 +48,7 @@ def developer_filter(function: Callable) -> Callable:
                 bot.ParseMode.MARKDOWN
             )
         else:
-            return function(cls, bot, user, callback, *args, **kwargs)
+            return function(cls, callback, bot, user, *args, **kwargs)
 
     return wrapper
 
@@ -56,9 +56,9 @@ def developer_filter(function: Callable) -> Callable:
 def subscription_filter(function: Callable) -> Callable:
     def wrapper(
             cls: type[BaseAction],
+            callback: types.CallbackQuery,
             bot: "Bot",
             user: core_models.ParserUser,
-            callback: types.CallbackQuery,
             *args,
             **kwargs
     ) -> Any:
@@ -72,7 +72,7 @@ def subscription_filter(function: Callable) -> Callable:
                 reply_markup = reply_markup
             )
         else:
-            return function(cls, bot, user, callback, *args, **kwargs)
+            return function(cls, callback, bot, user, *args, **kwargs)
 
     return wrapper
 
@@ -80,9 +80,9 @@ def subscription_filter(function: Callable) -> Callable:
 def seller_api_token_filter(function: Callable) -> Callable:
     def wrapper(
             cls: type[BaseAction],
+            callback: types.CallbackQuery,
             bot: "Bot",
             user: core_models.ParserUser,
-            callback: types.CallbackQuery,
             *args,
             **kwargs
     ) -> Any:
@@ -96,6 +96,6 @@ def seller_api_token_filter(function: Callable) -> Callable:
                 reply_markup = reply_markup
             )
         else:
-            return function(cls, bot, user, callback, *args, **kwargs)
+            return function(cls, callback, bot, user, *args, **kwargs)
 
     return wrapper
