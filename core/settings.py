@@ -31,6 +31,8 @@ class Settings:
 
         self.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/wildberries_log_in_driver_data.json"
 
+        self.RESOURCES_PATH = f"resources"
+
         # Настройки парсинга
         # количество попыток запросить товары на странице
         self.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT = 10

@@ -21,8 +21,4 @@ class CheckSellerApiTokenAction(base.BaseAction):
     @base.BaseAction.open_menu_after_action
     @seller_api_token_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
-        bot.send_message(
-            user.telegram_chat_id,
-            bot.Formatter.join(["Ваш токен действителен."]),
-            bot.ParseMode.MARKDOWN
-        )
+        bot.send_message(user.telegram_chat_id, "Ваш токен действителен.")

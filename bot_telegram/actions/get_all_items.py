@@ -31,9 +31,4 @@ class GetAllItemsAction(base.BaseAction):
 
         text_chunks = telebot.util.smart_split(bot.Formatter.join(text))
         for text_chunk in text_chunks:
-            bot.send_message(
-                user.telegram_chat_id,
-                text_chunk,
-                bot.ParseMode.MARKDOWN,
-                link_preview_options = types.LinkPreviewOptions(True)
-            )
+            bot.send_message(user.telegram_chat_id, text_chunk, link_preview_options = types.LinkPreviewOptions(True))

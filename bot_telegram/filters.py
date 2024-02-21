@@ -12,49 +12,29 @@ if TYPE_CHECKING:
 
 
 def customer_filter(function: Callable) -> Callable:
-    def wrapper(
-            cls: type[BaseAction],
-            callback: types.CallbackQuery,
-            bot: "Bot",
-            user: core_models.ParserUser,
-            *args,
-            **kwargs
-    ) -> Any:
+    def command_wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
+        user = self.get_parser_user(message.from_user)
         if user != core_models.ParserUser.get_customer() and user != core_models.ParserUser.get_developer():
-            bot.send_message(
-                user.telegram_chat_id,
-                bot.Formatter.join(["Только заказчик может пользоваться данной командой."]),
-                bot.ParseMode.MARKDOWN
-            )
+            return self.send_message(user.telegram_chat_id, "Только заказчик может пользоваться данной командой.")
         else:
-            return function(cls, callback, bot, user, *args, **kwargs)
+            return function(self, message, user, *args, **kwargs)
 
-    return wrapper
+    return command_wrapper
 
 
 def developer_filter(function: Callable) -> Callable:
-    def wrapper(
-            cls: type[BaseAction],
-            callback: types.CallbackQuery,
-            bot: "Bot",
-            user: core_models.ParserUser,
-            *args,
-            **kwargs
-    ) -> Any:
+    def command_wrapper(self: "Bot", message: types.Message, *args, **kwargs) -> Any:
+        user = self.get_parser_user(message.from_user)
         if user != core_models.ParserUser.get_developer():
-            bot.send_message(
-                user.telegram_chat_id,
-                bot.Formatter.join(["Только разработчик может пользоваться данной командой."]),
-                bot.ParseMode.MARKDOWN
-            )
+            self.send_message(user.telegram_chat_id, "Только разработчик может пользоваться данной командой.")
         else:
-            return function(cls, callback, bot, user, *args, **kwargs)
+            return function(self, message, user, *args, **kwargs)
 
-    return wrapper
+    return command_wrapper
 
 
 def subscription_filter(function: Callable) -> Callable:
-    def wrapper(
+    def action_wrapper(
             cls: type[BaseAction],
             callback: types.CallbackQuery,
             bot: "Bot",
@@ -64,21 +44,16 @@ def subscription_filter(function: Callable) -> Callable:
     ) -> Any:
         if not validators.validate_subscriptions(user):
             not_subscribed = bot.get_needed_subscriptions(user)
-            reply_markup = types.InlineKeyboardMarkup([bot.get_subscription_buttons(not_subscribed)])
-            bot.send_message(
-                user.telegram_chat_id,
-                bot.Formatter.join([bot.SUBSCRIPTION_TEXT]),
-                bot.ParseMode.MARKDOWN,
-                reply_markup = reply_markup
-            )
+            reply_markup = types.InlineKeyboardMarkup((bot.get_subscription_buttons(not_subscribed),))
+            bot.send_message(user.telegram_chat_id, bot.SUBSCRIPTION_TEXT, reply_markup = reply_markup)
         else:
             return function(cls, callback, bot, user, *args, **kwargs)
 
-    return wrapper
+    return action_wrapper
 
 
 def seller_api_token_filter(function: Callable) -> Callable:
-    def wrapper(
+    def action_wrapper(
             cls: type[BaseAction],
             callback: types.CallbackQuery,
             bot: "Bot",
@@ -88,14 +63,8 @@ def seller_api_token_filter(function: Callable) -> Callable:
     ) -> Any:
         if not validators.validate_seller_api_token(user):
             reply_markup = types.InlineKeyboardMarkup(((bot.get_update_seller_api_token_button(),),))
-
-            bot.send_message(
-                user.telegram_chat_id,
-                bot.Formatter.join([bot.SELLER_API_TEXT]),
-                bot.ParseMode.MARKDOWN,
-                reply_markup = reply_markup
-            )
+            bot.send_message(user.telegram_chat_id, bot.SELLER_API_TEXT, reply_markup = reply_markup)
         else:
             return function(cls, callback, bot, user, *args, **kwargs)
 
-    return wrapper
+    return action_wrapper

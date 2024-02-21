@@ -1,7 +1,6 @@
 import platform
 
 from core import settings
-
 from .apps import BotTelegramConfig
 
 
@@ -11,6 +10,9 @@ class Settings(settings.Settings):
 
     def __init__(self):
         super().__init__()
+
+        self.RESOURCES_PATH = f"{self.RESOURCES_PATH}/{self.APP_NAME}"
+        self.ACTIONS_DATA_PATH = f"{self.RESOURCES_PATH}/actions"
 
         # каналы на которые пользователь должен быть подписан, чтобы использовать бота
         # todo: перенести в БД или секреты?

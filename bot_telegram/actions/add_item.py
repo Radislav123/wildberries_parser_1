@@ -23,23 +23,15 @@ class AddItemAction(base.BaseAction):
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         current_items = parser_price_models.Item.objects.filter(user = user)
         if len(current_items) > cls.settings.MAX_USER_ITEMS:
-            bot.send_message(
-                user.telegram_chat_id,
-                bot.Formatter.join(
-                    [
-                        f"У Вас уже отслеживается товаров: {len(current_items)}.",
-                        "Удалите лишние товары, чтобы добавить новый."
-                    ]
-                ),
-                bot.ParseMode.MARKDOWN
-            )
+            text = [
+                f"У Вас уже отслеживается товаров: {len(current_items)}.",
+                "Удалите лишние товары, чтобы добавить новый."
+            ]
+            bot.send_message(user.telegram_chat_id, text)
         else:
             new_item = parser_price_models.Item(user = user, name_site = "Название появится после ближайшего парсинга")
             bot.register_next_step_handler(callback.message, cls.step_vendor_code, bot, user, new_item)
-            bot.send_message(
-                user.telegram_chat_id,
-                "Введите артикул товара."
-            )
+            bot.send_message(user.telegram_chat_id, "Введите артикул товара.")
 
     @classmethod
     @base.BaseAction.open_menu_after_action
@@ -52,11 +44,5 @@ class AddItemAction(base.BaseAction):
     ) -> None:
         item.vendor_code = int(message.text)
         item.save()
-        text = [
-            f"{bot.Formatter.link(item.vendor_code, item.link)} добавлен для отслеживания."
-        ]
-        bot.send_message(
-            user.telegram_chat_id,
-            bot.Formatter.join(text),
-            bot.ParseMode.MARKDOWN
-        )
+        text = f"{bot.Formatter.link(item.vendor_code, item.link)} добавлен для отслеживания."
+        bot.send_message(user.telegram_chat_id, text)

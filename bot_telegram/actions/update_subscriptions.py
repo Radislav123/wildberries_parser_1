@@ -26,16 +26,10 @@ class UpdateSubscriptionsAction(base.BaseAction):
 
         if not validators.validate_subscriptions(user):
             reply_markup = types.InlineKeyboardMarkup([bot.get_subscription_buttons(not_subscribed)])
-            bot.send_message(
-                user.telegram_chat_id,
-                bot.Formatter.join([bot.SUBSCRIPTION_TEXT]),
-                bot.ParseMode.MARKDOWN,
-                reply_markup = reply_markup
-            )
+            bot.send_message(user.telegram_chat_id, bot.SUBSCRIPTION_TEXT, reply_markup = reply_markup)
         else:
             bot.send_message(
                 user.telegram_chat_id,
-                bot.Formatter.join(["Вы подписаны на все необходимые каналы. Информация в боте обновлена."]),
-                bot.ParseMode.MARKDOWN
+                "Вы подписаны на все необходимые каналы. Информация в боте обновлена."
             )
             seller_api_token_filter(lambda *args: None)(cls, bot, user, callback)

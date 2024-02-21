@@ -27,6 +27,7 @@ class ParseItemAction(base.BaseAction):
     @base.BaseAction.open_menu_after_action
     def step_vendor_code(cls, message: types.Message, bot: "Bot", user: core_models.ParserUser) -> None:
         try:
+            reply_markup = types.InlineKeyboardMarkup()
             vendor_code = int(message.text)
             prices, errors = parsing.parse_prices([vendor_code], bot.wildberries.dest)
             price = prices[vendor_code]
@@ -81,16 +82,9 @@ class ParseItemAction(base.BaseAction):
                         "", *bot.construct_final_block(),
                     ]
                 )
+                reply_markup.add(bot.get_update_seller_api_token_button())
 
-            bot.send_message(
-                user.telegram_chat_id,
-                bot.Formatter.join(block),
-                bot.ParseMode.MARKDOWN
-            )
+            bot.send_message(user.telegram_chat_id, block, reply_markup = reply_markup)
         except Exception as error:
-            bot.send_message(
-                user.telegram_chat_id,
-                bot.Formatter.join(["Произошла ошибка. Попробуйте еще раз чуть позже."]),
-                bot.ParseMode.MARKDOWN
-            )
+            bot.send_message(user.telegram_chat_id, "Произошла ошибка. Попробуйте еще раз чуть позже.", )
             raise error

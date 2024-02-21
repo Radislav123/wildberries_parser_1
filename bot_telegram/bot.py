@@ -1,6 +1,6 @@
 import platform
 import time
-from typing import Any
+from typing import Any, Iterable
 
 import telebot
 from telebot import types
@@ -126,7 +126,7 @@ class BotService:
             return f"{sign}{changing}"
 
         @classmethod
-        def join(cls, text: list[str]) -> str:
+        def join(cls, text: Iterable[str]) -> str:
             return "\n".join([cls.escape(string) for string in text])
 
     class Wildberries:
@@ -324,6 +324,8 @@ class NotifierMixin(BotService):
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
         limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
+        reply_markup = types.InlineKeyboardMarkup()
+
         for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
             for notification in notification_batch:
                 try:
@@ -336,6 +338,7 @@ class NotifierMixin(BotService):
                             text.extend(["", *self.construct_personal_sale_block(notification), ])
                         else:
                             text.extend(["", *self.construct_no_seller_api_token_block(), ])
+                            reply_markup.add(UpdateSellerApiTokenAction.get_button())
                         text.extend(
                             [
                                 "", *self.construct_final_price_block(notification),
@@ -361,6 +364,7 @@ class NotifierMixin(BotService):
                             text.extend(["", *self.construct_no_personal_sale_block(), ])
                         else:
                             text.extend(["", *self.construct_no_seller_api_token_block(), ])
+                            reply_markup.add(UpdateSellerApiTokenAction.get_button())
                         text.extend(
                             [
                                 "", *self.construct_final_price_block(notification),
@@ -402,6 +406,7 @@ class NotifierMixin(BotService):
                         telegram_chat_id,
                         text,
                         self.ParseMode.MARKDOWN,
+                        reply_markup = reply_markup,
                         link_preview_options = types.LinkPreviewOptions(True)
                     )
                     notification.delivered = True
@@ -436,6 +441,8 @@ class UserStateMixin:
 
 # todo: перейти с поллинга на вебхук
 class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
+    cache = {}
+
     # общие команды
     common_commands = [
         types.BotCommand("start", "Регистрация"),
@@ -480,6 +487,52 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
         super().__init__(token)
         self.enable_saving_states()
+
+    def send_message(
+            self,
+            chat_id: int | str,
+            text: Iterable[str] | str,
+            parse_mode: str = None,
+            reply_markup: telebot.REPLY_MARKUP_TYPES = None,
+            link_preview_options: types.LinkPreviewOptions = None,
+            **kwargs
+    ) -> types.Message:
+        if isinstance(text, str):
+            text = [text]
+        if parse_mode is None:
+            parse_mode = self.ParseMode.MARKDOWN
+
+        return super().send_message(
+            chat_id,
+            self.Formatter.join(text),
+            parse_mode,
+            reply_markup = reply_markup,
+            link_preview_options = link_preview_options,
+            **kwargs
+        )
+
+    def send_photo(
+            self,
+            chat_id: int | str,
+            photo_or_id: Any | str,
+            text: Iterable[str] | str = None,
+            parse_mode: str = None,
+            reply_markup: telebot.REPLY_MARKUP_TYPES = None,
+            **kwargs
+    ) -> types.Message:
+        if isinstance(text, str):
+            text = [text]
+        if parse_mode is None:
+            parse_mode = self.ParseMode.MARKDOWN
+
+        return super().send_photo(
+            chat_id,
+            photo_or_id,
+            self.Formatter.join(text) if text is not None else text,
+            parse_mode,
+            reply_markup = reply_markup,
+            **kwargs
+        )
 
     # добавлена, чтобы избежать цикличного импорта
     @staticmethod
@@ -622,36 +675,19 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             not_subscribed = self.get_needed_subscriptions(user)
             reply_markup = types.InlineKeyboardMarkup([self.get_subscription_buttons(not_subscribed)])
 
-        self.send_message(
-            user.telegram_chat_id,
-            self.Formatter.join(text),
-            self.ParseMode.MARKDOWN,
-            reply_markup = reply_markup
-        )
+        self.send_message(user.telegram_chat_id, text, reply_markup = reply_markup)
 
     def menu(self, message: types.Message, delete_message = True) -> None:
         if delete_message:
             self.delete_message(message.chat.id, message.id)
-        self.send_message(
-            message.chat.id,
-            "Меню бота",
-            reply_markup = self.menu_keyboard
-        )
+        self.send_message(message.chat.id, "Меню бота", reply_markup = self.menu_keyboard)
 
     def get_chat_id(self, message: types.Message) -> None:
-        self.send_message(
-            message.chat.id,
-            self.Formatter.join([self.Formatter.copyable(message.chat.id)]),
-            self.ParseMode.MARKDOWN
-        )
+        self.send_message(message.chat.id, self.Formatter.copyable(message.chat.id))
 
     @customer_filter
-    def send_to_users(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
-        self.send_message(
-            user.telegram_chat_id,
-            "Введите сообщение, которое хотите отправить."
-        )
+    def send_to_users(self, message: types.Message, user: core_models.ParserUser) -> None:
+        self.send_message(user.telegram_chat_id, "Введите сообщение, которое хотите отправить.")
         self.register_next_step_handler(message, self.send_to_users_step_message, user)
 
     def send_to_users_step_message(self, message: types.Message, user: core_models.ParserUser) -> None:
@@ -722,11 +758,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         message_to_send.sent = False
         message_to_send.save()
 
-        self.edit_message_reply_markup(
-            message_to_send.user.telegram_chat_id,
-            callback.message.message_id,
-            reply_markup = types.InlineKeyboardMarkup()
-        )
+        self.edit_message_reply_markup(message_to_send.user.telegram_chat_id, callback.message.message_id)
         self.send_message(message_to_send.user.telegram_chat_id, "Сообщение не будет разослано пользователям.")
 
     # todo: переписать, чтобы регистрировал после добавления в БД
@@ -736,26 +768,20 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         developer.telegram_chat_id = message.chat.id
         developer.save()
         self.set_command_list_developer()
-        self.send_message(
-            developer.telegram_chat_id,
-            "Вы зарегистрированы как разработчик"
-        )
+        self.send_message(developer.telegram_chat_id, "Вы зарегистрированы как разработчик")
 
     @developer_filter
-    def remove_user(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
+    def remove_user(self, message: types.Message, user: core_models.ParserUser) -> None:
         items = parser_price_models.Item.objects.filter(user = user)
         item_ids = list(items.values_list("id", flat = True))
         prices = parser_price_models.Price.objects.filter(item_id__in = item_ids)
         prices.delete()
         items.delete()
         user.delete()
-
         self.send_message(message.chat.id, "Вы были удалены из БД бота.")
 
     @developer_filter
-    def reset_command_list(self, message: types.Message) -> None:
-        user = self.get_parser_user(message.from_user)
+    def reset_command_list(self, _: types.Message, user: core_models.ParserUser) -> None:
         scope = types.BotCommandScopeChat(user.telegram_chat_id)
         self.delete_my_commands(scope)
         self.send_message(user.telegram_chat_id, "Ваш список команд сброшен.")

@@ -18,42 +18,58 @@ class UpdateSellerApiTokenAction(base.BaseAction):
     description = "Обновить токен продавца"
     callback_id = CallbackData.UPDATE_SELLER_API_TOKEN
 
+    image_path = f"{base.BaseAction.settings.ACTIONS_DATA_PATH}/update_seller_api_token_0.jpg"
+    with open(image_path, "rb") as file:
+        image = file.read()
+
     @classmethod
     @subscription_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
-        bot.register_next_step_handler(callback.message, cls.step_update_token, bot, user)
-        bot.send_message(
-            user.telegram_chat_id,
-            bot.Formatter.join(
-                [
-                    "Введите токен продавца.",
-                    "",
-                    "Достаточно прав только на чтение.",
-                    f"{bot.Formatter.link('Инструкция', 'https://openapi.wildberries.ru/general/authorization/ru/')}"
-                    f" по генерации токена."
-                ]
-            ),
-            bot.ParseMode.MARKDOWN
-        )
+        text = [
+            "Для отображения СПП необходимо ввести токен.",
+            f"{bot.Formatter.link('Инструкция', 'https://openapi.wildberries.ru/general/authorization/ru/')}"
+            f" по генерации токена на сайте Wildberries.",
+            "",
+            "1) Это безопасно?",
+            "Да, для этого необходимо поставить галочку в поле \"Только на чтение\".",
+            "Тогда с помощью этого токена нельзя будет менять никакие данные.",
+            "",
+            "2) Для работы необходимо выбрать категорию \"Цены и скидки\".",
+            "",
+            "3) Сгенерируйте токен, нажав \"Создать токен\".",
+            "",
+            "Ниже введите полученный токен продавца."
+        ]
+
+        if cls.image_path in bot.cache:
+            image_id = bot.cache[cls.image_path]
+            image_message = bot.send_photo(user.telegram_chat_id, image_id, text)
+        else:
+            image_message = bot.send_photo(user.telegram_chat_id, cls.image, text)
+            # изображение с максимальным разрешением
+            bot.cache[cls.image_path] = image_message.photo[-1].file_id
+
+        bot.register_next_step_handler(callback.message, cls.step_update_token, bot, user, image_message)
 
     @classmethod
     @base.BaseAction.open_menu_after_action
-    def step_update_token(cls, message: types.Message, bot: "Bot", user: core_models.ParserUser) -> None:
+    def step_update_token(
+            cls,
+            message: types.Message,
+            bot: "Bot",
+            user: core_models.ParserUser,
+            image_message: types.Message
+    ) -> None:
         new_token = message.text
         user.seller_api_token = new_token
 
         try:
             ParserSellerApi.make_request(user)
         except RequestException:
-            bot.send_message(
-                user.telegram_chat_id,
-                "Токен не обновлен, потому что не валиден."
-            )
+            bot.send_message(user.telegram_chat_id, "Токен не обновлен, потому что не валиден.")
         else:
             user.save()
-            bot.send_message(
-                user.telegram_chat_id,
-                "Вы успешно обновили токен продавца."
-            )
+            bot.send_message(user.telegram_chat_id, "Вы успешно обновили токен продавца.")
         finally:
+            bot.delete_message(user.telegram_chat_id, image_message.message_id)
             bot.delete_message(user.telegram_chat_id, message.message_id)
