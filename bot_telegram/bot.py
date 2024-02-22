@@ -187,11 +187,13 @@ class NotifierMixin(BotService):
             block.append(f"{parser_price_models.Item.get_field_verbose_name('name')}: {name}")
         return block
 
+    @property
+    def link(self) -> str:
+        return f"https://t.me/{self.user.username}"
+
     def construct_start_block(self, notification: parser_price_models.Notification) -> list[str]:
-        bot_username = self.get_me().username
-        bot_link = f"https://t.me/{bot_username}"
         block = [
-            f"Данное сообщение сгенерировано {self.Formatter.link('ботом', bot_link)} (@{bot_username}).",
+            f"Данное сообщение сгенерировано {self.Formatter.link('ботом', self.link)} (@{self.user.username}).",
             "",
         ]
 
@@ -415,7 +417,7 @@ class NotifierMixin(BotService):
 
     send_message: Callable
     copy_message: Callable
-    get_me: Callable
+    user: types.User
 
 
 class UserStateMixin:

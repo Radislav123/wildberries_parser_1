@@ -1,5 +1,3 @@
-import platform
-
 from core import settings
 from .apps import BotTelegramConfig
 
