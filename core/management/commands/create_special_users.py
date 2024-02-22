@@ -8,7 +8,11 @@ class Command(core_command.CoreCommand):
     help = "Создает специальных пользователей"
 
     def handle(self, *args, **options):
-        users = (self.settings.secrets.developer_user, self.settings.secrets.customer_user)
+        users = (
+            self.settings.secrets.customer_user,
+            self.settings.secrets.developer_user,
+            self.settings.secrets.system_user
+        )
         for user in users:
             self.create(user)
 

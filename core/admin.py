@@ -76,6 +76,7 @@ class CoreAdmin(admin.ModelAdmin):
     extra_list_display: dict[str, str] = {}
     not_required_fields = ()
     not_show_list = ()
+    reorder_fields: dict[str, str] = {}
 
     def __init__(self, model, admin_site):
         self.logger = logger.Logger(self.__class__.__name__)
@@ -86,6 +87,14 @@ class CoreAdmin(admin.ModelAdmin):
                 self.list_display.append(field)
             else:
                 self.list_display.insert(self.list_display.index(before_field), field)
+
+        for field, before_field in self.reorder_fields.items():
+            self.list_display.remove(field)
+            if before_field is None:
+                self.list_display.append(field)
+            else:
+                self.list_display.insert(self.list_display.index(before_field), field)
+
         self.list_display = tuple(x for x in self.list_display if x not in self.not_show_list)
         if self.fieldsets is not None:
             self.fieldsets += self._fieldsets

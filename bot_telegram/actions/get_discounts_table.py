@@ -20,7 +20,7 @@ class GetDiscountsTableAction(base.BaseAction):
     description = "Получить таблицу скидок"
     callback_id = CallbackData.GET_DISCOUNTS_TABLE
 
-    book_path = f"{base.BaseAction.settings.ACTIONS_DATA_PATH}/get_discounts_table.xlsx"
+    book_path = f"{base.BaseAction.settings.ACTIONS_RESOURCES_PATH}/get_discounts_table.xlsx"
     update_time: datetime.datetime = None
     book_data: bytes = None
     file_id: str = None

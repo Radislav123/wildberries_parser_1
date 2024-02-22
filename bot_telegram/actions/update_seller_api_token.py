@@ -18,7 +18,7 @@ class UpdateSellerApiTokenAction(base.BaseAction):
     description = "Обновить токен продавца"
     callback_id = CallbackData.UPDATE_SELLER_API_TOKEN
 
-    image_path = f"{base.BaseAction.settings.ACTIONS_DATA_PATH}/update_seller_api_token_0.jpg"
+    image_path = f"{base.BaseAction.settings.ACTIONS_RESOURCES_PATH}/update_seller_api_token_0.jpg"
     with open(image_path, "rb") as file:
         image = file.read()
     file_id: str = None

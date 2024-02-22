@@ -324,11 +324,11 @@ class NotifierMixin(BotService):
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
         limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
-        reply_markup = types.InlineKeyboardMarkup()
 
         for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
             for notification in notification_batch:
                 try:
+                    reply_markup = types.InlineKeyboardMarkup()
                     text = [*self.construct_start_block(notification), ]
                     # обычное оповещение
                     if not notification.new.sold_out and notification.new.personal_discount is not None:

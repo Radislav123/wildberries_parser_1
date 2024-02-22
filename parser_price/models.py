@@ -19,6 +19,7 @@ class ParserPriceModel(core_models.CoreModel):
     settings = settings
 
 
+# todo: переместить в core?
 class Category(ParserPriceModel):
     class Meta:
         verbose_name_plural = "Categories"
@@ -65,7 +66,8 @@ class Item(ParserPriceModel, core_models.Item):
         Category,
         models.PROTECT,
         verbose_name = Category.get_field_verbose_name("name"),
-        null = True
+        null = True,
+        related_name = f"{settings.APP_NAME}_category"
     )
 
 

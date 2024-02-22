@@ -35,29 +35,8 @@ class ParserSellerApiAdmin(core_admin.CoreAdmin):
 class ItemAdmin(ParserSellerApiAdmin):
     model = parser_seller_api_models.Item
     list_filter = (CategoryFilter, "user", "vendor_code")
-    extra_list_display = {"real_price": None, "category": None, "personal_discount": None}
-
-    @staticmethod
-    def category(obj: model) -> parser_price_models.Category | None:
-        items = parser_price_models.Item.objects.filter(vendor_code = obj.vendor_code)
-        if items:
-            item = items[0]
-            category = item.category
-        else:
-            category = None
-        return category
-
-    @staticmethod
-    def personal_discount(obj: model) -> int | None:
-        items = parser_price_models.Item.objects.filter(vendor_code = obj.vendor_code)
-        personal_discount = None
-        if items:
-            item = items[0]
-            prices = parser_price_models.Price.objects.filter(item = item).order_by("-id")
-            if prices:
-                price = prices[0]
-                personal_discount = price.personal_discount
-        return personal_discount
+    extra_list_display = {"real_price": "category"}
+    reorder_fields = {"personal_discount": "category"}
 
 
 model_admins_to_register = [ItemAdmin]

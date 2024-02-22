@@ -32,6 +32,9 @@ class Settings:
         self.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH = f"{self.PARSING_DATA_FOLDER}/wildberries_log_in_driver_data.json"
 
         self.RESOURCES_PATH = f"resources"
+        self.CORE_RESOURCES_PATH = f"{self.RESOURCES_PATH}/{self.APP_NAME}"
+        self.SERVICES_RESOURCES_PATH = f"{self.CORE_RESOURCES_PATH}/services"
+        self.PARSING_RESOURCES_PATH = f"{self.SERVICES_RESOURCES_PATH}/parsing"
 
         # Настройки парсинга
         # количество попыток запросить товары на странице
@@ -59,6 +62,7 @@ class Settings:
         self.ADMIN_PANEL_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/admin_panel"
         self.CUSTOMER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/customer_user.json"
         self.DEVELOPER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/developer_user.json"
+        self.SYSTEM_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/system_user.json"
 
         self.GEOPARSER_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/geoparser"
         self.GEOPARSER_CREDENTIALS_PATH = f"{self.GEOPARSER_SECRETS_FOLDER}/credentials.json"

@@ -1,4 +1,8 @@
+import json
 import time
+from collections import Counter
+from pathlib import Path
+from typing import Iterable
 
 import requests
 from requests import JSONDecodeError
@@ -11,6 +15,9 @@ from parser_seller_api import models as seller_api_models
 
 settings = Settings()
 logger = Logger(f"{settings.APP_NAME}_service")
+
+Path(settings.PARSING_RESOURCES_PATH).mkdir(parents = True, exist_ok = True)
+BASKETS_PATH = f"{settings.PARSING_RESOURCES_PATH}/temp_basket_entities.json"
 
 
 def parse_prices(
@@ -28,6 +35,15 @@ def parse_prices(
         seller_api_models.Item.objects.filter(vendor_code__in = (x for x in vendor_codes))
     }
 
+    try:
+        with open(BASKETS_PATH, 'r') as file:
+            baskets = json.load(file)
+            if baskets[0] == "":
+                baskets = []
+    except FileNotFoundError:
+        baskets = []
+    baskets_order = get_baskets_order(baskets)
+
     for vendor_codes_chunk in chunks:
         # todo: сделать запросы асинхронными (ThreadPoolExecutor)
         url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
@@ -41,7 +57,8 @@ def parse_prices(
                 item_dict: dict = item_dicts[vendor_code]
                 final_price, sold_out = get_price(item_dict)
                 reviews_amount = int(item_dict["feedbacks"])
-                category_name = get_category_name(vendor_code)
+                category_name, basket = get_category_name(baskets_order, vendor_code)
+                baskets.append(basket)
                 name_site = f"{item_dict['brand']} / {item_dict['name']}"
                 category = price_models.Category.objects.get_or_create(name = category_name)[0]
 
@@ -68,6 +85,14 @@ def parse_prices(
             except Exception as error:
                 errors[vendor_code] = error
 
+    entities_threshold = 10000
+    if len(baskets) > entities_threshold:
+        left = len(baskets) - entities_threshold
+    else:
+        left = 0
+    with open(BASKETS_PATH, 'w') as file:
+        json.dump(baskets[left:], file)
+
     return prices, errors
 
 
@@ -81,10 +106,19 @@ def get_price(item_dict: dict) -> tuple[float, bool]:
     return final_price, sold_out
 
 
-def get_category_name(vendor_code: int) -> str:
+def get_baskets_order(baskets: Iterable[int]) -> tuple[int, ...]:
+    basket_weights = Counter(map(int, baskets))
+    for i in range(1, 50):
+        if i not in basket_weights:
+            basket_weights[i] = 0
+    return tuple(key for key, value in sorted(basket_weights.items(), key = lambda item: -item[1]))
+
+
+# todo: переписать это, чтобы basket получался, а не угадывался
+def get_category_name(baskets_order: Iterable[int], vendor_code: int) -> tuple[str, int]:
     part = vendor_code // 1000
     vol = part // 100
-    for basket in range(1, 99):
+    for basket in baskets_order:
         # todo: сделать запросы асинхронными (ThreadPoolExecutor)?
         category_url = (f"https://basket-{str(basket).rjust(2, '0')}.wb.ru/vol{vol}"
                         f"/part{part}/{vendor_code}/info/ru/card.json")
@@ -94,7 +128,8 @@ def get_category_name(vendor_code: int) -> str:
             break
     else:
         category_name = ""
-    return category_name
+    # noinspection PyUnboundLocalVariable
+    return category_name, basket
 
 
 # не использовать на прямую, так как нет проверки на наличие товара
