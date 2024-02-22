@@ -22,4 +22,4 @@ class CheckSubscriptionsAction(base.BaseAction):
     @subscription_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.send_message(user.telegram_chat_id, "Вы подписаны на все необходимые каналы.")
-        seller_api_token_filter(lambda *args: None)(cls, bot, user, callback)
+        seller_api_token_filter(lambda *args: None)(cls, callback, bot, user)

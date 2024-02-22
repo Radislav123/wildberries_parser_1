@@ -21,6 +21,7 @@ class UpdateSellerApiTokenAction(base.BaseAction):
     image_path = f"{base.BaseAction.settings.ACTIONS_DATA_PATH}/update_seller_api_token_0.jpg"
     with open(image_path, "rb") as file:
         image = file.read()
+    file_id: str = None
 
     @classmethod
     @subscription_filter
@@ -41,13 +42,12 @@ class UpdateSellerApiTokenAction(base.BaseAction):
             "Ниже введите полученный токен продавца."
         ]
 
-        if cls.image_path in bot.cache:
-            image_id = bot.cache[cls.image_path]
-            image_message = bot.send_photo(user.telegram_chat_id, image_id, text)
+        if cls.file_id is not None:
+            image_message = bot.send_photo(user.telegram_chat_id, cls.file_id, text)
         else:
             image_message = bot.send_photo(user.telegram_chat_id, cls.image, text)
             # изображение с максимальным разрешением
-            bot.cache[cls.image_path] = image_message.photo[-1].file_id
+            cls.file_id = image_message.photo[-1].file_id
 
         bot.register_next_step_handler(callback.message, cls.step_update_token, bot, user, image_message)
 
@@ -71,5 +71,5 @@ class UpdateSellerApiTokenAction(base.BaseAction):
             user.save()
             bot.send_message(user.telegram_chat_id, "Вы успешно обновили токен продавца.")
         finally:
-            bot.delete_message(user.telegram_chat_id, image_message.message_id)
-            bot.delete_message(user.telegram_chat_id, message.message_id)
+            bot.delete_message(user.telegram_chat_id, image_message.id)
+            bot.delete_message(user.telegram_chat_id, message.id)

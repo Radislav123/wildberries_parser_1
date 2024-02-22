@@ -120,6 +120,11 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
 
 # todo: объединить параллельные парсинги в один
 class Parsing(CoreModel):
+    class Type:
+        POSITION = "position"
+        PRICE = "price"
+        SELLER_API = "seller_api"
+
     date = models.DateField("Дата начала парсинга", auto_now_add = True)
     time = models.DateTimeField("Время начала парсинга", auto_now_add = True)
     duration = models.DurationField("Продолжительность парсинга")

@@ -10,7 +10,7 @@ class RequestException(Exception):
 
 class Parser(parser_core.Parser):
     settings = settings.Settings()
-    parsing_type = "seller_api"
+    parsing_type = core_models.Parsing.Type.SELLER_API
 
     @staticmethod
     def make_request(user: core_models.ParserUser) -> list[dict[str, int]]:

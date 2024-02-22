@@ -10,7 +10,7 @@ City = dict[str, str]
 
 class Parser(parser_core.Parser):
     settings = settings.Settings()
-    parsing_type = "position"
+    parsing_type = core_models.Parsing.Type.POSITION
 
     def parse_positions(
             self,

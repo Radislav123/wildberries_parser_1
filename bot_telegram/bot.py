@@ -1,6 +1,6 @@
 import platform
 import time
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import telebot
 from telebot import types
@@ -374,7 +374,6 @@ class NotifierMixin(BotService):
                     else:
                         raise WrongNotificationTypeException()
 
-                    text = self.Formatter.join(text)
                     # отправка оповещения разработчику, если бот запущен на машине разработчика
                     if platform.node() == self.settings.secrets.developer.pc_name:
                         telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
@@ -390,25 +389,20 @@ class NotifierMixin(BotService):
                         else:
                             duplicated_telegram_chat_id = None
 
-                    # дублируется сообщение для другого пользователя по просьбе заказчика
-                    if duplicated_telegram_chat_id is not None:
-                        try:
-                            self.send_message(
-                                duplicated_telegram_chat_id,
-                                text,
-                                self.ParseMode.MARKDOWN,
-                                link_preview_options = types.LinkPreviewOptions(True)
-                            )
-                        except ApiTelegramException as error:
-                            self.logger.info(str(error))
-
-                    self.send_message(
+                    message = self.send_message(
                         telegram_chat_id,
                         text,
-                        self.ParseMode.MARKDOWN,
                         reply_markup = reply_markup,
                         link_preview_options = types.LinkPreviewOptions(True)
                     )
+
+                    # дублируется сообщение для другого пользователя по просьбе заказчика
+                    if duplicated_telegram_chat_id is not None:
+                        try:
+                            self.copy_message(duplicated_telegram_chat_id, message.chat.id, message.id)
+                        except ApiTelegramException as error:
+                            self.logger.info(str(error))
+
                     notification.delivered = True
                 except Exception as error:
                     notification.delivered = False
@@ -419,8 +413,9 @@ class NotifierMixin(BotService):
                     notification.save()
             time.sleep(1)
 
-    send_message = telebot.TeleBot.send_message
-    get_me = telebot.TeleBot.get_me
+    send_message: Callable
+    copy_message: Callable
+    get_me: Callable
 
 
 class UserStateMixin:
@@ -441,8 +436,6 @@ class UserStateMixin:
 
 # todo: перейти с поллинга на вебхук
 class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
-    cache = {}
-
     # общие команды
     common_commands = [
         types.BotCommand("start", "Регистрация"),
@@ -477,6 +470,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         (UpdateSubscriptionsAction,),
         (CheckSellerApiTokenAction,),
         (UpdateSellerApiTokenAction,),
+        (GetDiscountsTableAction,),
     )
     callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for actions in menu_actions for x in actions}
     menu_keyboard = types.InlineKeyboardMarkup([[x.get_button() for x in actions] for actions in menu_actions])
@@ -533,6 +527,31 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
             reply_markup = reply_markup,
             **kwargs
         )
+
+    def send_document(
+            self,
+            chat_id: int | str,
+            document_or_id: Any | str,
+            text: Iterable[str] | str = None,
+            parse_mode: str = None,
+            reply_markup: telebot.REPLY_MARKUP_TYPES = None,
+            **kwargs
+    ) -> types.Message:
+        if isinstance(text, str):
+            text = [text]
+        if parse_mode is None:
+            parse_mode = self.ParseMode.MARKDOWN
+
+        return super().send_document(
+            chat_id,
+            document_or_id,
+            caption = self.Formatter.join(text) if text is not None else text,
+            parse_mode = parse_mode,
+            reply_markup = reply_markup,
+            **kwargs
+        )
+
+    copy_message = telebot.TeleBot.copy_message
 
     # добавлена, чтобы избежать цикличного импорта
     @staticmethod
@@ -618,7 +637,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     def check_user_status_change(self, update: types.ChatMemberUpdated) -> None:
         user = self.get_parser_user(update.from_user)
         if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES and user is not None:
-            subscription_filter(lambda *args: None)(None, self, user, None)
+            subscription_filter(lambda *args: None)(None, None, self, user)
 
             not_subscribed = self.get_needed_subscriptions(user)
             user.update_subscriptions_info(not_subscribed)

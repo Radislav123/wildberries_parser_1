@@ -32,4 +32,4 @@ class UpdateSubscriptionsAction(base.BaseAction):
                 user.telegram_chat_id,
                 "Вы подписаны на все необходимые каналы. Информация в боте обновлена."
             )
-            seller_api_token_filter(lambda *args: None)(cls, bot, user, callback)
+            seller_api_token_filter(lambda *args: None)(cls, callback, bot, user)

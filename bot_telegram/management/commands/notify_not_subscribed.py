@@ -17,5 +17,5 @@ class Command(telegram_bot_command.TelegramBotCommand):
                            for x in range(0, len(not_subscribed_users), self.settings.API_MESSAGES_PER_SECOND_LIMIT)]:
             for user in user_batch:
                 if bot.check_pc(user):
-                    subscription_filter(lambda *lambda_args: None)(None, bot, user, None)
+                    subscription_filter(lambda *lambda_args: None)(None, None, bot, user)
             time.sleep(1)

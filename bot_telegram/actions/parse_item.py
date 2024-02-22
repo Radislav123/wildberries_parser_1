@@ -4,6 +4,7 @@ from telebot import types
 
 from bot_telegram.actions import base
 from bot_telegram.callback_data import CallbackData
+from bot_telegram.filters import subscription_filter
 from core import models as core_models
 from core.service import parsing, validators
 from parser_price import models as parser_price_models
@@ -19,6 +20,7 @@ class ParseItemAction(base.BaseAction):
     callback_id = CallbackData.PARSE_ITEM
 
     @classmethod
+    @subscription_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.register_next_step_handler(callback.message, cls.step_vendor_code, bot, user)
         bot.send_message(user.telegram_chat_id, "Введите артикул товара.")

@@ -4,7 +4,7 @@ from telebot import types
 
 from bot_telegram.actions import base
 from bot_telegram.callback_data import CallbackData
-from bot_telegram.filters import seller_api_token_filter
+from bot_telegram.filters import seller_api_token_filter, subscription_filter
 from core import models as core_models
 
 
@@ -19,6 +19,7 @@ class CheckSellerApiTokenAction(base.BaseAction):
 
     @classmethod
     @base.BaseAction.open_menu_after_action
+    @subscription_filter
     @seller_api_token_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.send_message(user.telegram_chat_id, "Ваш токен действителен.")

@@ -14,7 +14,7 @@ class Parser(parser_core.Parser):
     settings = settings.Settings()
     log_in_driver: Chrome
     bot_telegram = bot.Bot()
-    parsing_type = "price"
+    parsing_type = core_models.Parsing.Type.PRICE
 
     def parse_items(
             self,
