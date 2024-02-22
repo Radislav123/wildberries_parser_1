@@ -35,7 +35,7 @@ class ParserSellerApiAdmin(core_admin.CoreAdmin):
 class ItemAdmin(ParserSellerApiAdmin):
     model = parser_seller_api_models.Item
     list_filter = (CategoryFilter, "user", "vendor_code")
-    extra_list_display = {"real_price": None, "category": None, "personal_sale": None}
+    extra_list_display = {"real_price": None, "category": None, "personal_discount": None}
 
     @staticmethod
     def category(obj: model) -> parser_price_models.Category | None:
@@ -48,16 +48,16 @@ class ItemAdmin(ParserSellerApiAdmin):
         return category
 
     @staticmethod
-    def personal_sale(obj: model) -> int | None:
+    def personal_discount(obj: model) -> int | None:
         items = parser_price_models.Item.objects.filter(vendor_code = obj.vendor_code)
-        personal_sale = None
+        personal_discount = None
         if items:
             item = items[0]
             prices = parser_price_models.Price.objects.filter(item = item).order_by("-id")
             if prices:
                 price = prices[0]
-                personal_sale = price.personal_sale
-        return personal_sale
+                personal_discount = price.personal_discount
+        return personal_discount
 
 
 model_admins_to_register = [ItemAdmin]

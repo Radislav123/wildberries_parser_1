@@ -9,4 +9,4 @@ class LKDetailsPage(WildberriesPage):
 
     def __init__(self, parser) -> None:
         super().__init__(parser)
-        self.personal_sale = ExtendedWebElement(self, '//b[@class = "discount__numb discount__numb--color"]')
+        self.personal_discount = ExtendedWebElement(self, '//b[@class = "discount__numb discount__numb--color"]')

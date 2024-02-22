@@ -18,7 +18,7 @@ def parse_prices(
         dest: str,
 ) -> tuple[dict[int, dict[str, int | float | str | None | price_models.Category]], dict[int, Exception]]:
     # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
-    request_personal_sale = 99
+    request_personal_discount = 99
     chunk_size = 100
     chunks = [vendor_codes[x: x + chunk_size] for x in range(0, len(vendor_codes), chunk_size)]
     prices = {}
@@ -31,7 +31,7 @@ def parse_prices(
     for vendor_codes_chunk in chunks:
         # todo: сделать запросы асинхронными (ThreadPoolExecutor)
         url = (f"https://card.wb.ru/cards/detail?appType=1&curr=rub"
-               f"&dest={dest}&spp={request_personal_sale}"
+               f"&dest={dest}&spp={request_personal_discount}"
                f"&nm={';'.join(str(x) for x in vendor_codes_chunk)}")
         items_response = requests.get(url)
 
@@ -48,17 +48,17 @@ def parse_prices(
                 if vendor_code in seller_api_items:
                     seller_api_item = seller_api_items[vendor_code]
                     price = seller_api_item.real_price
-                    personal_sale = round((1 - final_price / price) * 100)
+                    personal_discount = round((1 - final_price / price) * 100)
                 else:
-                    personal_sale = category.personal_sale
-                    if personal_sale is None:
+                    personal_discount = category.personal_discount
+                    if personal_discount is None:
                         price = None
                     else:
-                        price = round(final_price / (100 - personal_sale) * 100)
+                        price = round(final_price / (100 - personal_discount) * 100)
 
                 prices[vendor_code] = {
                     "price": price,
-                    "personal_sale": personal_sale,
+                    "personal_discount": personal_discount,
                     "final_price": final_price,
                     "sold_out": sold_out,
                     "reviews_amount": reviews_amount,

@@ -6,4 +6,4 @@ class Command(parser_price_command.ParserPriceCommand):
     help = "Открывает окно авторизации Wildberries для парсера цен"
 
     def handle(self, *args, **options):
-        models.Category.update_personal_sales()
+        models.Category.update_personal_discounts()

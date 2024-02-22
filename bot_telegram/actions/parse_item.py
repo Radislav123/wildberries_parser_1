@@ -52,17 +52,17 @@ class ParseItemAction(base.BaseAction):
                         f" {price['price']}"
                     )
 
-                if price["personal_sale"] is not None:
+                if price["personal_discount"] is not None:
                     block.extend(
                         [
                             "",
                             (f"{bot.Token.NO_CHANGES} "
-                             f"{parser_price_models.Price.get_field_verbose_name('personal_sale')}: "
-                             f"{price['personal_sale']}")
+                             f"{parser_price_models.Price.get_field_verbose_name('personal_discount')}: "
+                             f"{price['personal_discount']}")
                         ]
                     )
                 else:
-                    block.extend(["", *bot.construct_no_personal_sale_block(), ])
+                    block.extend(["", *bot.construct_no_personal_discount_block(), ])
 
                 block.extend(
                     [

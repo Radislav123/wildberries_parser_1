@@ -23,9 +23,9 @@ class Command(telegram_bot_command.TelegramBotCommand):
             parsing = parsing,
             reviews_amount = random.randint(0, 100),
             price = random.randint(0, 1000),
-            personal_sale = random.randint(0, 100)
+            personal_discount = random.randint(0, 100)
         )
-        price.final_price = price.price * (100 - price.personal_sale) / 100
+        price.final_price = price.price * (100 - price.personal_discount) / 100
         return price
 
     def handle(self, *args, **options) -> None:

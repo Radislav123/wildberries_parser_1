@@ -25,13 +25,13 @@ class Category(ParserPriceModel):
         ordering = ["name"]
 
     name = models.CharField("Предмет")
-    personal_sale = models.PositiveIntegerField("СПП", null = True)
+    personal_discount = models.PositiveIntegerField("СПП", null = True)
 
     def __str__(self) -> str:
         return str(self.name)
 
     @classmethod
-    def update_personal_sales(cls) -> None:
+    def update_personal_discounts(cls) -> None:
         items = Item.objects.all()
         prices = []
         for item in items:
@@ -48,13 +48,13 @@ class Category(ParserPriceModel):
             prices_by_categories[price.item.category].append(price)
 
         for category, prices in prices_by_categories.items():
-            personal_sales = [x.personal_sale for x in prices if x.personal_sale]
-            if personal_sales:
+            personal_discounts = [x.personal_discount for x in prices if x.personal_discount]
+            if personal_discounts:
                 updating_categories.append(category)
-                category.personal_sale = max(personal_sales)
+                category.personal_discount = max(personal_discounts)
 
         if prices_by_categories:
-            cls.objects.bulk_update(updating_categories, ["personal_sale"])
+            cls.objects.bulk_update(updating_categories, ["personal_discount"])
 
 
 class Item(ParserPriceModel, core_models.Item):
@@ -75,7 +75,7 @@ class Price(ParserPriceModel):
     reviews_amount = models.PositiveIntegerField("Количество отзывов")
     price = models.FloatField("Цена до СПП", null = True)
     final_price = models.FloatField("Финальная цена", null = True)
-    personal_sale = models.PositiveIntegerField("СПП", null = True)
+    personal_discount = models.PositiveIntegerField("СПП", null = True)
     sold_out = models.BooleanField("Распродано")
 
     @classmethod
@@ -100,17 +100,17 @@ class Price(ParserPriceModel):
                 else:
                     price_changing = 0
 
-                if new.personal_sale is not None and old.personal_sale is not None:
-                    personal_sale_changing = new.personal_sale - old.personal_sale
+                if new.personal_discount is not None and old.personal_discount is not None:
+                    personal_discount_changing = new.personal_discount - old.personal_discount
                 else:
-                    personal_sale_changing = 0
+                    personal_discount_changing = 0
 
                 if new.final_price is not None and old.final_price is not None:
                     final_price_changing = new.final_price - old.final_price
                 else:
                     final_price_changing = 0
 
-                if new.sold_out != old.sold_out or price_changing or personal_sale_changing or final_price_changing:
+                if new.sold_out != old.sold_out or price_changing or personal_discount_changing or final_price_changing:
                     notifications.append(Notification(new = new, old = old))
 
         Notification.objects.bulk_create(notifications)
@@ -139,7 +139,7 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
         encoder = core_models.DateKeyJSONFieldEncoder,
         decoder = core_models.DateKeyJsonFieldDecoder
     )
-    personal_sales = models.JSONField(
+    personal_discounts = models.JSONField(
         encoder = core_models.DateKeyJSONFieldEncoder,
         decoder = core_models.DateKeyJsonFieldDecoder
     )
@@ -147,7 +147,7 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
     dynamic_fields = {
         "price": prices,
         "final_price": final_prices,
-        "personal_sale": personal_sales
+        "personal_discount": personal_discounts
     }
 
     @classmethod
@@ -165,7 +165,7 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
         for item, obj in new_objects.items():
             obj.prices = {}
             obj.final_prices = {}
-            obj.personal_sales = {}
+            obj.personal_discounts = {}
             for date in date_range:
                 try:
                     # вроде бы, исключение ожидается в этой строке
@@ -173,11 +173,11 @@ class PreparedPrice(ParserPriceModel, core_models.DynamicFieldModel):
                     if last_price is not None:
                         obj.prices[date] = last_price.price
                         obj.final_prices[date] = last_price.final_price
-                        obj.personal_sales[date] = last_price.personal_sale
+                        obj.personal_discounts[date] = last_price.personal_discount
                     else:
                         obj.prices[date] = None
                         obj.final_prices[date] = None
-                        obj.personal_sales[date] = None
+                        obj.personal_discounts[date] = None
                     objects_to_save.append(obj)
                 except ObjectDoesNotExist:
                     pass

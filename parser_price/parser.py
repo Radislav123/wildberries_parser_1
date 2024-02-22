@@ -32,7 +32,7 @@ class Parser(parser_core.Parser):
                 reviews_amount = price["reviews_amount"],
                 price = price["price"],
                 final_price = price["final_price"],
-                personal_sale = price["personal_sale"],
+                personal_discount = price["personal_discount"],
                 sold_out = price["sold_out"]
             )
 

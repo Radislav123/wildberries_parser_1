@@ -17,7 +17,7 @@ class ItemPage(WildberriesPage):
             self.final_price = ExtendedWebElement(
                 self.page, '//div[@class = "discount-tooltipster-content"]/p[3]/span[2]'
             )
-            self.personal_sale = ExtendedWebElement(
+            self.personal_discount = ExtendedWebElement(
                 self.page, '//div[@class = "discount-tooltipster-content"]/p[3]/span[1]'
             )
             raise OutdatedException()
