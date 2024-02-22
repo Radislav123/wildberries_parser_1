@@ -1,6 +1,6 @@
 import json
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Iterable
 
@@ -30,10 +30,13 @@ def parse_prices(
     chunks = [vendor_codes[x: x + chunk_size] for x in range(0, len(vendor_codes), chunk_size)]
     prices = {}
     errors = {}
-    seller_api_items: dict[int, seller_api_models.Item] = {
-        x.vendor_code: x for x in
-        seller_api_models.Item.objects.filter(vendor_code__in = (x for x in vendor_codes))
-    }
+    seller_api_items: dict[int, seller_api_models.Item] = {x.vendor_code: x for x in
+                                                           seller_api_models.Item.objects.all()}
+    seller_api_items_by_category = defaultdict(list)
+    for item in seller_api_items.values():
+        seller_api_items_by_category[item.category].append(item)
+    seller_api_items_by_category = {key: sorted(value, key = lambda x: x.real_price)
+                                    for key, value in seller_api_items_by_category.items()}
 
     try:
         with open(BASKETS_PATH, 'r') as file:
@@ -66,12 +69,14 @@ def parse_prices(
                     seller_api_item = seller_api_items[vendor_code]
                     price = seller_api_item.real_price
                     personal_discount = round((1 - final_price / price) * 100)
+                elif category in seller_api_items_by_category:
+                    personal_discount, price = get_nearest_personal_discount(
+                        seller_api_items_by_category[category],
+                        final_price
+                    )
                 else:
-                    personal_discount = category.personal_discount
-                    if personal_discount is None:
-                        price = None
-                    else:
-                        price = round(final_price / (100 - personal_discount) * 100)
+                    price = None
+                    personal_discount = None
 
                 prices[vendor_code] = {
                     "price": price,
@@ -96,13 +101,35 @@ def parse_prices(
     return prices, errors
 
 
-def get_price(item_dict: dict) -> tuple[float, bool]:
+def get_nearest_personal_discount(
+        items: list[seller_api_models.Item],
+        final_price: int
+) -> tuple[int | None, int | None]:
+    if len(items) == 0:
+        nearest_discount = None
+        price = None
+    else:
+        prices = {item: round(final_price / (100 - item.personal_discount) * 100)
+                  for item in items if item.personal_discount}
+        differences = {abs(final_price - price): item for item, price in prices.items()}
+        if differences:
+            nearest_item = differences[min(differences)]
+            nearest_discount = nearest_item.personal_discount
+            price = prices[nearest_item]
+        else:
+            nearest_discount = None
+            price = None
+
+    return nearest_discount, price
+
+
+def get_price(item_dict: dict) -> tuple[int, bool]:
     sold_out = True
     for size in item_dict["sizes"]:
         if len(size["stocks"]) > 0:
             sold_out = False
             break
-    final_price = int(item_dict["salePriceU"]) / 100
+    final_price = round(int(item_dict["salePriceU"]) / 100)
     return final_price, sold_out
 
 

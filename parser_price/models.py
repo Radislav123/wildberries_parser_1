@@ -1,5 +1,4 @@
 import datetime
-from collections import defaultdict
 from typing import Iterable, Self
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -26,36 +25,9 @@ class Category(ParserPriceModel):
         ordering = ["name"]
 
     name = models.CharField("Предмет")
-    personal_discount = models.PositiveIntegerField("СПП", null = True)
 
     def __str__(self) -> str:
         return str(self.name)
-
-    @classmethod
-    def update_personal_discounts(cls) -> None:
-        items = Item.objects.all()
-        prices = []
-        for item in items:
-            try:
-                price = Price.objects.filter(item = item).prefetch_related("item", "item__category").latest("id")
-                if price:
-                    prices.append(price)
-            except Price.DoesNotExist:
-                pass
-
-        prices_by_categories = defaultdict(list)
-        updating_categories = []
-        for price in prices:
-            prices_by_categories[price.item.category].append(price)
-
-        for category, prices in prices_by_categories.items():
-            personal_discounts = [x.personal_discount for x in prices if x.personal_discount]
-            if personal_discounts:
-                updating_categories.append(category)
-                category.personal_discount = max(personal_discounts)
-
-        if prices_by_categories:
-            cls.objects.bulk_update(updating_categories, ["personal_discount"])
 
 
 class Item(ParserPriceModel, core_models.Item):

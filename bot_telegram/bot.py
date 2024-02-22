@@ -321,7 +321,7 @@ class NotifierMixin(BotService):
     def construct_no_seller_api_token_block() -> list[str]:
         return [
             "Токен продавца отсутствует.",
-            f"Чтобы видеть СПП необходимо ввести токен продавца ({UpdateSellerApiTokenAction.button_text})."
+            "Чтобы видеть СПП необходимо обновить токен продавца."
         ]
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
