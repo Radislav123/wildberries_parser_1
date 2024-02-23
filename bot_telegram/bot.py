@@ -464,6 +464,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
     # действия
     menu_actions = (
+        (GetDiscountsTableAction,),
         (ParseItemAction,),
         (GetAllItemsAction,),
         (AddItemAction,),
@@ -471,7 +472,6 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         (CheckSubscriptionsAction,),
         (CheckSellerApiTokenAction,),
         (UpdateSellerApiTokenAction,),
-        (GetDiscountsTableAction,),
     )
     callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for actions in menu_actions for x in actions}
     menu_keyboard = types.InlineKeyboardMarkup([[x.get_button() for x in actions] for actions in menu_actions])
@@ -692,7 +692,8 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
                 "",
                 f"На данный момент вы можете отслеживать товары в количестве {self.settings.MAX_USER_ITEMS}.",
                 "",
-                f"После ввода токена продавца ({UpdateSellerApiTokenAction.button_text}) сможете отслеживать изменения СПП."
+                f"После ввода токена продавца ({UpdateSellerApiTokenAction.button_text})"
+                f" сможете отслеживать изменения СПП."
             ]
             not_subscribed = self.get_needed_subscriptions(user)
             reply_markup = types.InlineKeyboardMarkup(self.get_subscription_buttons(not_subscribed))
@@ -702,7 +703,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     def menu(self, message: types.Message, delete_message = True) -> None:
         if delete_message:
             self.delete_message(message.chat.id, message.id)
-        text = "📊 Меню бота"
+        text = "Меню бота"
         self.send_message(message.chat.id, text, reply_markup = self.menu_keyboard)
 
     def get_chat_id(self, message: types.Message) -> None:

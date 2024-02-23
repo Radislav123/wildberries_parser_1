@@ -16,11 +16,15 @@ class BaseAction:
     command: str
     description: str
     button_text: str
+    _button_text: str = None
     callback_id: str
 
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
-        cls.button_text = cls.description
+        if cls._button_text is not None:
+            cls.button_text = cls._button_text
+        else:
+            cls.button_text = cls.description
 
     @staticmethod
     def action_wrapper(open_menu_after_call: bool) -> Callable:

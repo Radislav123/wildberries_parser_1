@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 class GetDiscountsTableAction(base.BaseAction):
     command = "get_discounts_table"
     description = "Получить таблицу скидок"
+    _button_text = f"📊 {description}"
     callback_id = CallbackData.GET_DISCOUNTS_TABLE
 
     book_path = f"{base.BaseAction.settings.ACTIONS_RESOURCES_PATH}/temp_get_discounts_table.xlsx"
