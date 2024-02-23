@@ -36,12 +36,19 @@ class ParseItemAction(base.BaseAction):
         if vendor_code in errors:
             raise errors[vendor_code]
 
-        block = bot.construct_header(
-            price["category"].name,
-            vendor_code,
-            price["name_site"],
-            None,
-            parser_price_models.Item(vendor_code = vendor_code).link
+        block = [
+            bot.BOT_GENERATION_TEXT,
+            ""
+        ]
+
+        block.extend(
+            bot.construct_header(
+                price["category"].name,
+                vendor_code,
+                price["name_site"],
+                None,
+                parser_price_models.Item(vendor_code = vendor_code).link
+            )
         )
         block.append("")
 

@@ -149,6 +149,11 @@ class NotifierMixin(BotService):
     SELLER_API_TEXT = (f"Чтобы пользоваться расширенным функционалом,"
                        f" введите токен продавца, используя опцию меню {UpdateSellerApiTokenAction.button_text}.")
 
+    # noinspection PyPep8Naming
+    @property
+    def BOT_GENERATION_TEXT(self) -> str:
+        return f"Данное сообщение сгенерировано {self.Formatter.link('ботом', self.link)} (@{self.user.username})."
+
     @staticmethod
     def check_ownership(price: parser_price_models.Price) -> bool:
         ownership = False
@@ -193,7 +198,7 @@ class NotifierMixin(BotService):
 
     def construct_start_block(self, notification: parser_price_models.Notification) -> list[str]:
         block = [
-            f"Данное сообщение сгенерировано {self.Formatter.link('ботом', self.link)} (@{self.user.username}).",
+            self.BOT_GENERATION_TEXT,
             "",
         ]
 
