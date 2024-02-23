@@ -320,7 +320,7 @@ class NotifierMixin(BotService):
         return ["❗️ Товар появился в продаже"]
 
     def construct_no_personal_discount_block(self) -> list[str]:
-        return [f"{self.Token.NO_PERSONAL_discount} Не удалось получить СПП"]
+        return [f"{self.Token.NO_PERSONAL_discount} СПП в процессе получения..."]
 
     @staticmethod
     def construct_no_seller_api_token_block() -> list[str]:
