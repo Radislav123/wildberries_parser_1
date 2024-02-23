@@ -93,4 +93,9 @@ class ParseItemAction(base.BaseAction):
             )
             reply_markup.add(bot.get_update_seller_api_token_button())
 
-        bot.send_message(user.telegram_chat_id, block, reply_markup = reply_markup)
+        bot.send_message(
+            user.telegram_chat_id,
+            block,
+            reply_markup = reply_markup,
+            link_preview_options = types.LinkPreviewOptions(True)
+        )
