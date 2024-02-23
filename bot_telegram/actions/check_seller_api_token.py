@@ -18,7 +18,7 @@ class CheckSellerApiTokenAction(base.BaseAction):
     callback_id = CallbackData.CHECK_SELLER_API_TOKEN
 
     @classmethod
-    @base.BaseAction.open_menu_after_action
+    @base.BaseAction.action_wrapper(open_menu_after_call = True)
     @subscription_filter
     @seller_api_token_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:

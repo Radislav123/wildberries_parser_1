@@ -24,6 +24,7 @@ class UpdateSellerApiTokenAction(base.BaseAction):
     file_id: str = None
 
     @classmethod
+    @base.BaseAction.action_wrapper(open_menu_after_call = False)
     @subscription_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         text = [
@@ -52,7 +53,7 @@ class UpdateSellerApiTokenAction(base.BaseAction):
         bot.register_next_step_handler(callback.message, cls.step_update_token, bot, user, image_message)
 
     @classmethod
-    @base.BaseAction.open_menu_after_action
+    @base.BaseAction.action_wrapper(open_menu_after_call = True)
     def step_update_token(
             cls,
             message: types.Message,

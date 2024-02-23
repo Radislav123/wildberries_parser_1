@@ -15,8 +15,8 @@ class Settings(settings.Settings):
         # каналы на которые пользователь должен быть подписан, чтобы использовать бота
         # todo: перенести в БД или секреты?
         self.NEEDED_SUBSCRIPTIONS = {
-            -1001922384556: ("https://t.me/mpwbfair", "канал 1"),
-            -1001638911900: ("https://t.me/+gukqwJCmpm1jMGUy", "канал 2")
+            -1001922384556: ("https://t.me/+dOWOMO8RE3Q2MjFi", "Доставка из Китая | КАРГО WBFAIR"),
+            -1001638911900: ("https://t.me/+gukqwJCmpm1jMGUy", "🥷🏻Ниндзя маркетплейсов | Иван Шкитин🇨🇳")
         }
         self.CHANNEL_SUBSCRIPTION_STATUSES = ["creator", "administrator", "member"]
         self.CHANNEL_NON_SUBSCRIPTION_STATUSES = ["left"]

@@ -143,9 +143,9 @@ class BotService:
 
 
 class NotifierMixin(BotService):
-    SUBSCRIPTION_TEXT = (f"Чтобы пользоваться ботом, подпишитесь на каналы,"
-                         f" а потом используйте опцию меню {UpdateSubscriptionsAction.button_text}"
-                         f" для обновления информации в боте.")
+    SUBSCRIPTION_TEXT = (f"❗️Чтобы пользоваться ботом, подпишитесь на каналы, а потом используйте опцию меню "
+                         f"«{CheckSubscriptionsAction.button_text}»."
+                         f" Если вы подписаны на все каналы, функционал станет доступен.")
     SELLER_API_TEXT = (f"Чтобы пользоваться расширенным функционалом,"
                        f" введите токен продавца, используя опцию меню {UpdateSellerApiTokenAction.button_text}.")
 
@@ -469,7 +469,6 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         (AddItemAction,),
         (RemoveItemAction,),
         (CheckSubscriptionsAction,),
-        (UpdateSubscriptionsAction,),
         (CheckSellerApiTokenAction,),
         (UpdateSellerApiTokenAction,),
         (GetDiscountsTableAction,),
@@ -498,14 +497,16 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         if parse_mode is None:
             parse_mode = self.ParseMode.MARKDOWN
 
-        return super().send_message(
-            chat_id,
-            self.Formatter.join(text),
-            parse_mode,
-            reply_markup = reply_markup,
-            link_preview_options = link_preview_options,
-            **kwargs
-        )
+        text_chunks = telebot.util.smart_split(self.Formatter.join(text))
+        for text_chunk in text_chunks:
+            return super().send_message(
+                chat_id,
+                text_chunk,
+                parse_mode,
+                reply_markup = reply_markup,
+                link_preview_options = link_preview_options,
+                **kwargs
+            )
 
     def send_photo(
             self,
@@ -663,11 +664,11 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
         return not_subscribed
 
     @staticmethod
-    def get_subscription_buttons(not_subscribed: Subscriptions) -> list[types.InlineKeyboardButton]:
-        buttons = []
+    def get_subscription_buttons(not_subscribed: Subscriptions) -> list[list[types.InlineKeyboardButton]]:
+        keyboard = []
         for _, data in not_subscribed.items():
-            buttons.append(types.InlineKeyboardButton(data[1], url = data[0]))
-        return buttons
+            keyboard.append([types.InlineKeyboardButton(data[1], url = data[0])])
+        return keyboard
 
     def start(self, message: types.Message) -> None:
         try:
@@ -694,14 +695,15 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
                 f"После ввода токена продавца ({UpdateSellerApiTokenAction.button_text}) сможете отслеживать изменения СПП."
             ]
             not_subscribed = self.get_needed_subscriptions(user)
-            reply_markup = types.InlineKeyboardMarkup([self.get_subscription_buttons(not_subscribed)])
+            reply_markup = types.InlineKeyboardMarkup(self.get_subscription_buttons(not_subscribed))
 
         self.send_message(user.telegram_chat_id, text, reply_markup = reply_markup)
 
     def menu(self, message: types.Message, delete_message = True) -> None:
         if delete_message:
             self.delete_message(message.chat.id, message.id)
-        self.send_message(message.chat.id, "Меню бота", reply_markup = self.menu_keyboard)
+        text = "📊 Меню бота"
+        self.send_message(message.chat.id, text, reply_markup = self.menu_keyboard)
 
     def get_chat_id(self, message: types.Message) -> None:
         self.send_message(message.chat.id, self.Formatter.copyable(message.chat.id))

@@ -19,13 +19,14 @@ class RemoveItemAction(base.BaseAction):
     callback_id = CallbackData.REMOVE_ITEM
 
     @classmethod
+    @base.BaseAction.action_wrapper(open_menu_after_call = False)
     @subscription_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         bot.send_message(user.telegram_chat_id, "Введите артикул товара.")
         bot.register_next_step_handler(callback.message, cls.step_vendor_code, bot, user)
 
     @classmethod
-    @base.BaseAction.open_menu_after_action
+    @base.BaseAction.action_wrapper(open_menu_after_call = True)
     def step_vendor_code(cls, message: types.Message, bot: "Bot", user: core_models.ParserUser) -> None:
         vendor_code = int(message.text)
         items = parser_price_models.Item.objects.filter(user = user, vendor_code = vendor_code)

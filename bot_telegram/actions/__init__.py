@@ -7,4 +7,3 @@ from bot_telegram.actions.get_discounts_table import GetDiscountsTableAction
 from bot_telegram.actions.parse_item import ParseItemAction
 from bot_telegram.actions.remove_item import RemoveItemAction
 from bot_telegram.actions.update_seller_api_token import UpdateSellerApiTokenAction
-from bot_telegram.actions.update_subscriptions import UpdateSubscriptionsAction

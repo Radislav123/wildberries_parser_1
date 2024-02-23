@@ -20,7 +20,7 @@ class GetAllItemsAction(base.BaseAction):
     callback_id = CallbackData.GET_ALL_ITEMS
 
     @classmethod
-    @base.BaseAction.open_menu_after_action
+    @base.BaseAction.action_wrapper(open_menu_after_call = True)
     @subscription_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         items = parser_price_models.Item.objects.filter(user = user)
@@ -29,6 +29,4 @@ class GetAllItemsAction(base.BaseAction):
         else:
             text = [f"{bot.Formatter.link(item.name_site, item.link)}: {item.vendor_code}" for item in items]
 
-        text_chunks = telebot.util.smart_split(bot.Formatter.join(text))
-        for text_chunk in text_chunks:
-            bot.send_message(user.telegram_chat_id, text_chunk, link_preview_options = types.LinkPreviewOptions(True))
+        bot.send_message(user.telegram_chat_id, text, link_preview_options = types.LinkPreviewOptions(True))

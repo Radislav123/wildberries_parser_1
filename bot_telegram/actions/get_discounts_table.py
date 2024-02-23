@@ -26,7 +26,7 @@ class GetDiscountsTableAction(base.BaseAction):
     file_id: str = None
 
     @classmethod
-    @base.BaseAction.open_menu_after_action
+    @base.BaseAction.action_wrapper(open_menu_after_call = True)
     @subscription_filter
     @seller_api_token_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
@@ -58,7 +58,9 @@ class GetDiscountsTableAction(base.BaseAction):
                 cls.book_data = book_file.read()
                 cls.update_time = datetime.datetime.now()
 
-            message = bot.send_document(user.telegram_chat_id, (f"discounts_{cls.update_time}.xlsx", cls.book_data))
+            datetime_format = "%d.%m.%y"
+            table_name = f"WBFAIR СПП {cls.update_time.strftime(datetime_format)}.xlsx"
+            message = bot.send_document(user.telegram_chat_id, (table_name, cls.book_data))
             cls.file_id = message.document.file_id
         else:
             bot.send_document(user.telegram_chat_id, cls.file_id)

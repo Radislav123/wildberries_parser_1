@@ -92,10 +92,11 @@ class Price(ParserPriceModel):
         return notifications
 
 
+# todo: при удалении связанного объекта Price в полях new и old указывать на специальный объект Price, вместо None
 # todo: добавить удаление объектов через месяц после добавления (переписать clear_user_history)
 class Notification(ParserPriceModel):
-    new = models.ForeignKey(Price, models.PROTECT, related_name = "notification_set_new")
-    old = models.ForeignKey(Price, models.PROTECT, related_name = "notification_set_old")
+    new = models.ForeignKey(Price, models.SET_NULL, null = True, related_name = "notification_set_new")
+    old = models.ForeignKey(Price, models.SET_NULL, null = True, related_name = "notification_set_old")
     delivered = models.BooleanField(null = True)
     error = models.TextField(null = True)
 

@@ -44,7 +44,7 @@ def subscription_filter(function: Callable) -> Callable:
     ) -> Any:
         if not validators.validate_subscriptions(user):
             not_subscribed = bot.get_needed_subscriptions(user)
-            reply_markup = types.InlineKeyboardMarkup((bot.get_subscription_buttons(not_subscribed),))
+            reply_markup = types.InlineKeyboardMarkup(bot.get_subscription_buttons(not_subscribed))
             bot.send_message(user.telegram_chat_id, bot.SUBSCRIPTION_TEXT, reply_markup = reply_markup)
         else:
             return function(cls, callback, bot, user, *args, **kwargs)

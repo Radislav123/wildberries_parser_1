@@ -19,6 +19,7 @@ class AddItemAction(base.BaseAction):
     callback_id = CallbackData.ADD_ITEM
 
     @classmethod
+    @base.BaseAction.action_wrapper(open_menu_after_call = False)
     @subscription_filter
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
         current_items = parser_price_models.Item.objects.filter(user = user)
@@ -34,7 +35,7 @@ class AddItemAction(base.BaseAction):
             bot.send_message(user.telegram_chat_id, "Введите артикул товара.")
 
     @classmethod
-    @base.BaseAction.open_menu_after_action
+    @base.BaseAction.action_wrapper(open_menu_after_call = True)
     def step_vendor_code(
             cls,
             message: types.Message,

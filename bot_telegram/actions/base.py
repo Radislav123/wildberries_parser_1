@@ -23,27 +23,33 @@ class BaseAction:
         cls.button_text = cls.description
 
     @staticmethod
-    def open_menu_after_action(function) -> Callable:
-        def wrapper(
-                cls: "type[BaseAction]",
-                callback_or_message: types.Message | types.CallbackQuery,
-                bot: "Bot",
-                *args,
-                **kwargs
-        ) -> Any:
-            try:
-                result = function(cls, callback_or_message, bot, *args, **kwargs)
-            except Exception as error:
-                raise error
-            finally:
+    def action_wrapper(open_menu_after_call: bool) -> Callable:
+        def error_handler(function: Callable) -> Callable:
+            def wrapper(
+                    cls: "type[BaseAction]",
+                    callback_or_message: types.Message | types.CallbackQuery,
+                    bot: "Bot",
+                    user: core_models.ParserUser,
+                    *args,
+                    **kwargs
+            ) -> Any:
                 if isinstance(callback_or_message, types.Message):
                     message = callback_or_message
                 else:
                     message = callback_or_message.message
-                bot.menu(message, False)
-            return result
+                try:
+                    result = function(cls, callback_or_message, bot, user, *args, **kwargs)
+                    if open_menu_after_call:
+                        bot.menu(message, False)
+                except Exception as error:
+                    bot.send_message(user.telegram_chat_id, "Произошла ошибка. Попробуйте еще раз чуть позже.")
+                    bot.menu(message, False)
+                    raise error
+                return result
 
-        return wrapper
+            return wrapper
+
+        return error_handler
 
     @classmethod
     def get_button(cls) -> types.InlineKeyboardButton:
