@@ -480,6 +480,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     )
     callback_to_action: dict[str, type[BaseAction]] = {x.callback_id: x for actions in menu_actions for x in actions}
     menu_keyboard = types.InlineKeyboardMarkup([[x.get_button() for x in actions] for actions in menu_actions])
+    menu_keyboard.add(types.InlineKeyboardButton("🇨🇳Условия нашего КАРГО WBFAIR", "https://t.me/mpwbfair/231"))
 
     def __init__(self, token: str = None):
         if token is None:
