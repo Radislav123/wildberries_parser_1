@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class CheckSellerApiTokenAction(base.BaseAction):
     command = "check_seller_api_token"
-    description = "Проверить действительность токена API продавца"
+    description = "Проверить действительность токена продавца"
     callback_id = CallbackData.CHECK_SELLER_API_TOKEN
 
     @classmethod

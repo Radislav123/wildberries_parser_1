@@ -157,6 +157,7 @@ class ParserUserAdmin(CoreAdmin, UserAdmin):
     model = core_models.ParserUser
     hidden_fields = ("password",)
     not_required_fields = ("seller_api_token",)
+    reorder_fields = {"subscribed": "date_joined"}
     _fieldsets = (
         (
             "Telegram",

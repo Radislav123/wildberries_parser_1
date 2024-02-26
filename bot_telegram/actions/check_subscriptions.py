@@ -21,6 +21,10 @@ class CheckSubscriptionsAction(base.BaseAction):
     @classmethod
     @base.BaseAction.action_wrapper(open_menu_after_call = True)
     def execute(cls, callback: types.CallbackQuery, bot: "Bot", user: core_models.ParserUser) -> None:
+        return cls.pure_execute(callback, bot, user)
+
+    @classmethod
+    def pure_execute(cls, callback: types.CallbackQuery | None, bot: "Bot", user: core_models.ParserUser) -> None:
         not_subscribed = bot.get_needed_subscriptions(user)
         user.update_subscriptions_info(not_subscribed)
 

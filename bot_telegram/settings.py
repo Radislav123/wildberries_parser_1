@@ -18,8 +18,9 @@ class Settings(settings.Settings):
             -1001922384556: ("https://t.me/+dOWOMO8RE3Q2MjFi", "Доставка из Китая | КАРГО WBFAIR"),
             -1001638911900: ("https://t.me/+gukqwJCmpm1jMGUy", "🥷🏻Ниндзя маркетплейсов | Иван Шкитин🇨🇳")
         }
+
         self.CHANNEL_SUBSCRIPTION_STATUSES = ["creator", "administrator", "member"]
-        self.CHANNEL_NON_SUBSCRIPTION_STATUSES = ["left"]
+        self.CHANNEL_NON_SUBSCRIPTION_STATUSES = ["restricted", "left", "kicked"]
 
         # количество последних разосланных сообщений пользователям, хранимых в БД
         self.SEND_TO_USER_KEEP_AMOUNT = 50

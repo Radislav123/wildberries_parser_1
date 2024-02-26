@@ -143,9 +143,10 @@ class BotService:
 
 
 class NotifierMixin(BotService):
-    SUBSCRIPTION_TEXT = (f"❗️Чтобы пользоваться ботом, подпишитесь на каналы, а потом используйте опцию меню "
-                         f"«{CheckSubscriptionsAction.button_text}»."
-                         f" Если вы подписаны на все каналы, функционал станет доступен.")
+    SUBSCRIPTION_TEXT = (f"❗️Чтобы пользоваться ботом, подпишитесь на каналы."
+                         f" Если вы подписаны на все каналы, функционал станет доступен автоматически."
+                         f" Если этого не произошло используйте опцию меню "
+                         f"«{CheckSubscriptionsAction.button_text}».")
     SELLER_API_TEXT = (f"Чтобы пользоваться расширенным функционалом,"
                        f" введите токен продавца, используя опцию меню {UpdateSellerApiTokenAction.button_text}.")
 
@@ -645,11 +646,10 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
 
     def check_user_status_change(self, update: types.ChatMemberUpdated) -> None:
         user = self.get_parser_user(update.from_user)
-        if update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES and user is not None:
-            subscription_filter(lambda *args: None)(None, None, self, user)
-
-            not_subscribed = self.get_needed_subscriptions(user)
-            user.update_subscriptions_info(not_subscribed)
+        if ((update.new_chat_member.status in self.settings.CHANNEL_NON_SUBSCRIPTION_STATUSES or
+             update.new_chat_member.status in self.settings.CHANNEL_SUBSCRIPTION_STATUSES)
+                and user is not None):
+            CheckSubscriptionsAction.pure_execute(None, self, user)
 
     # todo: перенести в filters
     # чтобы бот мог корректно проверять подписки, он должен быть администратором канала
