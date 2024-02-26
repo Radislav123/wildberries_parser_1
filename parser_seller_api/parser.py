@@ -77,8 +77,10 @@ class Parser(parser_core.Parser):
                 item.name_site = not_parsing_items[item.vendor_code]["name_site"]
             if item.vendor_code in prices:
                 item.personal_discount = prices[item.vendor_code].personal_discount
+                item.final_price = prices[item.vendor_code].final_price
             elif item.vendor_code in not_parsing_items:
                 item.personal_discount = not_parsing_items[item.vendor_code]["personal_discount"]
+                item.final_price = not_parsing_items[item.vendor_code]["final_price"]
 
         # удаление дублирующихся товаров
         items = tuple({x.vendor_code: x for x in items}.values())

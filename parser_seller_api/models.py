@@ -35,6 +35,10 @@ class Item(ParserSellerApiModel, core_models.Item):
         parse_price_models.Price.get_field_verbose_name("personal_discount"),
         null = True
     )
+    final_price = models.PositiveIntegerField(
+        parse_price_models.Price.get_field_verbose_name("final_price"),
+        null = True
+    )
 
     @property
     def real_price(self) -> int:

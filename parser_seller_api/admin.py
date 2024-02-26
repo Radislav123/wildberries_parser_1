@@ -14,8 +14,8 @@ class ParserSellerApiAdmin(core_admin.CoreAdmin):
 class ItemAdmin(ParserSellerApiAdmin):
     model = models.Item
     list_filter = ("category", "user", "vendor_code")
-    extra_list_display = {"real_price": "category"}
-    reorder_fields = {"name_site": "category", "personal_discount": "category"}
+    extra_list_display = {"real_price": "name_site"}
+    reorder_fields = {"personal_discount": "category", "final_price": "category", "name_site": "category"}
 
 
 class ItemHistoryAdmin(ParserSellerApiAdmin):

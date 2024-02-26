@@ -109,13 +109,11 @@ def get_nearest_personal_discount(
         nearest_discount = None
         price = None
     else:
-        prices = {item: round(final_price / (100 - item.personal_discount) * 100)
-                  for item in items if item.personal_discount}
-        differences = {abs(final_price - price): item for item, price in prices.items()}
+        differences = {abs(final_price - item.final_price): item for item in items if item.final_price}
         if differences:
             nearest_item = differences[min(differences)]
             nearest_discount = nearest_item.personal_discount
-            price = prices[nearest_item]
+            price = round(final_price / (100 - nearest_discount) * 100)
         else:
             nearest_discount = None
             price = None
