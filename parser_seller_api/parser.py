@@ -71,8 +71,10 @@ class Parser(parser_core.Parser):
         for item in items:
             if item.vendor_code in parser_price_items:
                 item.category = parser_price_items[item.vendor_code].category
+                item.name_site = parser_price_items[item.vendor_code].name_site
             elif item.vendor_code in not_parsing_items:
                 item.category = not_parsing_items[item.vendor_code]["category"]
+                item.name_site = not_parsing_items[item.vendor_code]["name_site"]
             if item.vendor_code in prices:
                 item.personal_discount = prices[item.vendor_code].personal_discount
             elif item.vendor_code in not_parsing_items:
@@ -83,6 +85,7 @@ class Parser(parser_core.Parser):
 
         models.Item.objects.all().delete()
         models.Item.objects.bulk_create(items)
+        models.Item.copy_to_history(items)
 
         if not_valid_token_users:
             core_models.ParserUser.objects.bulk_update(not_valid_token_users, ["seller_api_token"])

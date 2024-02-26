@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Iterable
 
 from django.db import models
 
@@ -22,6 +23,7 @@ class Item(ParserSellerApiModel, core_models.Item):
     user = models.ForeignKey(core_models.ParserUser, models.PROTECT, related_name = f"{settings.APP_NAME}_user")
     price = models.PositiveIntegerField("Цена до всех скидок")
     discount = models.PositiveIntegerField("Скидка продавца")
+    name_site = models.CharField(parse_price_models.Item.get_field_verbose_name("name_site"), null = True)
     category = models.ForeignKey(
         parse_price_models.Category,
         models.PROTECT,
@@ -61,3 +63,38 @@ class Item(ParserSellerApiModel, core_models.Item):
                 for x in prices
             }
         return discounts
+
+    @staticmethod
+    def copy_to_history(items: Iterable["Item"]) -> None:
+        items_history = (
+            ItemHistory(
+                vendor_code = item.vendor_code,
+                price = item.price,
+                discount = item.discount,
+                real_price = item.real_price,
+                personal_discount = item.personal_discount,
+                name_site = item.name_site,
+                category_name = item.category.name if item.category else None
+            ) for item in items
+        )
+        ItemHistory.objects.bulk_create(items_history)
+
+
+class ItemHistory(ParserSellerApiModel, core_models.Item):
+    class Meta:
+        verbose_name_plural = "Items histories"
+
+    price = models.PositiveIntegerField(Item.get_field_verbose_name("price"), null = True)
+    discount = models.PositiveIntegerField(Item.get_field_verbose_name("discount"), null = True)
+    real_price = models.PositiveIntegerField(parse_price_models.Price.get_field_verbose_name("price"), null = True)
+    personal_discount = models.PositiveIntegerField(
+        parse_price_models.Price.get_field_verbose_name("personal_discount"),
+        null = True
+    )
+    name_site = models.CharField(parse_price_models.Item.get_field_verbose_name("name_site"), null = True)
+    category_name = models.CharField(parse_price_models.Category.get_field_verbose_name("name"), null = True)
+
+    @property
+    def user(self) -> None:
+        # в этой истории нет привязки к пользователю
+        raise NotImplementedError()

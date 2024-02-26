@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from core import admin as core_admin
 from parser_price import models as parser_price_models
-from . import models as parser_seller_api_models
+from . import models
 from .settings import Settings
 
 
@@ -28,16 +28,21 @@ class CategoryFilter(admin.SimpleListFilter):
 
 
 class ParserSellerApiAdmin(core_admin.CoreAdmin):
-    model = parser_seller_api_models.ParserSellerApiModel
+    model = models.ParserSellerApiModel
     settings = settings
 
 
 class ItemAdmin(ParserSellerApiAdmin):
-    model = parser_seller_api_models.Item
+    model = models.Item
     list_filter = (CategoryFilter, "user", "vendor_code")
     extra_list_display = {"real_price": "category"}
-    reorder_fields = {"personal_discount": "category"}
+    reorder_fields = {"name_site": "category", "personal_discount": "category"}
 
 
-model_admins_to_register = [ItemAdmin]
+class ItemHistoryAdmin(ParserSellerApiAdmin):
+    model = models.ItemHistory
+    list_filter = ("category_name",)
+
+
+model_admins_to_register = [ItemAdmin, ItemHistoryAdmin]
 core_admin.register_models(model_admins_to_register)
