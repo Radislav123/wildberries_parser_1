@@ -36,10 +36,7 @@ class ParseItemAction(base.BaseAction):
         if vendor_code in errors:
             raise errors[vendor_code]
 
-        block = [
-            bot.BOT_GENERATION_TEXT,
-            ""
-        ]
+        block = []
 
         block.extend(
             bot.construct_header(
@@ -53,7 +50,12 @@ class ParseItemAction(base.BaseAction):
         block.append("")
 
         if price["sold_out"]:
-            block.extend(bot.construct_sold_out_block())
+            block.extend(
+                [
+                    *bot.construct_sold_out_block(),
+                    ""
+                ]
+            )
         elif validators.validate_seller_api_token(user):
             if price["price"] is not None:
                 block.append(
@@ -92,6 +94,7 @@ class ParseItemAction(base.BaseAction):
                 ]
             )
             reply_markup.add(bot.get_update_seller_api_token_button())
+        block.extend(bot.construct_bot_generation_block())
 
         bot.send_message(
             user.telegram_chat_id,

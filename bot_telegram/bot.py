@@ -152,7 +152,7 @@ class NotifierMixin(BotService):
     # noinspection PyPep8Naming
     @property
     def BOT_GENERATION_TEXT(self) -> str:
-        return f"Данное сообщение сгенерировано {self.Formatter.link('ботом', self.link)} (@{self.user.username})."
+        return f"Данное сообщение сгенерировано ботом (@{self.user.username})."
 
     @staticmethod
     def check_ownership(price: parser_price_models.Price) -> bool:
@@ -197,10 +197,7 @@ class NotifierMixin(BotService):
         return f"https://t.me/{self.user.username}"
 
     def construct_start_block(self, notification: parser_price_models.Notification) -> list[str]:
-        block = [
-            self.BOT_GENERATION_TEXT,
-            "",
-        ]
+        block = []
 
         if self.check_ownership(notification.new):
             block.append(self.Token.OWNERSHIP)
@@ -223,8 +220,7 @@ class NotifierMixin(BotService):
         return block
 
     def construct_final_block(self) -> list[str]:
-        block = [fr"* {self.Formatter.italic('Указана максимальная скидка для клиента')}"]
-        return block
+        return [f"* {self.Formatter.italic('Указана максимальная скидка для клиента')}"]
 
     # todo: добавить хранение и парсинг валюты
     def construct_price_block(self, notification: parser_price_models.Notification) -> list[str]:
@@ -329,6 +325,9 @@ class NotifierMixin(BotService):
             "Чтобы видеть СПП необходимо обновить токен продавца."
         ]
 
+    def construct_bot_generation_block(self) -> list[str]:
+        return [f"* {self.Formatter.italic(self.BOT_GENERATION_TEXT)}"]
+
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
         limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
 
@@ -354,7 +353,7 @@ class NotifierMixin(BotService):
                         )
                     # товар распродан
                     elif notification.new.sold_out and not notification.old.sold_out:
-                        text.extend(["", *self.construct_sold_out_block(), ])
+                        text.extend(["", *self.construct_sold_out_block()])
                     # товар появился в продаже
                     elif notification.old.sold_out and not notification.new.sold_out:
                         text.extend(
@@ -380,6 +379,7 @@ class NotifierMixin(BotService):
                         )
                     else:
                         raise WrongNotificationTypeException()
+                    text.extend(self.construct_bot_generation_block())
 
                     # отправка оповещения разработчику, если бот запущен на машине разработчика
                     if platform.node() == self.settings.secrets.developer.pc_name:
