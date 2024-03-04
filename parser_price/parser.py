@@ -21,24 +21,26 @@ class Parser(parser_core.Parser):
             items: list[models.Item],
             dest: str
     ) -> tuple[list[models.Price], dict[models.Item, Exception]]:
-        items_dict = {x.vendor_code: x for x in items if validators.validate_subscriptions(x.user)}
-        prices, errors = parsing.parse_prices(list(items_dict), dest)
+        items_dict: dict[int, models.Item] = {x.vendor_code: x for x in items
+                                              if validators.validate_subscriptions(x.user)}
+        items_categories = {x.vendor_code: x.category for x in items_dict.values()}
+        prices, errors = parsing.parse_prices(list(items_dict), dest, items_categories)
         errors = {items_dict[vendor_code]: error for vendor_code, error in errors.items()}
         price_objects = []
         for vendor_code, price in prices.items():
             price_object = models.Price(
                 item = items_dict[vendor_code],
                 parsing = self.parsing,
-                reviews_amount = price["reviews_amount"],
-                price = price["price"],
-                final_price = price["final_price"],
-                personal_discount = price["personal_discount"],
-                sold_out = price["sold_out"]
+                reviews_amount = price.reviews_amount,
+                price = price.price,
+                final_price = price.final_price,
+                personal_discount = price.personal_discount,
+                sold_out = price.sold_out
             )
 
             price_objects.append(price_object)
-            items_dict[vendor_code].category = price["category"]
-            items_dict[vendor_code].name_site = price["name_site"]
+            items_dict[vendor_code].category = price.category
+            items_dict[vendor_code].name_site = price.name_site
 
         models.Price.objects.bulk_create(price_objects)
         models.Item.objects.bulk_update(items_dict.values(), ["category", "name_site"])

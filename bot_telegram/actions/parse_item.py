@@ -40,16 +40,16 @@ class ParseItemAction(base.BaseAction):
 
         block.extend(
             bot.construct_header(
-                price["category"].name,
+                price.category.name,
                 vendor_code,
-                price["name_site"],
+                price.name_site,
                 None,
                 parser_price_models.Item(vendor_code = vendor_code).link
             )
         )
         block.append("")
 
-        if price["sold_out"]:
+        if price.sold_out:
             block.extend(
                 [
                     *bot.construct_sold_out_block(),
@@ -57,19 +57,19 @@ class ParseItemAction(base.BaseAction):
                 ]
             )
         elif validators.validate_seller_api_token(user):
-            if price["price"] is not None:
+            if price.price is not None:
                 block.append(
                     f"{bot.Token.NO_CHANGES} {parser_price_models.Price.get_field_verbose_name('price')}:"
-                    f" {price['price']}"
+                    f" {price.price}"
                 )
 
-            if price["personal_discount"] is not None:
+            if price.personal_discount is not None:
                 block.extend(
                     [
                         "",
                         (f"{bot.Token.NO_CHANGES} "
                          f"{parser_price_models.Price.get_field_verbose_name('personal_discount')}: "
-                         f"{price['personal_discount']}")
+                         f"{price.personal_discount}")
                     ]
                 )
             else:
@@ -79,7 +79,7 @@ class ParseItemAction(base.BaseAction):
                 [
                     "",
                     (f"{bot.Token.NO_CHANGES}"
-                     f" {parser_price_models.Price.get_field_verbose_name('final_price')}: {price['final_price']}"),
+                     f" {parser_price_models.Price.get_field_verbose_name('final_price')}: {price.final_price}"),
                     "", *bot.construct_final_block(),
                 ]
             )
@@ -89,7 +89,7 @@ class ParseItemAction(base.BaseAction):
                     *bot.construct_no_seller_api_token_block(),
                     "",
                     (f"{bot.Token.NO_CHANGES}"
-                     f" {parser_price_models.Price.get_field_verbose_name('final_price')}: {price['final_price']}"),
+                     f" {parser_price_models.Price.get_field_verbose_name('final_price')}: {price.final_price}"),
                     "", *bot.construct_final_block(),
                 ]
             )

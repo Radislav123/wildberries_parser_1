@@ -31,12 +31,12 @@ class Parser(parser_core.Parser):
                 keyword = keywords_dict[key],
                 parsing = self.parsing,
                 city = city,
-                page_capacities = position["page_capacities"],
-                page = position["page"],
-                position = position["position"],
-                promo_page = position["promo_page"],
-                promo_position = position["promo_position"],
-                sold_out = position["sold_out"]
+                page_capacities = position.page_capacities,
+                page = position.page,
+                position = position.position,
+                promo_page = position.promo_page,
+                promo_position = position.promo_position,
+                sold_out = position.sold_out
             ) for key, position in positions.items()
         ]
 

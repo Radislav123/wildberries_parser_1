@@ -62,28 +62,38 @@ class Parser(parser_core.Parser):
             x.item.vendor_code: x for x in
             parser_price_models.Price.objects.filter(
                 item__vendor_code__in = item_vendor_codes
-            ).prefetch_related("item").order_by("id")
+            ).prefetch_related("item")
         }
 
-        not_parsing_vendor_codes = [x.vendor_code for x in items if x.vendor_code not in parser_price_items]
-        not_parsing_items, _ = parsing.parse_prices(not_parsing_vendor_codes, self.settings.MOSCOW_CITY_DICT["dest"])
+        not_parsed_vendor_codes = [x.vendor_code for x in items if x.vendor_code not in parser_price_items]
+        not_parsed_items = models.Item.objects.filter(
+            vendor_code__in = not_parsed_vendor_codes
+        ).prefetch_related("category")
+        items_categories = {x.vendor_code: x.category for x in not_parsed_items}
+        not_parsing_items, _ = parsing.parse_prices(
+            not_parsed_vendor_codes,
+            self.settings.MOSCOW_CITY_DICT["dest"],
+            items_categories
+        )
 
         for item in items:
             if item.vendor_code in parser_price_items:
                 item.category = parser_price_items[item.vendor_code].category
                 item.name_site = parser_price_items[item.vendor_code].name_site
             elif item.vendor_code in not_parsing_items:
-                item.category = not_parsing_items[item.vendor_code]["category"]
-                item.name_site = not_parsing_items[item.vendor_code]["name_site"]
+                item.category = not_parsing_items[item.vendor_code].category
+                item.name_site = not_parsing_items[item.vendor_code].name_site
             if item.vendor_code in prices:
                 item.personal_discount = prices[item.vendor_code].personal_discount
                 item.final_price = prices[item.vendor_code].final_price
             elif item.vendor_code in not_parsing_items:
-                item.personal_discount = not_parsing_items[item.vendor_code]["personal_discount"]
-                item.final_price = not_parsing_items[item.vendor_code]["final_price"]
+                item.personal_discount = not_parsing_items[item.vendor_code].personal_discount
+                item.final_price = not_parsing_items[item.vendor_code].final_price
 
-        # удаление дублирующихся товаров
-        items = tuple({x.vendor_code: x for x in items}.values())
+        # удаление дублирующихся товаров и товаров с отрицательным СПП
+        items = tuple(
+            {x.vendor_code: x for x in items if x.personal_discount is None or x.personal_discount >= 0}.values()
+        )
 
         models.Item.objects.all().delete()
         models.Item.objects.bulk_create(items)

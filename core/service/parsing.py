@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import time
 from collections import Counter, defaultdict
@@ -20,10 +21,33 @@ Path(settings.PARSING_RESOURCES_PATH).mkdir(parents = True, exist_ok = True)
 BASKETS_PATH = f"{settings.PARSING_RESOURCES_PATH}/temp_basket_entities.json"
 
 
+@dataclasses.dataclass
+class ParsedPrice:
+    price: int | None
+    personal_discount: int | None
+    final_price: int
+    sold_out: bool
+    reviews_amount: int
+    category: price_models.Category | None
+    name_site: str | None
+
+
+@dataclasses.dataclass
+class ParsedPosition:
+    page_capacities: list[str] | None
+    page: int | None
+    position: int | None
+    promo_page: int | None
+    promo_position: int | None
+    sold_out: int | None = None
+
+
 def parse_prices(
         vendor_codes: list[int],
         dest: str,
-) -> tuple[dict[int, dict[str, int | float | str | None | price_models.Category]], dict[int, Exception]]:
+        items_categories: dict[int, price_models.Category] = None,
+        parse_categories = True
+) -> tuple[dict[int, ParsedPrice], dict[int, Exception]]:
     # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
     request_personal_discount = 99
     chunk_size = 100
@@ -60,10 +84,17 @@ def parse_prices(
                 item_dict: dict = item_dicts[vendor_code]
                 final_price, sold_out = get_price(item_dict)
                 reviews_amount = int(item_dict["feedbacks"])
-                category_name, basket = get_category_name(baskets_order, vendor_code)
-                baskets.append(basket)
                 name_site = f"{item_dict['brand']} / {item_dict['name']}"
-                category = price_models.Category.objects.get_or_create(name = category_name)[0]
+
+                if parse_categories:
+                    if vendor_code in items_categories:
+                        category = items_categories[vendor_code]
+                    else:
+                        category_name, basket = get_category_name(baskets_order, vendor_code)
+                        baskets.append(basket)
+                        category = price_models.Category.objects.get_or_create(name = category_name)[0]
+                else:
+                    category = None
 
                 if vendor_code in seller_api_items:
                     seller_api_item = seller_api_items[vendor_code]
@@ -78,15 +109,15 @@ def parse_prices(
                     price = None
                     personal_discount = None
 
-                prices[vendor_code] = {
-                    "price": price,
-                    "personal_discount": personal_discount,
-                    "final_price": final_price,
-                    "sold_out": sold_out,
-                    "reviews_amount": reviews_amount,
-                    "category": category,
-                    "name_site": name_site
-                }
+                prices[vendor_code] = ParsedPrice(
+                    price,
+                    personal_discount,
+                    final_price,
+                    sold_out,
+                    reviews_amount,
+                    category,
+                    name_site
+                )
             except Exception as error:
                 errors[vendor_code] = error
 
@@ -109,7 +140,8 @@ def get_nearest_personal_discount(
         nearest_discount = None
         price = None
     else:
-        differences = {abs(final_price - item.final_price): item for item in items if item.final_price}
+        differences = {abs(final_price - item.final_price): item for item in items
+                       if item.final_price and item.personal_discount}
         if differences:
             nearest_item = differences[min(differences)]
             nearest_discount = nearest_item.personal_discount
@@ -158,7 +190,7 @@ def get_category_name(baskets_order: Iterable[int], vendor_code: int) -> tuple[s
 
 
 # не использовать на прямую, так как нет проверки на наличие товара
-def parse_position(vendor_code: int, keyword: str, dest: str) -> dict[str, int | list[int]]:
+def parse_position(vendor_code: int, keyword: str, dest: str) -> ParsedPosition:
     try:
         page = 1
         position = None
@@ -218,37 +250,26 @@ def parse_position(vendor_code: int, keyword: str, dest: str) -> dict[str, int |
             promo_position = None
         else:
             raise error
-    return {
-        "page_capacities": page_capacities,
-        "page": page,
-        "position": position,
-        "promo_page": promo_page,
-        "promo_position": promo_position
-    }
+    return ParsedPosition(page_capacities, page, position, promo_page, promo_position)
 
 
 def parse_positions(
         vendor_codes: list[int],
         keywords: list[str],
         dest: str
-) -> tuple[dict[tuple[int, str], dict[str, int | list[int] | bool | None]], dict[int, Exception]]:
-    prices, _ = parse_prices(list(set(vendor_codes)), dest)
+) -> tuple[dict[tuple[int, str], ParsedPosition], dict[int, Exception]]:
+    prices, _ = parse_prices(list(set(vendor_codes)), dest, parse_categories = False)
 
     positions = {}
     errors = {}
     for keyword, vendor_code in zip(keywords, vendor_codes):
         try:
-            if prices[vendor_code]["sold_out"]:
-                position = {
-                    "page_capacities": None,
-                    "page": None,
-                    "position": None,
-                    "promo_page": None,
-                    "promo_position": None
-                }
+            if prices[vendor_code].sold_out:
+                # todo: реализовать класс ParsedPosition по аналогии с ParsedPrice
+                position = ParsedPosition(None, None, None, None, None)
             else:
                 position = parse_position(vendor_code, keyword, dest)
-            position["sold_out"] = prices[vendor_code]["sold_out"]
+            position.sold_out = prices[vendor_code].sold_out
             positions[(vendor_code, keyword)] = position
         except Exception as error:
             errors[vendor_code] = error

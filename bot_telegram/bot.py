@@ -323,7 +323,7 @@ class NotifierMixin(BotService):
     def construct_no_seller_api_token_block() -> list[str]:
         return [
             "Токен продавца отсутствует.",
-            "Чтобы видеть СПП необходимо обновить токен продавца."
+            "Чтобы видеть СПП, необходимо обновить токен продавца."
         ]
 
     def construct_bot_generation_block(self) -> list[str]:
