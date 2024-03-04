@@ -11,7 +11,7 @@ from telebot.storage.base_storage import StateStorageBase
 import logger
 from bot_telegram.actions import *
 from bot_telegram.callback_data import CallbackData
-from bot_telegram.filters import customer_filter, developer_filter, subscription_filter
+from bot_telegram.filters import customer_filter, developer_filter
 from core import models as core_models
 from core.service import validators
 from parser_price import models as parser_price_models

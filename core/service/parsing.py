@@ -265,7 +265,6 @@ def parse_positions(
     for keyword, vendor_code in zip(keywords, vendor_codes):
         try:
             if prices[vendor_code].sold_out:
-                # todo: реализовать класс ParsedPosition по аналогии с ParsedPrice
                 position = ParsedPosition(None, None, None, None, None)
             else:
                 position = parse_position(vendor_code, keyword, dest)
