@@ -32,10 +32,10 @@ class ParseItemAction(base.BaseAction):
         reply_markup = types.InlineKeyboardMarkup()
         vendor_code = int(message.text)
         prices, errors = parsing.parse_prices([vendor_code], bot.wildberries.dest)
-        price = prices[vendor_code]
         if vendor_code in errors:
             raise errors[vendor_code]
 
+        price = prices[vendor_code]
         block = []
 
         block.extend(

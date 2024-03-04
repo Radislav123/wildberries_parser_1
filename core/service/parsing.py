@@ -87,7 +87,7 @@ def parse_prices(
                 name_site = f"{item_dict['brand']} / {item_dict['name']}"
 
                 if parse_categories:
-                    if vendor_code in items_categories:
+                    if items_categories is not None and vendor_code in items_categories:
                         category = items_categories[vendor_code]
                     else:
                         category_name, basket = get_category_name(baskets_order, vendor_code)
