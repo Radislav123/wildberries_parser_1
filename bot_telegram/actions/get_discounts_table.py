@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 class GetDiscountsTableAction(base.BaseAction):
     command = "get_discounts_table"
-    description = "Получить таблицу скидок"
+    description = "Получить таблицу СПП"
     _button_text = f"📊 {description}"
     callback_id = CallbackData.GET_DISCOUNTS_TABLE
 
