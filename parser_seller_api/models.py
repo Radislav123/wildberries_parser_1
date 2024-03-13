@@ -55,8 +55,12 @@ class Item(ParserSellerApiModel, core_models.Item):
         items_by_categories = {key: value for key, value in items_by_categories.items()
                                if key is not None and key.name != ""}
         items_by_categories: dict[parse_price_models.Category, dict[int, Item]] = {
-            category: {x.price: x for x in sorted(category_items, key = lambda x: x.real_price) if x.personal_discount}
-            for category, category_items in sorted(items_by_categories.items(), key = lambda y: y[0].name)
+            category: {
+                x.price: x for x in sorted(
+                    (item for item in category_items if item.final_price is not None),
+                    key = lambda x: x.final_price
+                ) if x.personal_discount is not None
+            } for category, category_items in sorted(items_by_categories.items(), key = lambda y: y[0].name)
         }
 
         prices = sorted(set(price for x in items_by_categories.values() for price in x))
