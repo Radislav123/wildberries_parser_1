@@ -60,9 +60,7 @@ class Parser(parser_core.Parser):
         }
         prices: dict[int, parser_price_models.Price] = {
             x.item.vendor_code: x for x in
-            parser_price_models.Price.objects.filter(
-                item__vendor_code__in = item_vendor_codes
-            ).prefetch_related("item")
+            parser_price_models.Price.objects.filter(item__vendor_code__in = item_vendor_codes).prefetch_related("item")
         }
 
         not_parsed_vendor_codes = [x.vendor_code for x in items if x.vendor_code not in parser_price_items]
@@ -99,10 +97,7 @@ class Parser(parser_core.Parser):
         models.Item.objects.bulk_create(items)
         models.Item.copy_to_history(items)
 
-        if not_valid_token_users:
+        if len(not_valid_token_users) > 0:
             core_models.ParserUser.objects.bulk_update(not_valid_token_users, ["seller_api_token"])
 
-        if len(not_parsed) == 1:
-            self.logger.info("There is 1 not parsed user.")
-        elif len(not_parsed) > 1:
-            self.logger.info(f"There are {len(not_parsed)} not parsed users.")
+        self.logger.info(f"Not parsed users: {len(not_parsed)}.")

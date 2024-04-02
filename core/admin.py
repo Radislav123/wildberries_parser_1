@@ -32,20 +32,48 @@ def download_parser_users_excel(admin_model: "ParserUserAdmin", _, queryset: dja
     stream = BytesIO()
     book = xlsxwriter.Workbook(stream, {"remove_timezone": True})
     sheet = book.add_worksheet(model_name)
+    date_format = book.add_format({"num_format": "YYYY-MM-DD"})
 
     # запись шапки
     header = [
         core_models.ParserUser.get_field_verbose_name("id"),
+        core_models.ParserUser.get_field_verbose_name("last_login"),
+        core_models.ParserUser.get_field_verbose_name("is_superuser"),
+        core_models.ParserUser.get_field_verbose_name("username"),
+        core_models.ParserUser.get_field_verbose_name("first_name"),
+        core_models.ParserUser.get_field_verbose_name("last_name"),
+        core_models.ParserUser.get_field_verbose_name("email"),
+        core_models.ParserUser.get_field_verbose_name("is_staff"),
+        core_models.ParserUser.get_field_verbose_name("is_active"),
+        core_models.ParserUser.get_field_verbose_name("subscribed"),
+        core_models.ParserUser.get_field_verbose_name("date_joined"),
         core_models.ParserUser.get_field_verbose_name("telegram_user_id"),
+        core_models.ParserUser.get_field_verbose_name("telegram_chat_id"),
+        core_models.ParserUser.get_field_verbose_name("seller_api_token"),
     ]
     for row_number, column_name in enumerate(header):
+        if not isinstance(column_name, str):
+            column_name = str(column_name)
         sheet.write(0, row_number, column_name)
 
     # запись таблицы
     for row_number, data in enumerate(queryset, 1):
         data: admin_model.model
         sheet.write(row_number, 0, data.id)
-        sheet.write(row_number, 1, data.telegram_user_id)
+        if data.last_login is not None:
+            sheet.write_datetime(row_number, 1, data.last_login, date_format)
+        sheet.write(row_number, 2, data.is_superuser)
+        sheet.write(row_number, 3, data.username)
+        sheet.write(row_number, 4, data.first_name)
+        sheet.write(row_number, 5, data.last_name)
+        sheet.write(row_number, 6, data.email)
+        sheet.write(row_number, 7, data.is_staff)
+        sheet.write(row_number, 8, data.is_active)
+        sheet.write(row_number, 9, data.subscribed)
+        sheet.write_datetime(row_number, 10, data.date_joined, date_format)
+        sheet.write(row_number, 11, data.telegram_user_id)
+        sheet.write(row_number, 12, data.telegram_chat_id)
+        sheet.write(row_number, 13, data.seller_api_token)
     sheet.autofit()
     book.close()
 

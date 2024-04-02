@@ -1,3 +1,4 @@
+import platform
 from typing import Any
 
 import openpyxl
@@ -81,13 +82,19 @@ class Parser(parser_core.Parser):
 
     def run(self, division_remainder: int) -> None:
         items_customer = self.get_price_parser_items(self.settings.PYTEST_XDIST_WORKER_COUNT, division_remainder)
-        items_other = models.Item.objects.exclude(user = core_models.ParserUser.get_customer()).annotate(
-            vendor_code_mod = django_models.F("vendor_code") % self.settings.PYTEST_XDIST_WORKER_COUNT
-        ).filter(vendor_code_mod = division_remainder)
-        items = models.Item.objects.filter(id__in = (x.id for x in (*items_customer, *items_other))).prefetch_related(
-            "user",
-            "category"
-        )
+        # товары пользователей добавляются только при запуске не на машине разработчика
+        if platform.node() != self.settings.secrets.developer.pc_name:
+            items_other = models.Item.objects.exclude(user = core_models.ParserUser.get_customer()).annotate(
+                vendor_code_mod = django_models.F("vendor_code") % self.settings.PYTEST_XDIST_WORKER_COUNT
+            ).filter(vendor_code_mod = division_remainder)
+            items = models.Item.objects.filter(
+                id__in = (x.id for x in (*items_customer, *items_other))
+            ).prefetch_related("user", "category")
+        else:
+            items = models.Item.objects.filter(id__in = (x.id for x in items_customer)).prefetch_related(
+                "user",
+                "category"
+            )
 
         city_dict = self.settings.MOSCOW_CITY_DICT
         dest = city_dict["dest"]

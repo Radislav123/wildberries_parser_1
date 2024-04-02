@@ -331,7 +331,6 @@ class NotifierMixin(BotService):
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
         limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
-        notifications: list[parser_price_models.Notification] = []
 
         try:
             for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
@@ -387,10 +386,7 @@ class NotifierMixin(BotService):
                         # отправка оповещения разработчику, если бот запущен на машине разработчика
                         if platform.node() == self.settings.secrets.developer.pc_name:
                             telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
-                            if notification.new.item.user == core_models.ParserUser.get_customer():
-                                duplicated_telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
-                            else:
-                                duplicated_telegram_chat_id = None
+                            duplicated_telegram_chat_id = None
                         else:
                             telegram_chat_id = notification.new.item.user.telegram_chat_id
                             if notification.new.item.user == core_models.ParserUser.get_customer():
