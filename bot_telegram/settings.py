@@ -6,7 +6,7 @@ from .apps import BotTelegramConfig
 class Settings(settings.Settings):
     APP_NAME = BotTelegramConfig.name
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.BOT_TELEGRAM_RESOURCES_PATH = f"{self.RESOURCES_PATH}/{self.APP_NAME}"

@@ -331,95 +331,96 @@ class NotifierMixin(BotService):
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
         limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
+        notifications: list[parser_price_models.Notification] = []
 
-        for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
-            for notification in notification_batch:
-                try:
-                    reply_markup = types.InlineKeyboardMarkup()
-                    text = [*self.construct_start_block(notification), ]
-                    # обычное оповещение
-                    if not notification.new.sold_out and notification.new.personal_discount is not None:
-                        if validators.validate_seller_api_token(notification.new.item.user):
-                            if notification.new.price is not None:
-                                text.extend(["", *self.construct_price_block(notification), ])
-                            text.extend(["", *self.construct_personal_discount_block(notification), ])
+        try:
+            for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
+                for notification in notification_batch:
+                    try:
+                        reply_markup = types.InlineKeyboardMarkup()
+                        text = [*self.construct_start_block(notification), ]
+                        # обычное оповещение
+                        if not notification.new.sold_out and notification.new.personal_discount is not None:
+                            if validators.validate_seller_api_token(notification.new.item.user):
+                                if notification.new.price is not None:
+                                    text.extend(["", *self.construct_price_block(notification), ])
+                                text.extend(["", *self.construct_personal_discount_block(notification), ])
+                            else:
+                                text.extend(["", *self.construct_no_seller_api_token_block(), ])
+                                reply_markup.add(UpdateSellerApiTokenAction.get_button())
+                            text.extend(
+                                [
+                                    "", *self.construct_final_price_block(notification),
+                                    "", *self.construct_final_block(),
+                                ]
+                            )
+                        # товар распродан
+                        elif notification.new.sold_out and not notification.old.sold_out:
+                            text.extend(["", *self.construct_sold_out_block()])
+                        # товар появился в продаже
+                        elif notification.old.sold_out and not notification.new.sold_out:
+                            text.extend(
+                                [
+                                    "", *self.construct_final_price_block(notification),
+                                    "", *self.construct_appear_block(),
+                                ]
+                            )
+                        # СПП отсутствует
+                        elif notification.new.personal_discount is None:
+                            if validators.validate_seller_api_token(notification.new.item.user):
+                                if notification.new.price is not None:
+                                    text.extend(["", *self.construct_price_block(notification), ])
+                                text.extend(["", *self.construct_no_personal_discount_block(), ])
+                            else:
+                                text.extend(["", *self.construct_no_seller_api_token_block(), ])
+                                reply_markup.add(UpdateSellerApiTokenAction.get_button())
+                            text.extend(
+                                [
+                                    "", *self.construct_final_price_block(notification),
+                                    "", *self.construct_final_block(),
+                                ]
+                            )
                         else:
-                            text.extend(["", *self.construct_no_seller_api_token_block(), ])
-                            reply_markup.add(UpdateSellerApiTokenAction.get_button())
-                        text.extend(
-                            [
-                                "", *self.construct_final_price_block(notification),
-                                "", *self.construct_final_block(),
-                            ]
+                            raise WrongNotificationTypeException()
+                        text.extend(self.construct_bot_generation_block())
+
+                        # отправка оповещения разработчику, если бот запущен на машине разработчика
+                        if platform.node() == self.settings.secrets.developer.pc_name:
+                            telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
+                            if notification.new.item.user == core_models.ParserUser.get_customer():
+                                duplicated_telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
+                            else:
+                                duplicated_telegram_chat_id = None
+                        else:
+                            telegram_chat_id = notification.new.item.user.telegram_chat_id
+                            if notification.new.item.user == core_models.ParserUser.get_customer():
+                                duplicated_telegram_chat_id = self.settings.secrets.bot_telegram.duplicated_telegram_chat_id
+                            else:
+                                duplicated_telegram_chat_id = None
+
+                        message = self.send_message(
+                            telegram_chat_id,
+                            text,
+                            reply_markup = reply_markup,
+                            link_preview_options = types.LinkPreviewOptions(True)
                         )
-                    # товар распродан
-                    elif notification.new.sold_out and not notification.old.sold_out:
-                        text.extend(["", *self.construct_sold_out_block()])
-                    # товар появился в продаже
-                    elif notification.old.sold_out and not notification.new.sold_out:
-                        text.extend(
-                            [
-                                "", *self.construct_final_price_block(notification),
-                                "", *self.construct_appear_block(),
-                            ]
-                        )
-                    # СПП отсутствует
-                    elif notification.new.personal_discount is None:
-                        if validators.validate_seller_api_token(notification.new.item.user):
-                            if notification.new.price is not None:
-                                text.extend(["", *self.construct_price_block(notification), ])
-                            text.extend(["", *self.construct_no_personal_discount_block(), ])
-                        else:
-                            text.extend(["", *self.construct_no_seller_api_token_block(), ])
-                            reply_markup.add(UpdateSellerApiTokenAction.get_button())
-                        text.extend(
-                            [
-                                "", *self.construct_final_price_block(notification),
-                                "", *self.construct_final_block(),
-                            ]
-                        )
-                    else:
-                        raise WrongNotificationTypeException()
-                    text.extend(self.construct_bot_generation_block())
 
-                    # отправка оповещения разработчику, если бот запущен на машине разработчика
-                    if platform.node() == self.settings.secrets.developer.pc_name:
-                        telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
-                        if notification.new.item.user == core_models.ParserUser.get_customer():
-                            duplicated_telegram_chat_id = core_models.ParserUser.get_developer().telegram_chat_id
-                        else:
-                            duplicated_telegram_chat_id = None
-                    else:
-                        telegram_chat_id = notification.new.item.user.telegram_chat_id
-                        if notification.new.item.user == core_models.ParserUser.get_customer():
-                            # todo: перенести в секреты
-                            duplicated_telegram_chat_id = 6528892715
-                        else:
-                            duplicated_telegram_chat_id = None
+                        # дублируется сообщение для другого пользователя по просьбе заказчика
+                        if duplicated_telegram_chat_id is not None:
+                            try:
+                                self.copy_message(duplicated_telegram_chat_id, message.chat.id, message.id)
+                            except ApiTelegramException as error:
+                                self.logger.info(str(error))
 
-                    message = self.send_message(
-                        telegram_chat_id,
-                        text,
-                        reply_markup = reply_markup,
-                        link_preview_options = types.LinkPreviewOptions(True)
-                    )
-
-                    # дублируется сообщение для другого пользователя по просьбе заказчика
-                    if duplicated_telegram_chat_id is not None:
-                        try:
-                            self.copy_message(duplicated_telegram_chat_id, message.chat.id, message.id)
-                        except ApiTelegramException as error:
-                            self.logger.info(str(error))
-
-                    notification.delivered = True
-                except Exception as error:
-                    notification.delivered = False
-                    notification.error = str(error)
-                    raise error
-                finally:
-                    # todo: переделать на bulk_update
-                    notification.save()
-            time.sleep(1)
+                        notification.delivered = True
+                    except Exception as error:
+                        notification.delivered = False
+                        notification.error = str(error)
+                        raise error
+                time.sleep(1)
+        except Exception as error:
+            parser_price_models.Notification.objects.bulk_create(notifications)
+            raise error
 
     send_message: Callable
     copy_message: Callable
@@ -639,10 +640,7 @@ class Bot(NotifierMixin, UserStateMixin, telebot.TeleBot):
     def check_pc(self, user: core_models.ParserUser) -> bool:
         on_developer_pc = (platform.node() == self.settings.secrets.developer.pc_name and
                            user == core_models.ParserUser.get_developer())
-        not_on_developer_pc = (platform.node() != self.settings.secrets.developer.pc_name and
-                               user != user == core_models.ParserUser.get_customer() and
-                               user != user == core_models.ParserUser.get_developer())
-        return on_developer_pc or not_on_developer_pc
+        return on_developer_pc
 
     def check_user_status_change(self, update: types.ChatMemberUpdated) -> None:
         user = self.get_parser_user(update.from_user)

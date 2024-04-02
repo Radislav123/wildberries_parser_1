@@ -31,6 +31,7 @@ class SecretKeeper:
         username: str
         email: str
         password: str
+        subscribed: str
 
     class Geoparser(Module):
         site: str
@@ -42,6 +43,7 @@ class SecretKeeper:
         token: str
         name: str
         username: str
+        duplicated_telegram_chat_id: int
 
     class WildberriesLogInDriver(Module):
         url: str
@@ -49,6 +51,9 @@ class SecretKeeper:
 
     class Developer(Module):
         pc_name: str
+
+    class Django(Module):
+        secret_key: str
 
     database: Database
     customer_user: ParserUser
@@ -58,6 +63,7 @@ class SecretKeeper:
     bot_telegram: BotTelegram
     wildberries_log_in_driver: WildberriesLogInDriver
     developer: Developer
+    django: Django
 
     def __init__(self, settings: "Settings") -> None:
         self.add_module("database", settings.DATABASE_CREDENTIALS_PATH)
@@ -68,6 +74,7 @@ class SecretKeeper:
         self.add_module("bot_telegram", settings.BOT_TELEGRAM_CREDENTIALS_PATH)
         self.add_module("wildberries_log_in_driver", settings.WILDBERRIES_LOG_IN_DRIVER_DATA_PATH)
         self.add_module("developer", settings.DEVELOPER_CREDENTIALS_PATH)
+        self.add_module("django", settings.DJANGO_CREDENTIALS_PATH)
 
     @staticmethod
     def read_json(path: str) -> dict:

@@ -7,7 +7,7 @@ from ...bot import Bot
 
 
 class Command(telegram_bot_command.TelegramBotCommand):
-    help = "Рассылает оповещения пользователям боты, которые не подписаны на необходимые каналы"
+    help = "Рассылает оповещения пользователям бота, которые не подписаны на необходимые каналы"
 
     def handle(self, *args, **options):
         bot = Bot()

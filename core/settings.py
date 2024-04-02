@@ -10,7 +10,7 @@ from .apps import CoreConfig
 class Settings:
     APP_NAME = CoreConfig.name
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Настройки selenium
         self.DEFAULT_TIMEOUT = 5
 
@@ -60,6 +60,7 @@ class Settings:
         self.DATABASE_CREDENTIALS_PATH = f"{self.DATABASE_SECRETS_FOLDER}/credentials.json"
 
         self.ADMIN_PANEL_SECRETS_FOLDER = f"{self.SECRETS_FOLDER}/admin_panel"
+        self.DJANGO_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/django.json"
         self.CUSTOMER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/customer_user.json"
         self.DEVELOPER_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/developer_user.json"
         self.SYSTEM_USER_CREDENTIALS_PATH = f"{self.ADMIN_PANEL_SECRETS_FOLDER}/system_user.json"

@@ -7,7 +7,7 @@ from .apps import ParserPriceConfig
 class Settings(settings.Settings):
     APP_NAME = ParserPriceConfig.name
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # порядок отображения динамических полей в административной панели

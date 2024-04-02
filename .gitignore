@@ -21,7 +21,7 @@ __pycache__/
 venv/
 
 # доступ к рабочей машине
-remote_desctop/
+remote_desktop/
 
 # данные бота
 .state-save/

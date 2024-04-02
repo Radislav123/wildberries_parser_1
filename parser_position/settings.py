@@ -7,7 +7,7 @@ from .apps import ParserPositionConfig
 class Settings(settings.Settings):
     APP_NAME = ParserPositionConfig.name
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # количество дней для расчета долгих изменений позиции

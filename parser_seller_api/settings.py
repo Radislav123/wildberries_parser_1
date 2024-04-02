@@ -7,7 +7,7 @@ from .apps import ParserSellerApiConfig
 class Settings(settings.Settings):
     APP_NAME = ParserSellerApiConfig.name
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # убирается параллельный запуск
