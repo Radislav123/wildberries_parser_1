@@ -97,7 +97,7 @@ class Parser(parser_core.Parser):
         models.Item.objects.bulk_create(items)
         models.Item.copy_to_history(items)
 
-        if len(not_valid_token_users) > 0:
+        if len(not_valid_token_users) > 0 and len(not_valid_token_users) / len(users) < 0.5:
             core_models.ParserUser.objects.bulk_update(not_valid_token_users, ["seller_api_token"])
 
         self.logger.info(f"Not parsed users: {len(not_parsed)}.")
