@@ -6,7 +6,7 @@ from parser_price import models as parser_price_models
 from . import models, settings
 
 
-class RequestException(Exception):
+class SellerApiRequestException(Exception):
     pass
 
 
@@ -24,7 +24,7 @@ class Parser(parser_core.Parser):
         headers = {"Authorization": user.seller_api_token}
         response = requests.get(url, headers = headers)
         if response.status_code != 200:
-            raise RequestException(response.text)
+            raise SellerApiRequestException(response.text)
         return response.json()
 
     def run(self) -> None:
@@ -49,7 +49,7 @@ class Parser(parser_core.Parser):
                     not_parsed[user] = None
             except Exception as error:
                 not_parsed[user] = error
-                if isinstance(error, RequestException):
+                if isinstance(error, SellerApiRequestException):
                     user.seller_api_token = None
                     not_valid_token_users.append(user)
 
@@ -99,5 +99,15 @@ class Parser(parser_core.Parser):
 
         if len(not_valid_token_users) > 0 and len(not_valid_token_users) / len(users) < 0.5:
             core_models.ParserUser.objects.bulk_update(not_valid_token_users, ["seller_api_token"])
+            self.logger.info(f"Deleted tokens:{len(not_valid_token_users)}")
+            # todo: remove debug
+            self.logger.debug(f"{[x.id for x in not_valid_token_users]}")
+            # todo: remove bot
+            from bot_telegram.bot import Bot
+
+            bot = Bot()
+            text = f"Deleted tokens:{len(not_valid_token_users)}\n"
+            text += f"{[x.id for x in not_valid_token_users]}"
+            bot.send_message(core_models.ParserUser.get_developer().telegram_chat_id, text)
 
         self.logger.info(f"Not parsed users: {len(not_parsed)}.")

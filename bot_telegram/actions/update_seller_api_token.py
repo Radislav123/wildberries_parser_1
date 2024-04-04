@@ -6,7 +6,7 @@ from bot_telegram.actions import base
 from bot_telegram.callback_data import CallbackData
 from bot_telegram.filters import subscription_filter
 from core import models as core_models
-from parser_seller_api.parser import Parser as ParserSellerApi, RequestException
+from parser_seller_api.parser import Parser as ParserSellerApi, SellerApiRequestException
 
 
 if TYPE_CHECKING:
@@ -66,7 +66,7 @@ class UpdateSellerApiTokenAction(base.BaseAction):
 
         try:
             ParserSellerApi.make_request(user)
-        except RequestException:
+        except SellerApiRequestException:
             bot.send_message(user.telegram_chat_id, "Токен не обновлен, потому что не валиден.")
         else:
             user.save()
