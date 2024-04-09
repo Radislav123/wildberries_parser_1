@@ -24,6 +24,8 @@ class Parser(parser_core.Parser):
         headers = {"Authorization": user.seller_api_token}
         response = requests.get(url, headers = headers)
         if response.status_code != 200:
+            error_text = f"{response}\n"
+            error_text += response.text
             raise SellerApiRequestException(response.text)
         return response.json()
 
@@ -32,6 +34,8 @@ class Parser(parser_core.Parser):
         items = []
         not_parsed = {}
         not_valid_token_users = []
+        # todo: remove all last_error lines
+        last_error = None
 
         for user in users:
             try:
@@ -49,6 +53,7 @@ class Parser(parser_core.Parser):
                     not_parsed[user] = None
             except Exception as error:
                 not_parsed[user] = error
+                last_error = error
                 if isinstance(error, SellerApiRequestException):
                     user.seller_api_token = None
                     not_valid_token_users.append(user)
@@ -98,7 +103,8 @@ class Parser(parser_core.Parser):
         models.Item.copy_to_history(items)
 
         if len(not_valid_token_users) > 0 and len(not_valid_token_users) / len(users) < 0.5:
-            core_models.ParserUser.objects.bulk_update(not_valid_token_users, ["seller_api_token"])
+            # todo:return line
+            # core_models.ParserUser.objects.bulk_update(not_valid_token_users, ["seller_api_token"])
             self.logger.info(f"Deleted tokens:{len(not_valid_token_users)}")
             # todo: remove debug
             self.logger.debug(f"{[x.id for x in not_valid_token_users]}")
@@ -106,8 +112,9 @@ class Parser(parser_core.Parser):
             from bot_telegram.bot import Bot
 
             bot = Bot()
-            text = f"Deleted tokens:{len(not_valid_token_users)}\n"
+            text = f"Deleted tokens: {len(not_valid_token_users)}\n"
             text += f"{[x.id for x in not_valid_token_users]}"
+            text += str(last_error)
             bot.send_message(core_models.ParserUser.get_developer().telegram_chat_id, text)
 
         self.logger.info(f"Not parsed users: {len(not_parsed)}.")
