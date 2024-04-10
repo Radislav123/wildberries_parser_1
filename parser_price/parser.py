@@ -2,7 +2,6 @@ import platform
 from typing import Any
 
 import openpyxl
-from selenium.webdriver import Chrome
 
 import parser_seller_api.parser
 from bot_telegram import bot
@@ -13,7 +12,6 @@ from parser_price import models, settings
 
 class Parser(parser_core.Parser):
     settings = settings.Settings()
-    log_in_driver: Chrome
     bot_telegram = bot.Bot()
     parsing_type = core_models.Parsing.Type.PRICE
 
@@ -95,7 +93,7 @@ class Parser(parser_core.Parser):
 
         parser_api = parser_seller_api.parser.Parser()
         parser_api.setup_method()
-        parser_api.run(items)
+        parser_api.run()
         parser_api.teardown_method()
 
         city_dict = self.settings.MOSCOW_CITY_DICT

@@ -65,7 +65,7 @@ class UpdateSellerApiTokenAction(base.BaseAction):
         user.seller_api_token = new_token
 
         try:
-            ParserSellerApi.make_request(user)
+            ParserSellerApi().make_request(user, 0)
         except SellerApiRequestException:
             bot.send_message(user.telegram_chat_id, "Токен не обновлен, потому что не валиден.")
         else:

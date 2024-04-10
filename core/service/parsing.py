@@ -46,16 +46,20 @@ def parse_prices(
         vendor_codes: list[int],
         dest: str,
         items_categories: dict[int, price_models.Category] = None,
-        parse_categories = True
+        parse_categories = True,
+        seller_api_items: dict[int, seller_api_models.Item] = None
 ) -> tuple[dict[int, ParsedPrice], dict[int, Exception]]:
     # если указать СПП меньше реальной, придут неверные данные, при СПП >= 100 данные не приходят
     request_personal_discount = 99
+    # todo: проверить, может быть можно делать запросы с большим, чем 100, chunk_size
     chunk_size = 100
     chunks = [vendor_codes[x: x + chunk_size] for x in range(0, len(vendor_codes), chunk_size)]
     prices = {}
     errors = {}
-    seller_api_items: dict[int, seller_api_models.Item] = {x.vendor_code: x for x in
-                                                           seller_api_models.Item.objects.all()}
+    if seller_api_items is None:
+        seller_api_items: dict[int, seller_api_models.Item] = {
+            x.vendor_code: x for x in seller_api_models.Item.objects.all().prefetch_related("category")
+        }
     seller_api_items_by_category = defaultdict(list)
     for item in seller_api_items.values():
         seller_api_items_by_category[item.category].append(item)
