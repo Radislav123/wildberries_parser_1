@@ -1,9 +1,11 @@
+from typing import Iterable
+
 import requests
 
 from core import models as core_models, parser as parser_core
 from core.service import parsing
 from parser_price import models as parser_price_models
-from . import models, settings
+from parser_seller_api import models, settings
 
 
 class SellerApiRequestException(Exception):
@@ -29,7 +31,7 @@ class Parser(parser_core.Parser):
             raise SellerApiRequestException(response.text)
         return response.json()
 
-    def run(self) -> None:
+    def run(self, parser_price_items: list[parser_price_models.Item]) -> None:
         users = core_models.ParserUser.objects.all()
         items = []
         not_parsed = {}
@@ -59,10 +61,6 @@ class Parser(parser_core.Parser):
                     not_valid_token_users.append(user)
 
         item_vendor_codes = tuple(x.vendor_code for x in items)
-        parser_price_items: dict[int, parser_price_models.Item] = {
-            x.vendor_code: x for x in
-            parser_price_models.Item.objects.filter(vendor_code__in = item_vendor_codes).prefetch_related("category")
-        }
         prices: dict[int, parser_price_models.Price] = {
             x.item.vendor_code: x for x in
             parser_price_models.Price.objects.filter(item__vendor_code__in = item_vendor_codes).prefetch_related("item")

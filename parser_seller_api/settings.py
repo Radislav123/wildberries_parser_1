@@ -6,6 +6,7 @@ from .apps import ParserSellerApiConfig
 # todo: move it to parsing_helper
 class Settings(settings.Settings):
     APP_NAME = ParserSellerApiConfig.name
+    parallel = False
 
     def __init__(self) -> None:
         super().__init__()

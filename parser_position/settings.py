@@ -6,6 +6,7 @@ from .apps import ParserPositionConfig
 # todo: move it to parsing_helper
 class Settings(settings.Settings):
     APP_NAME = ParserPositionConfig.name
+    PARALLEL = True
 
     def __init__(self) -> None:
         super().__init__()

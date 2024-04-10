@@ -26,7 +26,8 @@ class Runner:
         elif command == self.settings.COMMAND_PRICE:
             self.settings = parser_price_settings.Settings()
         elif command == self.settings.COMMAND_SELLER_API:
-            self.settings = parser_seller_api_setting.Settings()
+            raise ValueError("This parser is deprecated as standalone.")
+            # self.settings = parser_seller_api_setting.Settings()
         else:
             raise UnknownParserOption(command)
 

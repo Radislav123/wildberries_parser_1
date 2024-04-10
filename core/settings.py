@@ -9,6 +9,7 @@ from .apps import CoreConfig
 # todo: move it to parsing_helper
 class Settings:
     APP_NAME = CoreConfig.name
+    PARALLEL = False
 
     def __init__(self) -> None:
         # Настройки selenium
@@ -120,15 +121,14 @@ class Settings:
             # "--reuse-db",
 
             # убирает экранирование не ASCII символов
-            "-o", "disable_test_id_escaping_and_forfeit_all_rights_to_community_support=True",
-
+            "-o", "disable_test_id_escaping_and_forfeit_all_rights_to_community_support=True"
+        ]
+        if self.PARALLEL:
             # разрешает пользовательский ввод в командной строке
             # не должно работать с pytest-xdist
-            "-s",
-
+            self.PYTEST_ARGS.append("-s")
             # pytest-xdist - запуск парсинга параллельно
-            "--numprocesses=auto",
-        ]
+            self.PYTEST_ARGS.append("--numprocesses=auto")
 
         # {marker_name: description}
         self.PYTEST_MARKERS = {}

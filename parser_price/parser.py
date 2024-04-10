@@ -2,13 +2,13 @@ import platform
 from typing import Any
 
 import openpyxl
-from django.db import models as django_models
 from selenium.webdriver import Chrome
 
+import parser_seller_api.parser
 from bot_telegram import bot
 from core import models as core_models, parser as parser_core
 from core.service import parsing, validators
-from . import models, settings
+from parser_price import models, settings
 
 
 class Parser(parser_core.Parser):
@@ -49,7 +49,7 @@ class Parser(parser_core.Parser):
         return price_objects, errors
 
     @classmethod
-    def get_price_parser_item_dicts(cls, divisor: int, remainder: int) -> list[dict[str, Any]]:
+    def get_price_parser_item_dicts(cls) -> list[dict[str, Any]]:
         book = openpyxl.load_workbook(cls.settings.PARSER_PRICE_DATA_PATH)
         sheet = book.active
         items = {}
@@ -61,11 +61,11 @@ class Parser(parser_core.Parser):
             }
             items[item["vendor_code"]] = item
             row += 1
-        return [x for x in items.values() if x["vendor_code"] % divisor == remainder]
+        return list(items.values())
 
     @classmethod
-    def get_price_parser_items(cls, divisor: int, remainder: int) -> list[models.Item]:
-        item_dicts = cls.get_price_parser_item_dicts(divisor, remainder)
+    def get_price_parser_items(cls) -> list[models.Item]:
+        item_dicts = cls.get_price_parser_item_dicts()
         items = []
 
         # todo: переписать с использованием bulk_create
@@ -80,21 +80,23 @@ class Parser(parser_core.Parser):
             )
         return items
 
-    def run(self, division_remainder: int) -> None:
-        items_customer = self.get_price_parser_items(self.settings.PYTEST_XDIST_WORKER_COUNT, division_remainder)
+    def run(self) -> None:
+        items_customer = self.get_price_parser_items()
         # товары пользователей добавляются только при запуске не на машине разработчика
         if platform.node() != self.settings.secrets.developer.pc_name:
-            items_other = models.Item.objects.exclude(user = core_models.ParserUser.get_customer()).annotate(
-                vendor_code_mod = django_models.F("vendor_code") % self.settings.PYTEST_XDIST_WORKER_COUNT
-            ).filter(vendor_code_mod = division_remainder)
+            items_other = models.Item.objects.exclude(user = core_models.ParserUser.get_customer())
             items = models.Item.objects.filter(
                 id__in = (x.id for x in (*items_customer, *items_other))
             ).prefetch_related("user", "category")
         else:
-            items = models.Item.objects.filter(id__in = (x.id for x in items_customer)).prefetch_related(
-                "user",
-                "category"
-            )
+            items = models.Item.objects.filter(
+                id__in = (x.id for x in items_customer)
+            ).prefetch_related("user", "category")
+
+        parser_api = parser_seller_api.parser.Parser()
+        parser_api.setup_method()
+        parser_api.run(items)
+        parser_api.teardown_method()
 
         city_dict = self.settings.MOSCOW_CITY_DICT
         dest = city_dict["dest"]
