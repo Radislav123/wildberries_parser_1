@@ -25,7 +25,7 @@ class Settings(settings.Settings):
         # количество последних разосланных сообщений пользователям, хранимых в БД
         self.SEND_TO_USER_KEEP_AMOUNT = 50
         # максимальное количество отслеживаемых товаров для пользователя
-        self.MAX_USER_ITEMS = 10
+        self.MAX_USER_ITEMS = 50
 
         # максимальное количество сообщений от бота в секунду
         self.API_MESSAGES_PER_SECOND_LIMIT = 10
