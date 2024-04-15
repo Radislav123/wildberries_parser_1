@@ -47,7 +47,7 @@ class Parser(parser_core.Parser):
         return price_objects, errors
 
     @classmethod
-    def get_price_parser_item_dicts(cls) -> list[dict[str, Any]]:
+    def get_price_parser_item_dicts(cls, divisor: int, remainder: int) -> list[dict[str, Any]]:
         book = openpyxl.load_workbook(cls.settings.PARSER_PRICE_DATA_PATH)
         sheet = book.active
         items = {}
@@ -59,11 +59,11 @@ class Parser(parser_core.Parser):
             }
             items[item["vendor_code"]] = item
             row += 1
-        return list(items.values())
+        return [x for x in items.values() if x["vendor_code"] % divisor == remainder]
 
     @classmethod
-    def get_price_parser_items(cls) -> list[models.Item]:
-        item_dicts = cls.get_price_parser_item_dicts()
+    def get_price_parser_items(cls, divisor: int, remainder: int) -> list[models.Item]:
+        item_dicts = cls.get_price_parser_item_dicts(divisor, remainder)
         items = []
 
         # todo: переписать с использованием bulk_create
@@ -79,7 +79,8 @@ class Parser(parser_core.Parser):
         return items
 
     def run(self) -> None:
-        items_customer = self.get_price_parser_items()
+        # коммит - feat: парсер скидок теперь запускается только вместе с парсером цен и только в один поток
+        items_customer = self.get_price_parser_items(1, 0)
         # товары пользователей добавляются только при запуске не на машине разработчика
         if platform.node() != self.settings.secrets.developer.pc_name:
             items_other = models.Item.objects.exclude(user = core_models.ParserUser.get_customer())

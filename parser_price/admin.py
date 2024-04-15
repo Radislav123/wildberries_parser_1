@@ -154,7 +154,7 @@ class NotificationAdmin(ParserPriceAdmin):
 
     @staticmethod
     def new__parsing__time(obj: model) -> datetime.datetime:
-        return obj.new.parsing.time
+        return obj.new.parsing.time if obj.new is not None else None
 
     @staticmethod
     def new__id(obj: model) -> str:
