@@ -44,6 +44,7 @@ class GetDiscountsTableAction(base.BaseAction):
                 discounts = seller_api_models.Item.get_discounts_table()
                 categories = tuple(discounts)
                 prices = tuple(discounts[categories[0]])
+
                 for category_row, category in enumerate(categories, title_height + 1):
                     sheet.write(category_row, 0, category.name)
                 for price_column, price in enumerate(prices, 1):

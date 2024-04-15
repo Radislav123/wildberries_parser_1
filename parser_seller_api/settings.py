@@ -1,6 +1,6 @@
 from core import settings
 
-from .apps import ParserSellerApiConfig
+from parser_seller_api.apps import ParserSellerApiConfig
 
 
 # todo: move it to parsing_helper
@@ -11,8 +11,12 @@ class Settings(settings.Settings):
     def __init__(self) -> None:
         super().__init__()
 
-        # убирается параллельный запуск
-        for arg in self.PYTEST_ARGS.copy():
-            if "numprocesses" in arg:
-                self.PYTEST_ARGS.remove(arg)
-                break
+        self.PRICE_RANGES = (
+            (0, 300),
+            (300, 500),
+            (500, 1000),
+            (1000, 3000),
+            (3000, 5000),
+            (5000, 10000),
+            (10000, 2147483647)
+        )

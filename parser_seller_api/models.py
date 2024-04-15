@@ -1,3 +1,4 @@
+import statistics
 from collections import defaultdict
 from typing import Iterable
 
@@ -40,13 +41,15 @@ class Item(ParserSellerApiModel, core_models.Item):
         null = True
     )
 
+    DISCOUNT_TABLE_TYPE = dict[parse_price_models.Category, dict[int, int]]
+
     @property
     def real_price(self) -> int:
         """Реальная цена без СПП."""
         return int(self.price * (100 - self.discount) / 100)
 
     @classmethod
-    def get_discounts_table(cls) -> dict[parse_price_models.Category, dict[int, int]]:
+    def get_discounts_table(cls) -> DISCOUNT_TABLE_TYPE:
         items: models.QuerySet[cls] = cls.objects.all().prefetch_related("category")
         items_by_categories: dict[parse_price_models.Category, list[Item]] = defaultdict(list)
 
@@ -71,6 +74,43 @@ class Item(ParserSellerApiModel, core_models.Item):
                 for x in prices
             }
         return discounts
+
+    @classmethod
+    def get_supposed_discounts(
+            cls,
+            final_prices: Iterable[int | float],
+            discounts: DISCOUNT_TABLE_TYPE
+    ) -> dict[int | float, tuple[tuple[int, int], int]]:
+        keys = list(list(discounts.values())[0].keys())
+        range_index = 0
+        keys_by_ranges = defaultdict(list)
+        for key in keys:
+            while range_index < len(cls.settings.PRICE_RANGES) and key >= cls.settings.PRICE_RANGES[range_index][1]:
+                range_index += 1
+            for discount_values in discounts.values():
+                if (discount_value := discount_values[key]) is not None:
+                    keys_by_ranges[cls.settings.PRICE_RANGES[range_index]].append(discount_value)
+
+        modes_by_ranges = {}
+        for price_range, discounts in keys_by_ranges.items():
+            modes = statistics.multimode(discounts)
+            if len(modes) == 1:
+                modes_by_ranges[price_range] = modes[0]
+            else:
+                modes_by_ranges[price_range] = statistics.median_high(discounts)
+
+        supposed_discounts = {}
+        for final_price in final_prices:
+            range_index = 0
+            while (range_index < len(cls.settings.PRICE_RANGES) and
+                   final_price >= cls.settings.PRICE_RANGES[range_index][1]):
+                range_index += 1
+            price_range = cls.settings.PRICE_RANGES[range_index]
+            supposed_discounts[final_price] = (
+                price_range,
+                modes_by_ranges[cls.settings.PRICE_RANGES[range_index]]
+            )
+        return supposed_discounts
 
     @staticmethod
     def copy_to_history(items: Iterable["Item"]) -> None:

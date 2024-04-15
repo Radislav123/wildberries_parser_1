@@ -9,13 +9,14 @@ from telebot.handler_backends import State, StatesGroup
 from telebot.storage.base_storage import StateStorageBase
 
 import logger
+from bot_telegram import models, settings
 from bot_telegram.actions import *
 from bot_telegram.callback_data import CallbackData
 from bot_telegram.filters import customer_filter, developer_filter
 from core import models as core_models
 from core.service import validators
 from parser_price import models as parser_price_models
-from . import models, settings
+from parser_seller_api import models as seller_api_models
 
 
 Subscriptions = dict[int, tuple[str, str]]
@@ -223,7 +224,6 @@ class NotifierMixin(BotService):
     def construct_final_block(self) -> list[str]:
         return [f"* {self.Formatter.italic('Указана максимальная скидка для клиента')}"]
 
-    # todo: добавить хранение и парсинг валюты
     def construct_price_block(self, notification: parser_price_models.Notification) -> list[str]:
         block_name = notification.new.get_field_verbose_name("price")
 
@@ -316,8 +316,13 @@ class NotifierMixin(BotService):
     def construct_appear_block() -> list[str]:
         return ["❗️ Товар появился в продаже"]
 
-    def construct_no_personal_discount_block(self) -> list[str]:
-        return [f"{self.Token.NO_PERSONAL_discount} СПП в процессе получения..."]
+    def construct_no_personal_discount_block(self, supposed_discount: tuple[tuple[int, int], int]) -> list[str]:
+        price_range = supposed_discount[0]
+        discount = supposed_discount[1]
+        return [
+            f"{self.Token.NO_PERSONAL_discount} СПП в процессе получения...",
+            f"Самое частое СПП в ценовом диапазоне товара ({price_range[0]}-{price_range[1]}р.): {discount}"
+        ]
 
     @staticmethod
     def construct_no_seller_api_token_block() -> list[str]:
@@ -331,6 +336,11 @@ class NotifierMixin(BotService):
 
     def notify(self, notifications: list[parser_price_models.Notification]) -> None:
         limit = self.settings.API_MESSAGES_PER_SECOND_LIMIT // self.settings.PYTEST_XDIST_WORKER_COUNT
+        discounts = seller_api_models.Item.get_discounts_table()
+        supposed_discounts = seller_api_models.Item.get_supposed_discounts(
+            [x.new.final_price for x in notifications],
+            discounts
+        )
 
         try:
             for notification_batch in [notifications[x:x + limit] for x in range(0, len(notifications), limit)]:
@@ -369,7 +379,14 @@ class NotifierMixin(BotService):
                             if validators.validate_seller_api_token(notification.new.item.user):
                                 if notification.new.price is not None:
                                     text.extend(["", *self.construct_price_block(notification), ])
-                                text.extend(["", *self.construct_no_personal_discount_block(), ])
+                                text.extend(
+                                    [
+                                        "",
+                                        *self.construct_no_personal_discount_block(
+                                            supposed_discounts[notification.new.final_price]
+                                        ),
+                                    ]
+                                )
                             else:
                                 text.extend(["", *self.construct_no_seller_api_token_block(), ])
                                 reply_markup.add(UpdateSellerApiTokenAction.get_button())

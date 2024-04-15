@@ -8,6 +8,7 @@ from bot_telegram.filters import subscription_filter
 from core import models as core_models
 from core.service import parsing, validators
 from parser_price import models as parser_price_models
+from parser_seller_api import models as seller_api_models
 
 
 if TYPE_CHECKING:
@@ -49,6 +50,10 @@ class ParseItemAction(base.BaseAction):
         )
         block.append("")
 
+        discounts = seller_api_models.Item.get_discounts_table()
+        supposed_discounts = seller_api_models.Item.get_supposed_discounts([price.final_price], discounts)
+        supposed_discount = supposed_discounts[price.final_price]
+
         if price.sold_out:
             block.extend(
                 [
@@ -73,7 +78,7 @@ class ParseItemAction(base.BaseAction):
                     ]
                 )
             else:
-                block.extend(["", *bot.construct_no_personal_discount_block(), ])
+                block.extend(["", *bot.construct_no_personal_discount_block(supposed_discount), ])
 
             block.extend(
                 [
