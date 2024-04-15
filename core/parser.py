@@ -1,15 +1,9 @@
 import datetime
 import logging
 import os
-import pathlib
-
-from selenium.webdriver import Chrome, ChromeOptions
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.driver_cache import DriverCacheManager
 
 import logger
-from . import models, settings
+from core import models, settings
 
 
 class UnsuccessfulParsing(Exception):

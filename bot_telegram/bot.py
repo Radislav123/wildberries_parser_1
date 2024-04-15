@@ -415,8 +415,9 @@ class NotifierMixin(BotService):
                         raise error
                 time.sleep(1)
         except Exception as error:
-            parser_price_models.Notification.objects.bulk_create(notifications)
             raise error
+        finally:
+            parser_price_models.Notification.objects.bulk_update(notifications, ["delivered", "error"])
 
     send_message: Callable
     copy_message: Callable

@@ -92,7 +92,6 @@ class Price(ParserPriceModel):
                         notifications.append(Notification(new = new, old = old))
 
         Notification.objects.bulk_create(notifications)
-
         return notifications
 
 

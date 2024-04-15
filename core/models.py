@@ -63,8 +63,11 @@ class NotParsedItemsJsonFieldEncoder(DjangoJSONEncoder):
         return obj
 
     def encode(self, o: Any) -> str:
-        new_object = {str(key): self.dump_value(o[key]) for key in o}
-        string = json.dumps(new_object, indent = 2)
+        if o is not None:
+            new_object = {str(key): self.dump_value(o[key]) for key in o}
+            string = json.dumps(new_object, indent = 2)
+        else:
+            string = None
         return string
 
 
@@ -118,7 +121,7 @@ class ParserUser(CoreModel, auth_models.AbstractUser):
         super().save()
 
 
-# todo: объединить параллельные парсинги в один
+# todo: объединить параллельные парсинги в один?
 class Parsing(CoreModel):
     class Type:
         POSITION = "position"

@@ -82,7 +82,8 @@ class Parser(parser_core.Parser):
         # коммит - feat: парсер скидок теперь запускается только вместе с парсером цен и только в один поток
         items_customer = self.get_price_parser_items(1, 0)
         # товары пользователей добавляются только при запуске не на машине разработчика
-        if platform.node() != self.settings.secrets.developer.pc_name:
+        on_developer_pc = platform.node() == self.settings.secrets.developer.pc_name
+        if not on_developer_pc:
             items_other = models.Item.objects.exclude(user = core_models.ParserUser.get_customer())
             items = models.Item.objects.filter(
                 id__in = (x.id for x in (*items_customer, *items_other))
@@ -105,7 +106,8 @@ class Parser(parser_core.Parser):
         notifications = models.Price.get_notifications(prices)
         self.bot_telegram.notify(notifications)
 
-        items_to_prepare = tuple(
-            x for x in items if x not in errors and x.user == core_models.ParserUser.get_customer()
-        )
-        models.PreparedPrice.prepare(items_to_prepare)
+        if not on_developer_pc:
+            items_to_prepare = tuple(
+                x for x in items if x not in errors and x.user == core_models.ParserUser.get_customer()
+            )
+            models.PreparedPrice.prepare(items_to_prepare)

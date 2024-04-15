@@ -92,6 +92,7 @@ class ItemHistory(ParserSellerApiModel, core_models.Item):
     class Meta:
         verbose_name_plural = "Items histories"
 
+    time = models.DateTimeField("Время сохранения", auto_now_add = True)
     price = models.PositiveIntegerField(Item.get_field_verbose_name("price"), null = True)
     discount = models.PositiveIntegerField(Item.get_field_verbose_name("discount"), null = True)
     real_price = models.PositiveIntegerField(parse_price_models.Price.get_field_verbose_name("price"), null = True)
