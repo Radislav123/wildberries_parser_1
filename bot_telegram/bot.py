@@ -348,8 +348,19 @@ class NotifierMixin(BotService):
                     try:
                         reply_markup = types.InlineKeyboardMarkup()
                         text = [*self.construct_start_block(notification), ]
+                        # товар закончился в продаже
+                        if notification.new.sold_out and not notification.old.sold_out:
+                            text.extend(["", *self.construct_sold_out_block()])
+                        # товар появился в продаже
+                        elif notification.old.sold_out and not notification.new.sold_out:
+                            text.extend(
+                                [
+                                    "", *self.construct_final_price_block(notification),
+                                    "", *self.construct_appear_block(),
+                                ]
+                            )
                         # обычное оповещение
-                        if not notification.new.sold_out and notification.new.personal_discount is not None:
+                        elif not notification.new.sold_out and notification.new.personal_discount is not None:
                             if validators.validate_seller_api_token(notification.new.item.user):
                                 if notification.new.price is not None:
                                     text.extend(["", *self.construct_price_block(notification), ])
@@ -361,17 +372,6 @@ class NotifierMixin(BotService):
                                 [
                                     "", *self.construct_final_price_block(notification),
                                     "", *self.construct_final_block(),
-                                ]
-                            )
-                        # товар распродан
-                        elif notification.new.sold_out and not notification.old.sold_out:
-                            text.extend(["", *self.construct_sold_out_block()])
-                        # товар появился в продаже
-                        elif notification.old.sold_out and not notification.new.sold_out:
-                            text.extend(
-                                [
-                                    "", *self.construct_final_price_block(notification),
-                                    "", *self.construct_appear_block(),
                                 ]
                             )
                         # СПП отсутствует

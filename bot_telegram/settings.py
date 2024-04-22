@@ -28,4 +28,4 @@ class Settings(settings.Settings):
         self.MAX_USER_ITEMS = 50
 
         # максимальное количество сообщений от бота в секунду
-        self.API_MESSAGES_PER_SECOND_LIMIT = 10
+        self.API_MESSAGES_PER_SECOND_LIMIT = 5

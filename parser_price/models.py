@@ -84,12 +84,15 @@ class Price(ParserPriceModel):
                 else:
                     final_price_changing = 0
 
-                if new.item.user.seller_api_token is None:
-                    if new.sold_out != old.sold_out or final_price_changing:
-                        notifications.append(Notification(new = new, old = old))
-                else:
-                    if new.sold_out != old.sold_out or price_changing or personal_discount_changing or final_price_changing:
-                        notifications.append(Notification(new = new, old = old))
+                sold_out_changing = new.sold_out != old.sold_out
+
+                if new.sold_out == False or old.sold_out == False:
+                    if new.item.user.seller_api_token is None:
+                        if sold_out_changing or final_price_changing:
+                            notifications.append(Notification(new = new, old = old))
+                    else:
+                        if sold_out_changing or price_changing or personal_discount_changing or final_price_changing:
+                            notifications.append(Notification(new = new, old = old))
 
         Notification.objects.bulk_create(notifications)
         return notifications
