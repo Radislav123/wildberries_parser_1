@@ -66,14 +66,17 @@ def parse_prices(
     seller_api_items_by_category = {key: sorted(value, key = lambda x: x.real_price)
                                     for key, value in seller_api_items_by_category.items()}
 
-    try:
-        with open(BASKETS_PATH, 'r') as file:
-            baskets = json.load(file)
-            if baskets[0] == "":
-                baskets = []
-    except FileNotFoundError:
-        baskets = []
-    baskets_order = get_baskets_order(baskets)
+    if parse_categories:
+        try:
+            with open(BASKETS_PATH, 'r') as file:
+                baskets = json.load(file)
+                if baskets[0] == "":
+                    baskets = []
+        except FileNotFoundError:
+            baskets = []
+        baskets_order = get_baskets_order(baskets)
+    else:
+        baskets_order = None
 
     for vendor_codes_chunk in chunks:
         # todo: сделать запросы асинхронными (ThreadPoolExecutor)
@@ -125,13 +128,14 @@ def parse_prices(
             except Exception as error:
                 errors[vendor_code] = error
 
-    entities_threshold = 10000
-    if len(baskets) > entities_threshold:
-        left = len(baskets) - entities_threshold
-    else:
-        left = 0
-    with open(BASKETS_PATH, 'w') as file:
-        json.dump(baskets[left:], file)
+    if parse_categories:
+        entities_threshold = 10000
+        if len(baskets) > entities_threshold:
+            left = len(baskets) - entities_threshold
+        else:
+            left = 0
+        with open(BASKETS_PATH, 'w') as file:
+            json.dump(baskets[left:], file)
 
     return prices, errors
 
