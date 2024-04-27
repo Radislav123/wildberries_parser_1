@@ -168,7 +168,6 @@ class PreparedPosition(ParserPositionModel, core_models.DynamicFieldModel):
         cls.objects.filter(id__in = objects_to_delete).delete()
 
     def prepare_long_movement(self) -> None:
-        # self.long_movement = last_positions[0].movement_from(last_positions[self.settings.LONG_MOVEMENT_DELTA])
         today = datetime.date.today()
         one_day_delta = datetime.timedelta(1)
         current_date = datetime.date.today()
