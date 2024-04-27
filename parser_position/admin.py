@@ -16,8 +16,8 @@ from django.utils.safestring import SafeString
 
 from core import admin as core_admin, models as core_models
 from core.service.color import AdminPanelColor, XLSXColor
-from . import models as parser_position_models, parser
-from .settings import Settings
+from parser_position import models as parser_position_models, parser
+from parser_position.settings import Settings
 
 
 settings = Settings()
@@ -368,7 +368,7 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
         ordering = (
             "position__keyword__item_name",
             "position__keyword__item__vendor_code",
-            "-position__keyword__frequency",
+            django_models.F("position__keyword__frequency").desc(nulls_last = True),
             "position__city",
             "position__keyword__value",
         )
