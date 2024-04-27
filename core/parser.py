@@ -1,5 +1,4 @@
 import datetime
-import logging
 import os
 
 import logger
@@ -12,7 +11,7 @@ class UnsuccessfulParsing(Exception):
 
 class Parser:
     settings = settings.Settings()
-    logger: logging.LoggerAdapter
+    logger = logger.Logger(settings.APP_NAME)
     parsing: models.Parsing
     parsing_type: str = None
 
@@ -21,7 +20,6 @@ class Parser:
         self.parsing.save()
         os.environ["PARSING_ID"] = str(self.parsing.id)
         self.parsing.not_parsed_items = {}
-        self.logger = logger.Logger(self.settings.APP_NAME)
         self.logger.info("Start")
 
     def teardown_method(self):

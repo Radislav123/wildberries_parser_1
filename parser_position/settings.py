@@ -1,6 +1,6 @@
 from core import settings
 
-from .apps import ParserPositionConfig
+from parser_position.apps import ParserPositionConfig
 
 
 # todo: move it to parsing_helper

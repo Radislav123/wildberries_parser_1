@@ -47,7 +47,7 @@ class Parser(parser_core.Parser):
         return price_objects, errors
 
     @classmethod
-    def get_price_parser_item_dicts(cls, divisor: int, remainder: int) -> list[dict[str, Any]]:
+    def get_price_parser_item_dicts(cls) -> dict[int, dict[str, Any]]:
         book = openpyxl.load_workbook(cls.settings.PARSER_PRICE_DATA_PATH)
         sheet = book.active
         items = {}
@@ -59,24 +59,26 @@ class Parser(parser_core.Parser):
             }
             items[item["vendor_code"]] = item
             row += 1
-        return [x for x in items.values() if x["vendor_code"] % divisor == remainder]
+        return items
 
     @classmethod
     def get_price_parser_items(cls, divisor: int, remainder: int) -> list[models.Item]:
-        item_dicts = cls.get_price_parser_item_dicts(divisor, remainder)
-        items = []
+        customer = core_models.ParserUser.get_customer()
+        item_dicts = {x[0]: x[1] for index, x in enumerate(cls.get_price_parser_item_dicts().items())
+                      if index % divisor == remainder}
 
-        # todo: переписать с использованием bulk_create
-        # https://stackoverflow.com/a/74189912/13186004
-        for item_dict in item_dicts:
-            items.append(
-                models.Item.objects.update_or_create(
-                    vendor_code = item_dict["vendor_code"],
-                    user = core_models.ParserUser.get_customer(),
-                    defaults = {"name": item_dict["name"]}
-                )[0]
-            )
-        return items
+        old_items_vendor_codes = set(models.Item.objects.values_list("vendor_code", flat = True))
+        new_items = {
+            key: models.Item(
+                vendor_code = key,
+                user = customer,
+                name = value["name"]
+            ) for key, value in item_dicts.items() if key not in old_items_vendor_codes
+        }
+        models.Item.objects.bulk_create(new_items.values())
+        items = models.Item.objects.filter(vendor_code__in = item_dicts.keys())
+
+        return list(items)
 
     def run(self) -> None:
         # коммит - feat: парсер скидок теперь запускается только вместе с парсером цен и только в один поток
