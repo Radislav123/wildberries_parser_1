@@ -245,15 +245,15 @@ class KeywordAdmin(ParserPositionAdmin):
             updated_keywords = []
             keywords_dict = defaultdict(list)
             for keyword in keywords:
-                keywords_dict[keyword.value.lower()].append(keyword)
+                keywords_dict[keyword.value.lower().strip()].append(keyword)
 
             cls.frequency_file_last_update = frequency_file_last_update
             with open(cls.settings.FREQUENCY_DATA_PATH, 'r', encoding = "utf-8") as file:
                 reader = csv.reader(file)
-                frequency = {row[0].lower(): int(row[1]) for row in reader}
+                frequency = {row[0].lower().strip(): int(row[1]) for row in reader}
 
             for keyword_value, keyword_objects in keywords_dict.items():
-                if keyword_value in frequency:
+                if keyword_value.strip() in frequency:
                     for keyword in keyword_objects:
                         keyword.frequency = frequency[keyword_value]
                     updated_keywords.extend(keyword_objects)
@@ -300,12 +300,6 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
     keyword.short_description = parser_position_models.Keyword.get_field_verbose_name("value")
 
     def frequency(self, obj: model) -> int:
-        # todo: remove print
-        if obj.position.keyword.value.lower() == "полусфера для шоколада":
-            print("=================================")
-        print(obj.position.keyword.value.lower(), obj.position.keyword.frequency)
-        if obj.position.keyword.value.lower() == "полусфера для шоколада":
-            print("=================================")
         return obj.position.keyword.frequency
 
     frequency.short_description = parser_position_models.Keyword.get_field_verbose_name("frequency")
