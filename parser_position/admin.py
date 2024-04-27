@@ -301,9 +301,11 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
 
     def frequency(self, obj: model) -> int:
         # todo: remove print
-        print(obj.position.id)
         if obj.position.keyword.value.lower() == "полусфера для шоколада":
-            print(obj.position.keyword.frequency)
+            print("=================================")
+        print(obj.position.keyword.value.lower(), obj.position.keyword.frequency)
+        if obj.position.keyword.value.lower() == "полусфера для шоколада":
+            print("=================================")
         return obj.position.keyword.frequency
 
     frequency.short_description = parser_position_models.Keyword.get_field_verbose_name("frequency")
