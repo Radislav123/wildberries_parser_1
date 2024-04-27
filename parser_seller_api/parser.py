@@ -48,6 +48,7 @@ class Parser(parser_core.Parser):
         old_items = list(models.Item.objects.all().prefetch_related("category"))
         old_items_categories = {x.vendor_code: x.category for x in old_items}
 
+        self.logger.info(f"Users to parse: {len(users)}")
         for user in users:
             try:
                 if user.seller_api_token:

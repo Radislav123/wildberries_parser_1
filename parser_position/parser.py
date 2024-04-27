@@ -112,6 +112,7 @@ class Parser(parser_core.Parser):
             "item__user"
         )
 
+        self.logger.info(f"Keywords to parse: {len(keywords)}")
         # todo: оставить только Москву - временное решение
         for city_dict in [self.settings.MOSCOW_CITY_DICT]:
             city = city_dict["name"]

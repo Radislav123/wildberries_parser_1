@@ -100,6 +100,7 @@ class Parser(parser_core.Parser):
         parser_api.run()
         parser_api.teardown_method()
 
+        self.logger.info(f"Items to parse: {len(items)}")
         city_dict = self.settings.MOSCOW_CITY_DICT
         dest = city_dict["dest"]
         prices, errors = self.parse_items(items, dest)
