@@ -252,10 +252,6 @@ class KeywordAdmin(ParserPositionAdmin):
                 reader = csv.reader(file)
                 frequency = {row[0].lower(): int(row[1]) for row in reader}
 
-            # todo: remove print
-            temp = "полусфера для шоколада"
-            print(keywords_dict[temp])
-            print(frequency[temp])
             for keyword_value, keyword_objects in keywords_dict.items():
                 if keyword_value in frequency:
                     for keyword in keyword_objects:
@@ -304,6 +300,9 @@ class PreparedPositionAdmin(core_admin.DynamicFieldAdminMixin, ParserPositionAdm
     keyword.short_description = parser_position_models.Keyword.get_field_verbose_name("value")
 
     def frequency(self, obj: model) -> int:
+        # todo: remove print
+        if obj.position.keyword.value == "полусфера для шоколада":
+            print(obj.position.keyword.frequency)
         return obj.position.keyword.frequency
 
     frequency.short_description = parser_position_models.Keyword.get_field_verbose_name("frequency")
