@@ -40,6 +40,7 @@ class Settings:
         # Настройки парсинга
         # количество попыток запросить товары на странице
         self.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT = 10
+        self.DEFAULT_PAGE_CAPACITY = 100
 
         # Настройки административной панели
         # noinspection SpellCheckingInspection

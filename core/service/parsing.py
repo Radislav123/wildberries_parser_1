@@ -221,7 +221,12 @@ def parse_position(vendor_code: int, keyword: str, dest: str) -> ParsedPosition:
                     products = response_json["data"]["products"]
                     page_vendor_codes = [x["id"] for x in products]
                     logs = {x["id"]: x["log"] for x in products if "log" in x and len(x["log"])}
-                    try_success = True
+                    if len(page_vendor_codes) == settings.DEFAULT_PAGE_CAPACITY:
+                        try_success = True
+                    if "original" in response_json["metadata"]:
+                        # страницы закончились, теперь идет другая выдача
+                        page = None
+                        break
                 except JSONDecodeError:
                     if not try_success and try_number >= settings.REQUEST_PAGE_ITEMS_ATTEMPTS_AMOUNT:
                         page = None
@@ -242,10 +247,6 @@ def parse_position(vendor_code: int, keyword: str, dest: str) -> ParsedPosition:
                         # предполагается, что емкость каждой страницы совпадает с емкостью первой
                         page = logs[vendor_code]["position"] // page_capacities[0] + 1
                         position = logs[vendor_code]["position"] % page_capacities[0] + 1
-                    break
-                elif "original" in response_json["metadata"]:
-                    # страницы закончились, теперь идет другая выдача
-                    page = None
                     break
                 page += 1
     except KeyError as error:
