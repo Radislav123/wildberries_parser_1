@@ -77,7 +77,8 @@ class Position(ParserPositionModel):
         # 100 * (5 - 1) + 30 = 430
 
         if self.page_capacities is not None and self.position is not None:
-            real_position = sum(self.page_capacities[:self.page - 1]) + self.position
+            # предполагается, что все страницы одинаковой емкости
+            real_position = (self.page - 1) * self.settings.DEFAULT_PAGE_CAPACITY + self.position
         else:
             real_position = self.position
         return real_position
